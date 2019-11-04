@@ -1,5 +1,7 @@
 package tnt.simulator;
 
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,24 +41,28 @@ public class SimulatedGeneTree extends Tree {
 // For now we assume constant population sizes along each branch
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch effective population sizes.", Validate.REQUIRED);
+	public Input<String> fileNameInput = new Input<>("fileName",
+			"Name of file to which gene trees will be written. Only if not using logger.");
 
 	public Input<RealParameter> bottleneckStrengthInput = new Input<RealParameter>("bottleneckStrength",
 			"Strength of the bottleneck in scaled time", Validate.REQUIRED);
+
+	public Input<RealParameter> maxBoundInput = new Input<RealParameter>("maxBound",
+			"Maximum value of time interval when computing next unobserved transmission time. Default 1000",
+			Input.Validate.OPTIONAL);
 
 	public Input<RealParameter> birthRateInput = new Input<RealParameter>("birthRate", "Birth rate",
 			Input.Validate.REQUIRED);
 	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate", Input.Validate.REQUIRED);
 	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 			"Sampling rate per individual", Input.Validate.REQUIRED);
-	// Add rho this to P_0
-	public Input<RealParameter> rhoProbability = new Input<RealParameter>("rho",
-			"Probability of an individual to be sampled at present", (RealParameter) null);
 
 	public Tree transmissionTree;
     public TraitSet sampleCounts;
 	private int transmissionNodeCount;
 
-	public double bottleneckStrength;
+	private double bottleneckStrength;
+	private double maxBound;
 
     public SimulatedGeneTree() { }
 
@@ -66,10 +72,21 @@ public class SimulatedGeneTree extends Tree {
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
 		bottleneckStrength = bottleneckStrengthInput.get().getArrayValue(0);
+		maxBound = maxBoundInput.get() != null ? maxBoundInput.get().getArrayValue(0) : 1000;
 
         sampleCounts = sampleCountsInput.get();
 
         assignFromWithoutID(getSimulatedGeneTree());
+		// Write simulated network to file if requested
+		if (fileNameInput.get() != null) {
+			try (PrintStream ps = new PrintStream(fileNameInput.get())) {
+
+				ps.println(toString());
+
+			} catch (FileNotFoundException ex) {
+				throw new RuntimeException("Error writing to output file '" + fileNameInput.get() + "'.");
+			}
+		}
     }
 
     int getTotalLineageCount(Map<Node, List<Node>> lineages) {
@@ -132,20 +149,27 @@ public class SimulatedGeneTree extends Tree {
 
 			for (Node transmissionNode : activeLineages.keySet()) {
 				int k = activeLineages.get(transmissionNode).size();
-				double timeToNextCoal = Randomizer
-						.nextExponential(0.5 * k * (k - 1) * 1 / popSize.get(transmissionNode));
-				if (timeToNextCoal < minCoalTime) {
-					minCoalTime = timeToNextCoal;
-					minCoal = transmissionNode;
+				if (k > 1) {
+					double timeToNextCoal = Randomizer
+							.nextExponential(0.5 * k * (k - 1) * 1 / popSize.get(transmissionNode));
+					if (timeToNextCoal < minCoalTime) {
+						minCoalTime = timeToNextCoal;
+						minCoal = transmissionNode;
+					}
+
+					double timeToNextNonObsTr = getInverseIntensity(t,
+							birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
+							samplingRateInput.get().getArrayValue(0));
+//					double timeToNextNonObsTr = getInverseIntensity(t, transmissionNode.getParent().getHeight(),
+//							birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
+//							samplingRateInput.get().getArrayValue(0));
+					if (timeToNextNonObsTr < minNonObsTrTime) {
+						minNonObsTrTime = timeToNextNonObsTr;
+						minNonObsTr = transmissionNode;
+
+					}
 				}
-				
-				double timeToNextNonObsTr = getInverseIntensity(t, transmissionNode.getParent().getHeight(),
-						birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
-						samplingRateInput.get().getArrayValue(0));
-				if (timeToNextNonObsTr < minNonObsTrTime) {
-					minNonObsTrTime = timeToNextNonObsTr;
-					minNonObsTr = transmissionNode;
-				}
+
 				
 
 //				double thisProp = 0.5 * k * (k - 1) * 1 / popSize.get(transmissionNode);
@@ -208,7 +232,7 @@ public class SimulatedGeneTree extends Tree {
 //					}
 
 
-					if (bottleneckStrength > 0 && recipientLineages.size() > 1) {
+					if (bottleneckStrength > 0 && recipientLineages.size() > 1 && !recipient.isDirectAncestor()) {
 						double duplicateTime = t;
 						double stopTime = t + bottleneckStrength;
 						while (duplicateTime < stopTime) {
@@ -236,8 +260,10 @@ public class SimulatedGeneTree extends Tree {
 							}
 							duplicateTime += deltaT;
 						}
+//						activeLineages.get(recipient).clear();
+						activeLineages.put(recipient, recipientLineages);
 					}
-					activeLineages.put(recipient, recipientLineages);
+
 							
 							
 					for (Node speciesChild : transmissionNode.getChildren()) {
@@ -249,7 +275,7 @@ public class SimulatedGeneTree extends Tree {
 
 				sortedTransmissionTreeNodes.remove(0);
 
-            } else {
+			} else if (dt != Double.POSITIVE_INFINITY) {
 				// TODO here need to include two variants
                 t += dt;
 
@@ -271,6 +297,7 @@ public class SimulatedGeneTree extends Tree {
 					lineageList.remove(node1);
 					lineageList.remove(node2);
 					lineageList.add(parent);
+//					activeLineages.get(minCoal).clear();
 					activeLineages.put(minCoal, lineageList);
 
 //					double u = Randomizer.nextDouble() * totalPropensity;
@@ -329,8 +356,10 @@ public class SimulatedGeneTree extends Tree {
 							}
 							duplicateTime += deltaT;
 						}
+//						activeLineages.get(minNonObsTr).clear();
+						activeLineages.put(minNonObsTr, lineageList);
 					}
-					activeLineages.put(minNonObsTr, lineageList);
+
 
 				}
             }
@@ -340,7 +369,9 @@ public class SimulatedGeneTree extends Tree {
 		return new Tree(activeLineages.get(transmissionTree.getRoot()).get(0));
     }
 
-	private double getInverseIntensity(double currentTime, double parentTime, double lambda, double mu, double psi) {
+//	private double getInverseIntensity(double currentTime, double parentTime, double lambda, double mu, double psi) {
+	private double getInverseIntensity(double currentTime, double lambda, double mu, double psi) {
+
 		double u = Randomizer.nextDouble();
 		double c_1 = Math.abs(Math.sqrt( Math.pow((lambda - mu - psi), 2) + 4*lambda*psi ));
 		double c_2 = - (lambda - mu - psi)/c_1;
@@ -362,7 +393,6 @@ public class SimulatedGeneTree extends Tree {
 
 			@Override
 			public double value(double t) {
-				System.out.println(this.function(currentTime));
 				return this.function(t) + Math.log(1 - u) - this.function(currentTime);
 			}
 
@@ -374,7 +404,8 @@ public class SimulatedGeneTree extends Tree {
 			}
 		};
 
-		return solver.solve(1000, f, currentTime, parentTime);
+//		return solver.solve(10000, f, currentTime, parentTime);
+		return solver.solve(10000, f, currentTime, maxBound);
 
 	}
 

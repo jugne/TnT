@@ -1,0 +1,59 @@
+<beast version="2.0"
+       namespace="beast.core
+                 :beast.core.util
+                 :beast.core.parameter
+                 :beast.evolution.alignment
+                 :beast.evolution.likelihood
+                 :beast.evolution.tree
+                 :beast.evolution.tree.coalescent
+                 :beast.evolution.sitemodel
+                 :beast.evolution.substitutionmodel
+                 :beast.evolution.operators
+                 :beast.math.distributions
+                 :feast.simulation
+                 :beast.util
+                 :tnt.simulator">
+
+    <taxonSet spec="TaxonSet" id="taxonSet">
+        <taxon spec="Taxon" id="A"/>
+        <taxon spec="Taxon" id="B"/>
+        <taxon spec="Taxon" id="C"/>
+    </taxonSet>
+    
+    <run spec="GPSimulator" nSims="1">
+        <simulationObject id="gene_tree_truth" spec="SimulatedGeneTree">
+			<transmissionTreeInput spec="TreeParser" newick="((A:1.5,B:0):0.5,C:1)"
+                     adjustTipHeights="false" IsLabelledNewick="true"/>
+
+        	<sampleCounts spec="TraitSet" traitname="sampleCounts" taxa="@taxonSet">
+            	A=2,
+            	B=1,
+            	C=1
+        	</sampleCounts>
+
+            <populationSizes spec="RealParameter" value="1.0"/>
+            <bottleneckStrength spec="RealParameter" value="1.0"/>
+            
+            <birthRate spec="RealParameter" value="1.0"/>
+            <deathRate spec="RealParameter" value="0.5"/>
+            <samplingRate spec="RealParameter" value="0.1"/>
+
+        </simulationObject>
+
+        <simulationObject id="geneAlign" spec="SimulatedAlignment" outputFileName="$(filebase).gene.alignment.nexus"
+                   sequenceLength="500" tree="@gene_tree_truth">
+            <siteModel spec="SiteModel">
+                <mutationRate spec="RealParameter" value="0.05"/>
+                <substModel spec="JukesCantor"/>
+            </siteModel>
+        </simulationObject>
+        
+       	<logger fileName="$(filebase).gene.trees" logEvery="1" mode="tree">
+            <log spec="SimulatedGeneTreeLogger">
+                <simulatedGeneTree idref="gene_tree_truth" />
+            </log>
+        </logger>
+
+    </run>
+
+</beast>
