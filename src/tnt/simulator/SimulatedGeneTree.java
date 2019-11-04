@@ -120,7 +120,7 @@ public class SimulatedGeneTree extends Tree {
             return 0;
         });
 
-        // Perform simulation
+		// Perform simulation
 
         Map<Node,List<Node>> activeLineages = new HashMap<>();
 		Map<Node, Double> popSize = new HashMap<>();
@@ -135,12 +135,6 @@ public class SimulatedGeneTree extends Tree {
 		}
 
 		while (getTotalLineageCount(activeLineages) > 1 || !sortedTransmissionTreeNodes.isEmpty()) {
-
-            // Compute propensity
-
-//            double totalPropensity = 0;
-//            Map<Node, Double> propensities = new HashMap<>();
-//            Map<Node, Double> nonObsTransmissionPropensities = new HashMap<>();
 
 			Node minCoal = new Node();
 			Node minNonObsTr = new Node();
@@ -160,31 +154,14 @@ public class SimulatedGeneTree extends Tree {
 					double timeToNextNonObsTr = getInverseIntensity(t,
 							birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
 							samplingRateInput.get().getArrayValue(0));
-//					double timeToNextNonObsTr = getInverseIntensity(t, transmissionNode.getParent().getHeight(),
-//							birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
-//							samplingRateInput.get().getArrayValue(0));
 					if (timeToNextNonObsTr < minNonObsTrTime) {
 						minNonObsTrTime = timeToNextNonObsTr;
 						minNonObsTr = transmissionNode;
 
 					}
 				}
+			}
 
-				
-
-//				double thisProp = 0.5 * k * (k - 1) * 1 / popSize.get(transmissionNode);
-//
-//				propensities.put(transmissionNode, thisProp);
-//                totalPropensity += thisProp;
-//                
-//				double nonObservedTransmission = getInverseIntensity(t, transmissionNode.getParent().getHeight(),
-//						birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
-//						samplingRateInput.get().getArrayValue(0));
-//				nonObsTransmissionPropensities.put(transmissionNode, nonObservedTransmission);
-            }
-
-//			double dt_coal = Randomizer.nextExponential(totalPropensity);
-//			double dt_nonObservedCoal = Collections.min(nonObsTransmissionPropensities.values());
 			
 			double dt = Math.min(minCoalTime, minNonObsTrTime);
 
@@ -205,31 +182,9 @@ public class SimulatedGeneTree extends Tree {
                     }
 
                 } else {
-					// Donor is always the left child
-//					Node donor = transmissionNode.getChildren().get(0);
 					Node recipient = transmissionNode.getChildren().get(1);
-//					String recipientID;
-//					int recipientNr;
-//					double recipientNe = 0;
 					List<Node> recipientLineages = activeLineages.get(recipient);
 					double recipientNe = popSize.get(recipient);
-
-//					String donorID = transmissionNode.getID();
-//					if (donorID == child_1.getID()) {
-//						recipientID = child_2.getID();
-//						recipientNr = child_2.getNr();
-//						recipientLineages = activeLineages.get(child_2);
-//						recipientNe = popSize.get(child_2);
-//					} else if (donorID == child_2.getID()) {
-//						recipientID = child_1.getID();
-//						recipientNr = child_1.getNr();
-//						recipientLineages = activeLineages.get(child_1);
-//						recipientNe = popSize.get(child_1);
-//					} else {
-//						// TODO exception
-//						System.out.println("DEBUG: Wrongly labeled transmission tree");
-//						System.exit(0);
-//					}
 
 
 					if (bottleneckStrength > 0 && recipientLineages.size() > 1 && !recipient.isDirectAncestor()) {
@@ -260,7 +215,6 @@ public class SimulatedGeneTree extends Tree {
 							}
 							duplicateTime += deltaT;
 						}
-//						activeLineages.get(recipient).clear();
 						activeLineages.put(recipient, recipientLineages);
 					}
 
@@ -276,7 +230,6 @@ public class SimulatedGeneTree extends Tree {
 				sortedTransmissionTreeNodes.remove(0);
 
 			} else if (dt != Double.POSITIVE_INFINITY) {
-				// TODO here need to include two variants
                 t += dt;
 
 				if (minCoalTime == dt) {
@@ -297,34 +250,8 @@ public class SimulatedGeneTree extends Tree {
 					lineageList.remove(node1);
 					lineageList.remove(node2);
 					lineageList.add(parent);
-//					activeLineages.get(minCoal).clear();
 					activeLineages.put(minCoal, lineageList);
-
-//					double u = Randomizer.nextDouble() * totalPropensity;
-//					for (Node transmissionNode : propensities.keySet()) {
-//						u -= propensities.get(transmissionNode);
-//						if (u < 0) {
-//							List<Node> lineageList = activeLineages.get(transmissionNode);
-//							int k = lineageList.size();
-//
-//							Node node1 = lineageList.get(Randomizer.nextInt(k));
-//							Node node2;
-//							do {
-//								node2 = lineageList.get(Randomizer.nextInt(k));
-//							} while (node2 == node1);
-//
-//							Node parent = new Node(String.valueOf(nextIntNodeNr));
-//							parent.setNr(nextIntNodeNr++);
-//							parent.setHeight(t);
-//							parent.addChild(node1);
-//							parent.addChild(node2);
-//							lineageList.remove(node1);
-//							lineageList.remove(node2);
-//							lineageList.add(parent);
-//
-//							break;
-//						}
-//					}
+					
 				} else if (minNonObsTrTime == dt) {
 					List<Node> lineageList = activeLineages.get(minNonObsTr);
 					double Ne = popSize.get(minNonObsTr);
@@ -356,7 +283,6 @@ public class SimulatedGeneTree extends Tree {
 							}
 							duplicateTime += deltaT;
 						}
-//						activeLineages.get(minNonObsTr).clear();
 						activeLineages.put(minNonObsTr, lineageList);
 					}
 
@@ -369,7 +295,6 @@ public class SimulatedGeneTree extends Tree {
 		return new Tree(activeLineages.get(transmissionTree.getRoot()).get(0));
     }
 
-//	private double getInverseIntensity(double currentTime, double parentTime, double lambda, double mu, double psi) {
 	private double getInverseIntensity(double currentTime, double lambda, double mu, double psi) {
 
 		double u = Randomizer.nextDouble();
@@ -404,7 +329,6 @@ public class SimulatedGeneTree extends Tree {
 			}
 		};
 
-//		return solver.solve(10000, f, currentTime, parentTime);
 		return solver.solve(10000, f, currentTime, maxBound);
 
 	}
