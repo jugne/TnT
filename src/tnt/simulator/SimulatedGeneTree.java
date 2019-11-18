@@ -110,15 +110,7 @@ public class SimulatedGeneTree extends Tree {
     public Tree getSimulatedGeneTree() {
 
 		List<Node> sortedTransmissionTreeNodes = new ArrayList<>(Arrays.asList(transmissionTree.getNodesAsArray()));
-
-		sortedTransmissionTreeNodes.sort((o1, o2) -> {
-            if (o1.getHeight() < o2.getHeight())
-                return -1;
-            if (o1.getHeight() > o2.getHeight())
-                return 1;
-
-            return 0;
-        });
+		sortedTransmissionTreeNodes.sort(Comparator.comparingDouble(Node::getHeight));
 
 		// Perform simulation
 
@@ -172,21 +164,25 @@ public class SimulatedGeneTree extends Tree {
 				activeLineages.put(transmissionNode, new ArrayList<>());
 
 				if (transmissionNode.isLeaf()) {
+				    // Sample
+
 					int count = (int) Math.round(sampleCounts.getValue(transmissionNode.getID()));
 
                     for (int i=0; i<count; i++) {
-						Node geneTreeSampleNode = new Node(transmissionNode.getID() + String.valueOf(i + 1));
+						Node geneTreeSampleNode = new Node(transmissionNode.getID() + (i + 1));
                         geneTreeSampleNode.setNr(nextLeafNodeNr++);
 						geneTreeSampleNode.setHeight(transmissionNode.getHeight());
 						activeLineages.get(transmissionNode).add(geneTreeSampleNode);
                     }
 
                 } else {
+					// Observed transmission
+
 					Node recipient = transmissionNode.getChildren().get(1);
 					List<Node> recipientLineages = activeLineages.get(recipient);
 					double recipientNe = popSize.get(recipient);
 
-
+					// From Tim: Can this be extracted to a method?  More-or-less duplicated below.
 					if (bottleneckStrength > 0 && recipientLineages.size() > 1 && !recipient.isDirectAncestor()) {
 						double duplicateTime = t;
 						double stopTime = t + bottleneckStrength;
@@ -230,6 +226,8 @@ public class SimulatedGeneTree extends Tree {
 				sortedTransmissionTreeNodes.remove(0);
 
 			} else if (dt != Double.POSITIVE_INFINITY) {
+			    // Coalescence
+
                 t += dt;
 
 				if (minCoalTime == dt) {
@@ -253,8 +251,12 @@ public class SimulatedGeneTree extends Tree {
 					activeLineages.put(minCoal, lineageList);
 					
 				} else if (minNonObsTrTime == dt) {
+					// Unobserved transmission
+
 					List<Node> lineageList = activeLineages.get(minNonObsTr);
 					double Ne = popSize.get(minNonObsTr);
+
+					// Duplicate of above code
 					if (bottleneckStrength > 0 && lineageList.size() > 1) {
 						double duplicateTime = t;
 						double stopTime = t + bottleneckStrength;
@@ -295,6 +297,7 @@ public class SimulatedGeneTree extends Tree {
 		return new Tree(activeLineages.get(transmissionTree.getRoot()).get(0));
     }
 
+    // From Tim: Is this method named sensibly?  Sounds like a coalescent simulation method name.
 	private double getInverseIntensity(double currentTime, double lambda, double mu, double psi) {
 
 		double u = Randomizer.nextDouble();
@@ -318,6 +321,7 @@ public class SimulatedGeneTree extends Tree {
 
 			@Override
 			public double value(double t) {
+				// From Tim: Why 1-u here? It has the same distribution as u.
 				return this.function(t) + Math.log(1 - u) - this.function(currentTime);
 			}
 
