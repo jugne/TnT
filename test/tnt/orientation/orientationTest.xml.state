@@ -1,0 +1,29 @@
+<itsabeastystatewerein version='2.0' sample='25999'>
+<statenode id='Tree.t:Species'>((1:0.34915051512900264,2:1.3491505151290026)3:0.6680670663650978,0:0.017217581494100465)4:0.0</statenode>
+<statenode id='Tree.t:Gene'>((1:1.034954048153284,2:2.034954048153284)3:2.379159021480068,0:2.414113069633352)4:0.0</statenode>
+<statenode id='originFBD.t:Species'>originFBD.t:Species[1 1] (0.0,Infinity): 3.4296202163368936 </statenode>
+</itsabeastystatewerein>
+<!--
+{"operators":[
+{"id":"Reheight.t:Species","p":"NaN","accept":5443,"reject":2043,"acceptFC":0,"rejectFC":0,"rejectIv":1453,"rejectOp":35},
+{"id":"coordinatedUniform.t:Species","p":"NaN","accept":997,"reject":436,"acceptFC":0,"rejectFC":0,"rejectIv":117,"rejectOp":117},
+{"id":"coordinatedExponential.t:Species","p":0.47313157019108465,"accept":783,"reject":683,"acceptFC":0,"rejectFC":0,"rejectIv":337,"rejectOp":100},
+{"id":"updownAll:Species","p":0.75,"accept":204,"reject":386,"acceptFC":0,"rejectFC":0,"rejectIv":348,"rejectOp":242},
+{"id":"clockUpDownOperator.c:Gene","p":0.9500000000000001,"accept":224,"reject":27,"acceptFC":0,"rejectFC":0,"rejectIv":18,"rejectOp":2},
+{"id":"TreeScaler.t:Gene","p":0.9500000000000001,"accept":261,"reject":36,"acceptFC":0,"rejectFC":0,"rejectIv":15,"rejectOp":0},
+{"id":"TreeRootScaler.t:Gene","p":0.7,"accept":154,"reject":149,"acceptFC":0,"rejectFC":0,"rejectIv":50,"rejectOp":45},
+{"id":"UniformOperator.t:Gene","p":"NaN","accept":842,"reject":678,"acceptFC":0,"rejectFC":0,"rejectIv":262,"rejectOp":0},
+{"id":"SubtreeSlide.t:Gene","p":0.0020000000000000005,"accept":1492,"reject":2,"acceptFC":0,"rejectFC":0,"rejectIv":1,"rejectOp":0},
+{"id":"Narrow.t:Gene","p":"NaN","accept":723,"reject":836,"acceptFC":0,"rejectFC":0,"rejectIv":836,"rejectOp":653},
+{"id":"Wide.t:Gene","p":"NaN","accept":263,"reject":1294,"acceptFC":0,"rejectFC":0,"rejectIv":1294,"rejectOp":1235},
+{"id":"WilsonBalding.t:Gene","p":"NaN","accept":37,"reject":1422,"acceptFC":0,"rejectFC":0,"rejectIv":1340,"rejectOp":1282},
+{"id":"originScalerFBD.t:Species","p":0.75,"accept":132,"reject":187,"acceptFC":0,"rejectFC":0,"rejectIv":58,"rejectOp":0},
+{"id":"LeafToSAFBD.t:Species","p":"NaN","accept":36,"reject":900,"acceptFC":0,"rejectFC":0,"rejectIv":410,"rejectOp":383},
+{"id":"SAWilsonBaldingFBD.t:Species","p":"NaN","accept":67,"reject":909,"acceptFC":0,"rejectFC":0,"rejectIv":533,"rejectOp":215},
+{"id":"SAWideFBD.t:Species","p":"NaN","accept":52,"reject":891,"acceptFC":0,"rejectFC":0,"rejectIv":891,"rejectOp":885},
+{"id":"SANarrowFBD.t:Species","p":"NaN","accept":108,"reject":903,"acceptFC":0,"rejectFC":0,"rejectIv":903,"rejectOp":876},
+{"id":"SAUniformOperatorFBD.t:Species","p":"NaN","accept":1238,"reject":780,"acceptFC":0,"rejectFC":0,"rejectIv":585,"rejectOp":192},
+{"id":"SATreeRootScalerFBD.t:Species","p":0.9500000000000001,"accept":62,"reject":20,"acceptFC":0,"rejectFC":0,"rejectIv":19,"rejectOp":10},
+{"id":"SATreeScalerFBD.t:Species","p":0.9500000000000001,"accept":218,"reject":82,"acceptFC":0,"rejectFC":0,"rejectIv":76,"rejectOp":40}
+]}
+-->
