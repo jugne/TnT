@@ -1,4 +1,4 @@
-package distribution;
+package tnt.distribution;
 
 import java.util.List;
 import java.util.Random;

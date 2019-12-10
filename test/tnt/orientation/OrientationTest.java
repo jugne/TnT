@@ -44,13 +44,13 @@ import beast.evolution.tree.Tree;
 import beast.math.distributions.Prior;
 import beast.math.distributions.Uniform;
 import beast.util.Randomizer;
-import distribution.GeneTree;
 import junit.framework.Assert;
 import starbeast2.CoordinatedExponential;
 import starbeast2.CoordinatedUniform;
 import starbeast2.NodeReheight2;
 import starbeast2.SpeciesTreeInterface;
 import starbeast2.StarBeastTaxonSet;
+import tnt.distribution.GeneTree;
 
 public class OrientationTest{
 	

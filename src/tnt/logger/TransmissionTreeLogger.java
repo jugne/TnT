@@ -16,9 +16,9 @@ import beast.core.StateNode;
 import beast.core.parameter.Parameter;
 import beast.evolution.branchratemodel.BranchRateModel;
 import beast.evolution.tree.Node;
-import distribution.GeneTree;
 import starbeast2.PopulationModel;
 import starbeast2.SpeciesTreeInterface;
+import tnt.distribution.GeneTree;
 
 @Description("Based on the SpeciesTreeLogger class, but without node sorting")
 public class TransmissionTreeLogger extends BEASTObject implements Loggable {
