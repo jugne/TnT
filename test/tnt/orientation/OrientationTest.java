@@ -54,19 +54,10 @@ import starbeast2.StarBeastTaxonSet;
 
 public class OrientationTest{
 	
-
-	
-//	String cwd = System.getProperty("user.dir");
-//	String xml = cwd + "orientationTest.xml";
-//	
-//	BeastMCMC mcmc = new BeastMCMC();
-
 	String initNewick = "(1:0.05244677605979664,(2:0.21990168652563447,3:1.2199016865256345):0.8325450895341622):0.0;";
 
 	@Test
 	public void topologyDistribution() throws Exception {
-//		String[] arguments = new String[] { "-seed 42 ", "-overwrite ", xml };
-//		BeastMCMC.main(arguments);
 		
 		Randomizer.setSeed(127);
 		
@@ -90,24 +81,18 @@ public class OrientationTest{
 		Taxon taxonSet11 = new Taxon();
 		taxonSet1.setID("1");
 		taxonSet11.setID("1_x");
-//		taxonSet11.initByName("id", "1_x");
-//		taxonSet1.initByName("id", "1", "taxon", taxonSet11);
 		taxonSet1.initByName("taxon", taxonSet11);
 
 		TaxonSet taxonSet2 = new TaxonSet();
 		Taxon taxonSet21 = new Taxon();
 		taxonSet2.setID("2");
 		taxonSet21.setID("2_x");
-//		taxonSet21.initByName("id", "2_x");
-//		taxonSet2.initByName("id", "2", "taxon", taxonSet21);
 		taxonSet2.initByName("taxon", taxonSet21);
 
 		TaxonSet taxonSet3 = new TaxonSet();
 		Taxon taxonSet31 = new Taxon();
 		taxonSet3.setID("3");
 		taxonSet31.setID("3_x");
-//		taxonSet31.initByName("id", "3_x");
-//		taxonSet3.initByName("id", "3", "taxon", taxonSet31);
 		taxonSet3.initByName("taxon", taxonSet31);
 
 		StarBeastTaxonSet starTaxonSet = new StarBeastTaxonSet();
@@ -351,15 +336,14 @@ public class OrientationTest{
 				"operator", subtreeSlide,
 				"operator", exchangeNarrow,
 				"operator", exchangeWide,
-////				"operator", saUpDownOperatorSpecies, // not changing
-				"operator", originScaler, // not changing
-				"operator", leafToSampleJump, // not changing
-				"operator", saWilsonBalding, // changes between first two orientations in all three groups
-				"operator", saExchangeWide, // not changing
-				"operator", saExchangeNarrow, // not changing
-				"operator", saUniform, // not changing
-				"operator", saScaleOperatorRoot, // not changing
-				"operator", saScaleOperatorTree, // not changing
+				"operator", originScaler,
+				"operator", leafToSampleJump,
+				"operator", saWilsonBalding,
+				"operator", saExchangeWide,
+				"operator", saExchangeNarrow,
+				"operator", saUniform,
+				"operator", saScaleOperatorRoot,
+				"operator", saScaleOperatorTree,
 				"logger", treeReport);
 
 		// Run MCMC:
@@ -420,40 +404,6 @@ public class OrientationTest{
 			}
 
 		}
-
-//		
-//		int[][] test = new int[4][2];
-//		test[0] = frequencies[3];
-//		test[1] = frequencies[4];
-//		test[2] = frequencies[5];
-//		test[3] = frequencies[6];
-//		
-//
-//		for (int k = 0; k<4;k++) {
-//			test[0][k] +=  frequencies[3][k];
-//			test[0][k] += frequencies[6][k];
-//			test[0][k] += frequencies[7][k];
-//			
-//			test[1][k] +=  frequencies[5][k];
-//			
-//			test[2][k] +=  frequencies[4][k];
-//		}
-//		
-//		
-//		for (int l = 0; l < 3; l++) {
-//			int sum = Arrays.stream(test[l]).sum();
-//
-//			// For each non-oriented topology, there are for possible orientations outputed.
-//			// That is because in Beast Direct ancestor nodes are child nodes of a so-called
-//			// Fake node.
-//			// Their parent branch length is 0. Each of 4 orientations should be equally
-//			// likely.
-//			for (int j = 0; j < 4; j++) {
-//				double frequency = (double) test[l][j] / (double) sum;
-//				Assert.assertEquals(frequency, orientedFrequency, toleranceOriented);
-//
-//			}
-//		}
 	}
 
 
@@ -624,9 +574,6 @@ public class OrientationTest{
 						int orientedNr = 3;
 						for (int i = 1; i <= freq[nonOrientedTopologyNr].length; i++) {
 							if (i == 4) {
-//								System.out.println();
-//								System.out.println("........................");
-//								System.out.println();
 							}
 							Matcher m = rx.get(orientedNr).get(i).matcher(newick);
 							if (m.matches()) {
