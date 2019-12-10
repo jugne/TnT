@@ -1,4 +1,4 @@
-package logger;
+package tnt.logger;
 
 import java.io.PrintStream;
 import java.math.RoundingMode;

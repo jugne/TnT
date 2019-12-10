@@ -2,7 +2,12 @@ package tnt.simulator;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.math3.analysis.differentiation.DerivativeStructure;
 import org.apache.commons.math3.analysis.differentiation.UnivariateDifferentiableFunction;
@@ -139,7 +144,7 @@ public class SimulatedGeneTree extends Tree {
 						minCoal = transmissionNode;
 					}
 
-					double timeToNextNonObsTr = getInverseIntensity(t,
+					double timeToNextNonObsTr = soveForTime(t,
 							birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
 							samplingRateInput.get().getArrayValue(0));
 					if (timeToNextNonObsTr < minNonObsTrTime) {
@@ -293,8 +298,8 @@ public class SimulatedGeneTree extends Tree {
 		return new Tree(activeLineages.get(transmissionTree.getRoot()).get(0));
     }
 
-    // From Tim: Is this method named sensibly?  Sounds like a coalescent simulation method name.
-	private double getInverseIntensity(double currentTime, double lambda, double mu, double psi) {
+	// Solve an inverse transform problem for time t of next occurence
+	private double soveForTime(double currentTime, double lambda, double mu, double psi) {
 
 		double u = Randomizer.nextDouble();
 		double c_1 = Math.abs(Math.sqrt( Math.pow((lambda - mu - psi), 2) + 4*lambda*psi ));
@@ -306,7 +311,7 @@ public class SimulatedGeneTree extends Tree {
 
 			private double function(double t) {
 				return ((-2 * Math.log(Math.abs((c_2 - 1) * Math.exp(-c_1 * t) - c_2 - 1))
-						+ Math.log(Math.exp(-c_1 * t)) + (mu + psi + lambda) * t) / 2);
+						+ (-c_1 * t) + (mu + psi + lambda) * t) / 2);
 
 			}
 
@@ -315,10 +320,10 @@ public class SimulatedGeneTree extends Tree {
 						.add(t.multiply(-c_1).exp().log()).add(t.multiply(lambda + mu + psi))).divide(2);
 			}
 
+			// solve fot t: int_{currentTime}^{t} f(x) = -ln(u)
 			@Override
 			public double value(double t) {
-				// From Tim: Why 1-u here? It has the same distribution as u.
-				return this.function(t) + Math.log(1 - u) - this.function(currentTime);
+				return this.function(t) + Math.log(u) - this.function(currentTime);
 			}
 
 			@Override

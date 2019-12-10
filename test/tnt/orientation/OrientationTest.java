@@ -1,6 +1,5 @@
 package tnt.orientation;
 
-import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,232 +8,759 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.junit.Test;
+
 import beast.core.BEASTObject;
-import beast.core.Description;
+import beast.core.Distribution;
 import beast.core.Input;
 import beast.core.Input.Validate;
-import beast.core.Loggable;
+import beast.core.Logger;
+import beast.core.MCMC;
+import beast.core.State;
+import beast.core.parameter.RealParameter;
+import beast.core.util.CompoundDistribution;
+import beast.evolution.alignment.Alignment;
+import beast.evolution.alignment.Sequence;
+import beast.evolution.alignment.Taxon;
+import beast.evolution.alignment.TaxonSet;
+import beast.evolution.branchratemodel.StrictClockModel;
+import beast.evolution.likelihood.TreeLikelihood;
+import beast.evolution.operators.Exchange;
+import beast.evolution.operators.LeafToSampledAncestorJump;
+import beast.evolution.operators.SAExchange;
+import beast.evolution.operators.SAScaleOperator;
+import beast.evolution.operators.SAUniform;
+import beast.evolution.operators.SAWilsonBalding;
+import beast.evolution.operators.ScaleOperator;
+import beast.evolution.operators.SubtreeSlide;
+import beast.evolution.operators.UpDownOperator;
+import beast.evolution.operators.WilsonBalding;
+import beast.evolution.sitemodel.SiteModel;
+import beast.evolution.speciation.SABirthDeathModel;
+import beast.evolution.substitutionmodel.JukesCantor;
 import beast.evolution.tree.Node;
+import beast.evolution.tree.TraitSet;
+import beast.evolution.tree.Tree;
+import beast.math.distributions.Prior;
+import beast.math.distributions.Uniform;
+import beast.util.Randomizer;
 import distribution.GeneTree;
+import junit.framework.Assert;
+import starbeast2.CoordinatedExponential;
+import starbeast2.CoordinatedUniform;
+import starbeast2.NodeReheight2;
 import starbeast2.SpeciesTreeInterface;
+import starbeast2.StarBeastTaxonSet;
 
-@Description("Based on the SpeciesTreeLogger class, but without node sorting")
-public class OrientationTest extends BEASTObject implements Loggable {
-	final public Input<SpeciesTreeInterface> speciesTreeInput = new Input<>("transmissionTree",
-			"The species tree to be logged.", Validate.REQUIRED);
+public class OrientationTest{
+	
 
-	final public Input<List<GeneTree>> geneTreeInput = new Input<>("geneTree", "Gene tree within the species tree.",
-			new ArrayList<>());
+	
+//	String cwd = System.getProperty("user.dir");
+//	String xml = cwd + "orientationTest.xml";
+//	
+//	BeastMCMC mcmc = new BeastMCMC();
 
-    private DecimalFormat df;
+	String initNewick = "(1:0.05244677605979664,(2:0.21990168652563447,3:1.2199016865256345):0.8325450895341622):0.0;";
 
-	private HashMap<Integer, Pattern> rx;
-	private int[] freq;
+	@Test
+	public void topologyDistribution() throws Exception {
+//		String[] arguments = new String[] { "-seed 42 ", "-overwrite ", xml };
+//		BeastMCMC.main(arguments);
+		
+		Randomizer.setSeed(127);
+		
+		// data
+		List<Object> alignmentInitArgs = new ArrayList<Object>();
+		for (int i = 1; i <= 3; i++) {
+			Sequence thisSeq = new Sequence();
+			thisSeq.initByName("taxon", String.valueOf(i) + "_x", "totalcount",
+					"4", "value", "-");
+			thisSeq.setID("seq_" + String.valueOf(i) + "_x");
+			alignmentInitArgs.add("sequence");
+			alignmentInitArgs.add(thisSeq);
+		}
+		Alignment alignment = new Alignment();
+		alignment.initByName(alignmentInitArgs.toArray());
+		alignment.setID("Gene");
 
-    @Override
-    public void initAndValidate() {
-    }
+		// state
 
-    @Override
-    public void init(PrintStream out) {
-        SpeciesTreeInterface speciesTree = speciesTreeInput.get();
-        speciesTree.init(out);
+		TaxonSet taxonSet1 = new TaxonSet();
+		Taxon taxonSet11 = new Taxon();
+		taxonSet1.setID("1");
+		taxonSet11.setID("1_x");
+//		taxonSet11.initByName("id", "1_x");
+//		taxonSet1.initByName("id", "1", "taxon", taxonSet11);
+		taxonSet1.initByName("taxon", taxonSet11);
 
-		freq = new int[18];
+		TaxonSet taxonSet2 = new TaxonSet();
+		Taxon taxonSet21 = new Taxon();
+		taxonSet2.setID("2");
+		taxonSet21.setID("2_x");
+//		taxonSet21.initByName("id", "2_x");
+//		taxonSet2.initByName("id", "2", "taxon", taxonSet21);
+		taxonSet2.initByName("taxon", taxonSet21);
 
-		String number = "\\:(\\d+(\\.\\d+)?)(E\\-\\d+)?";
+		TaxonSet taxonSet3 = new TaxonSet();
+		Taxon taxonSet31 = new Taxon();
+		taxonSet3.setID("3");
+		taxonSet31.setID("3_x");
+//		taxonSet31.initByName("id", "3_x");
+//		taxonSet3.initByName("id", "3", "taxon", taxonSet31);
+		taxonSet3.initByName("taxon", taxonSet31);
 
-		rx = new HashMap<Integer, Pattern>();
+		StarBeastTaxonSet starTaxonSet = new StarBeastTaxonSet();
+		starbeast2.SpeciesTree speciesTree = new starbeast2.SpeciesTree();
 
-		// Group 1. Total probability for non-oriented topology ((C,B),A): 77.8327
-		// (A,(B,C))
-		rx.put(1, Pattern
-				.compile("\\(A(?!(\\:0.0\\,))" + number + "\\,\\(B(?!(\\:0.0\\,))" + number + "\\,C" + number
-						+ "\\)(.*)\\)(.*)"));
+		starTaxonSet.initByName("taxon", taxonSet1, "taxon", taxonSet2, "taxon", taxonSet3);
+		starTaxonSet.setID("taxonsuperset");
 
-		// (A,(C,B))
-		rx.put(2, Pattern
-				.compile("\\(A(?!(\\:0.0\\,))" + number + "\\,\\(C" + number + "\\,B(?!(\\:0.0\\)))" + number
-						+ "\\)(.*)\\)(.*)"));
+		TraitSet trait = new TraitSet();
+		trait.initByName("traitname", "date-backward", "value", "1=2,2=1,3=0", "taxa", starTaxonSet);
+		trait.setID("dateTrait.t:Species");
 
-		// ((B,C),A)
-		rx.put(3,
-				Pattern.compile(
-						"\\(\\(B" + number + "\\,C" + number + "\\)(.*)\\,A(?!(\\:0.0\\)))" + number + "\\)(.*)"));
+		speciesTree.initByName("trait", trait, "taxonset", starTaxonSet);
+		speciesTree.setID("Tree.t:Species");
 
-		// ((C,B),A)
-		rx.put(4, Pattern
-				.compile("\\(\\(C" + number + "\\,B" + number + "\\)(.*)\\,A(?!(\\:0.0\\)))" + number + "\\)(.*)"));
+		TaxonSet taxonSet = new TaxonSet();
+		taxonSet.initByName("alignment", alignment);
 
+		Tree geneTree = new Tree();
+		geneTree.setID("Tree.t:Gene");
+		geneTree.initByName("taxonset", taxonSet);
 
-		// Group 2. Total probability for non-oriented topology ((C,A),B): 4.3189
-		// (B, (A,C))
-		rx.put(5, Pattern.compile("\\(B" + number + "\\,\\(A" + number + "\\,C" + number + "\\)(.*)\\)(.*)"));
-		// (B,(C,A))
-		rx.put(6, Pattern.compile("\\(B" + number + "\\,\\(C" + number + "\\,A" + number + "\\)(.*)\\)(.*)"));
-		// ((A,C),B)
-		rx.put(7, Pattern.compile("\\(\\(A" + number + "\\,C" + number + "\\)(.*)\\,B" + number + "\\)(.*)"));
-		// ((C,A),B)
-		rx.put(8, Pattern.compile("\\(\\(C" + number + "\\,A" + number + "\\)(.*)\\,B" + number + "\\)(.*)"));
+		RealParameter origin = new RealParameter("10.0");
+		origin.initByName("lower", "0.0", "upper", "Infinity");
+		origin.setID("originFBD.t:Species");
 
-		// Group 3. Total probability for non-oriented topology (C,(B,A)): 4.3189
-		// (C,(A,B))
-		rx.put(9, Pattern
-				.compile("\\(C" + number + "\\,\\(A(?!\\:0.0\\,))" + number + "\\,B" + number + "\\)(.*)\\)(.*)"));
-		// (C,(B,A))
-		rx.put(10, Pattern
-				.compile("\\(C" + number + "\\,\\(B" + number + "\\,\\(A(?!\\:0.0\\,))" + number + "\\)(.*)\\)(.*)"));
-		// ((B,A), C)
-		rx.put(11, Pattern
-				.compile("\\(\\(B" + number + "\\,\\(A(?!\\:0.0\\,))" + number + "\\)(.*)\\,C" + number + "\\)(.*)"));
-		// ((A,B), C)
-		rx.put(12, Pattern
-				.compile("\\(\\(A(?!\\:0.0\\,))" + number + "\\,B" + number + "\\)(.*)\\,C" + number + "\\)(.*)"));
+		// Set up state:
+		State state = new State();
+		state.initByName("stateNode", speciesTree, "stateNode", geneTree, "stateNode", origin);
+		state.setID("state");
 
-		// Group 4. Total probability for non-oriented topology ((B,C)A): 7.8642
-		// ((B,C)A)
-		rx.put(13, Pattern.compile("\\(\\(B" + number + "\\,C" + number + "\\)(.*)\\,A:0.0\\)(.*)"));
-		// ((C,B)A)
-		rx.put(14, Pattern.compile("\\(\\(C" + number + "\\,B" + number + "\\)(.*)\\,A:0.0\\)(.*)"));
-		// (A(B,C))
-		rx.put(15, Pattern.compile("\\(A:0.0\\,\\(B" + number + "\\,C" + number + "\\)(.*)\\)(.*)"));
-		// (A(C,B))
-		rx.put(16, Pattern.compile("\\(A:0.0\\,\\(C" + number + "\\,B" + number + "\\)(.*)\\)(.*)"));
+		// Set up init:
+		RealParameter popSize = new RealParameter("0.5");
+		popSize.initByName("lower", 0.0, "upper", 2.0, "estimate", false);
+		popSize.setID("constPopSizes.Species");
 
-		// Group 5. Total probability for non-oriented topology ((C)B,A): 0.6930
-		// (A,B(C))
-		rx.put(17, Pattern.compile("\\(A(?!(\\:0.0\\,))" + number + "\\,\\(B:0.0\\,C" + number + "\\)(.*)\\)(.*)"));
-		// (A,(C)B)
-		rx.put(18, Pattern.compile("\\(A(?!(\\:0.0\\,))" + number + "\\,\\(C" + number + "\\,B:0.0\\)(.*)\\)(.*)"));
-		// (B(C),A)
-		rx.put(19, Pattern
-				.compile("\\(\\(B:0.0\\,C" + number + "\\)(.*)\\,,A(?!(\\\\:0.0\\\\,))\" + number +\\)(.*)"));
-		// ((C)B,A)
-		rx.put(20, Pattern.compile("\\(\\(C" + number + "\\,B:0.0\\)(.*)\\,A(?!(\\:0.0\\,))" + number + "\\)(.*)"));
+		starbeast2.ConstantPopulations constantPop = new starbeast2.ConstantPopulations();
+		constantPop.initByName("populationSizes", popSize, "speciesTree", speciesTree);
+		constantPop.setID("constPopModel.Species");
+
+		starbeast2.PassthroughModel passthrough = new starbeast2.PassthroughModel();
+		passthrough.initByName("childModel", constantPop);
+		passthrough.setID("popModelBridge.Species");
+
+		starbeast2.StarBeastInitializer initializer = new starbeast2.StarBeastInitializer();
+		initializer.initByName("estimate", false, "speciesTree", speciesTree, "geneTree", geneTree, "populationModel",
+				passthrough, "newick", initNewick);
+		initializer.setID("SBI");
+
+		// Set up distributions:
+		// dist 1
+		starbeast2.GeneTree geneTreeDist = new starbeast2.GeneTree();
+		geneTreeDist.initByName("populationModel", passthrough, "speciesTree", speciesTree, "tree", geneTree);
+		List<Distribution> dist11 = new ArrayList<Distribution>();
+		dist11.add(geneTreeDist);
+		starbeast2.MultispeciesCoalescent speciescoalescent = new starbeast2.MultispeciesCoalescent();
+		speciescoalescent.initByName("distribution", dist11);
+
+		// dist 2
+		CompoundDistribution prior = new CompoundDistribution();
+		SABirthDeathModel FBDModel = new SABirthDeathModel();
+		Prior priorDist = new Prior();
+		Uniform uniform3 = new Uniform();
 
 
-		// Group 6. Total probability of non-oriented topology (C,(B)A): 0.6930
-		// (C,A(B))
-		rx.put(21, Pattern.compile("\\(C(?!(\\:0.0\\,))" + number + "\\,\\(A:0.0\\,B" + number + "\\)(.*)\\)(.*)"));
-		// (C,(B)A)
-		rx.put(22, Pattern.compile("\\(C(?!(\\:0.0\\,))" + number + "\\,\\(B" + number + "\\,A:0.0\\)(.*)\\)(.*)"));
-		// (A(B), C)
-		rx.put(23, Pattern.compile("\\(\\(A:0.0\\,B" + number + "\\)\\, C(?!(\\:0.0\\,))" + number + "\\)(.*)\\)(.*)"));
-		// ((B)A,C)
-		rx.put(24, Pattern.compile("\\(C(?!(\\\\:0.0\\\\,))" + number + "\\,\\(A:0.0\\,B" + number + "\\)(.*)\\)(.*)"));
+		RealParameter birthRate = new RealParameter("2.0");
+		RealParameter deathRate = new RealParameter("1.0");
+		RealParameter samplingRate = new RealParameter("0.5");
+		RealParameter removalProbability = new RealParameter("0.9");
 
-		// Group 7. Total probability of non-oriented topology (((C)B)A): 0.4135
+		birthRate.initByName("estimate", false, "lower", "0.0");
+		deathRate.initByName("estimate", false, "lower", "0.0", "upper", "1.0");
+		samplingRate.initByName("estimate", false, "lower", "0.0", "upper", "1.0");
+		removalProbability.initByName("lower", "0.0", "upper", "1.0");
 
-    }
 
-    @Override
-    public void log(long nSample, PrintStream out) {
-        // make sure we get the current version of the inputs
-        SpeciesTreeInterface speciesTree = speciesTreeInput.get();
-        SpeciesTreeInterface tree = (SpeciesTreeInterface) speciesTree.getCurrent();
+		FBDModel.initByName("origin", origin, "tree", speciesTree, "birthRate", birthRate, "deathRate", deathRate,
+				"samplingRate", samplingRate, "removalProbability", removalProbability);
+		uniform3.initByName("upper", "1000.0");
+		priorDist.initByName("x", origin, "distr", uniform3);
+		
+		List<Distribution> dist21 = new ArrayList<Distribution>();
+		dist21.add(FBDModel);
+		dist21.add(priorDist);
+		prior.initByName("distribution", dist21);
+		prior.setID("prior");
 
-        // write out the log tree with meta data
-        out.print("tree STATE_" + nSample + " = ");
-//        tree.getRoot().sort();
-		out.print(toNewick(tree.getRoot()));
-        //out.print(tree.getRoot().toShortNewick(false));
-        out.print(";");
+		// dist 3
+		CompoundDistribution likelihood = new CompoundDistribution();
 
-		String newick = toNewick(tree.getRoot());
+		TreeLikelihood treeLikelihood = new TreeLikelihood();
+		
+		SiteModel siteModel = new SiteModel();
+		RealParameter mutationRate = new RealParameter("1.0");
+		RealParameter shape = new RealParameter("1.0");
+		RealParameter proportionInvariant = new RealParameter("0.0");
+		JukesCantor substModel = new JukesCantor();
+		mutationRate.initByName("estimate", false);
+		shape.initByName("estimate", false);
+		proportionInvariant.initByName("estimate", false, "lower", "0.0", "upper", "1.0");
+		siteModel.initByName("mutationRate", mutationRate, "shape", shape, "proportionInvariant", proportionInvariant,
+				"substModel", substModel);
+		
+		StrictClockModel branchRateModel = new StrictClockModel();
+		RealParameter clockRate = new RealParameter("1.0");
+		clockRate.initByName("estimate", false, "lower", "0.0");
+		branchRateModel.initByName("clock.rate", clockRate);
 
-		int[] duplicate = Arrays.copyOf(freq, freq.length);
-		for (int i = 1; i <= freq.length; i++) {
-			Matcher m = rx.get(i).matcher(newick);
-			if (m.matches()) {
-				freq[i - 1] += 1;
-				if (i == 17) {
-					System.out.println(newick);
+		treeLikelihood.initByName("data", alignment, "tree", geneTree, "siteModel", siteModel, "branchRateModel",
+				branchRateModel);
+
+		List<Distribution> dist31 = new ArrayList<Distribution>();
+		dist31.add(treeLikelihood);
+		likelihood.initByName("distribution", dist31);
+		likelihood.setID("likelihood");
+
+		CompoundDistribution posterior = new CompoundDistribution();
+		List<Distribution> distributions = new ArrayList<Distribution>();
+		distributions.add(speciescoalescent);
+		distributions.add(prior);
+		distributions.add(likelihood);
+		posterior.initByName("distribution", distributions);
+
+		// Set up operators:
+		// NodeReheight2
+		NodeReheight2 nodeReheight2 = new NodeReheight2();
+		nodeReheight2.initByName("tree", speciesTree, "geneTree", geneTreeDist, "taxonset", starTaxonSet, "weight",
+				"75.0");
+
+		// CoordinatedUniform
+		CoordinatedUniform coordinatedUniform = new CoordinatedUniform();
+		coordinatedUniform.initByName("speciesTree", speciesTree, "geneTree", geneTree, "weight", "15.0");
+
+		// CoordinatedExponential
+		CoordinatedExponential coordinatedExponential = new CoordinatedExponential();
+		coordinatedExponential.initByName("speciesTree", speciesTree, "geneTree", geneTree, "weight", "15.0");
+
+		// UpDownOperator_Species
+		UpDownOperator upDownOperatorSpecies = new UpDownOperator();
+		upDownOperatorSpecies.initByName("scaleFactor", "0.75", "weight", "6.0", "down", speciesTree, "down", geneTree);
+		
+		// UpDownOperator_Species SA
+		UpDownOperator saUpDownOperatorSpecies = new UpDownOperator();
+		saUpDownOperatorSpecies.initByName("scaleFactor", "0.75", "weight", "6.0", "down", speciesTree);
+
+		// UpDownOperator_Gene
+		UpDownOperator upDownOperatorGene = new UpDownOperator();
+		upDownOperatorGene.initByName("scaleFactor", "0.95", "weight", "3.0","down", geneTree);
+
+		// ScaleOperator_GeneTree
+		ScaleOperator scaleOperatorGene = new ScaleOperator();
+		scaleOperatorGene.initByName("scaleFactor", "0.95", "weight", "3.0","tree", geneTree);
+		
+		// ScaleOperator_GeneRoot
+		ScaleOperator scaleOperatorRoot = new ScaleOperator();
+		scaleOperatorRoot.initByName("rootOnly", true, "scaleFactor", "0.7", "weight", "3.0","tree", geneTree);
+
+		// Uniform
+		beast.evolution.operators.Uniform uniform = new beast.evolution.operators.Uniform();
+		uniform.initByName("weight", "15.0","tree", geneTree);
+
+		// SubtreeSlide
+		SubtreeSlide subtreeSlide = new SubtreeSlide();
+		subtreeSlide.initByName("size", "0.002", "tree", geneTree, "weight", "15.0");
+
+		// Exchange_Narrow
+		Exchange exchangeNarrow = new Exchange();
+		exchangeNarrow.initByName("tree", geneTree, "weight", "15.0");
+		
+		// Exchange_Wide
+		Exchange exchangeWide = new Exchange();
+		exchangeWide.initByName("isNarrow", false, "tree", geneTree, "weight", "15.0");
+
+		// WilsonBalding
+		WilsonBalding wilsonBalding = new WilsonBalding();
+		wilsonBalding.initByName("tree", geneTree, "weight", "15.0");
+
+		// ScaleOperator_Origin
+		ScaleOperator originScaler = new ScaleOperator();
+		originScaler.initByName("parameter", origin, "scaleFactor", "0.75", "weight", "3.0");
+
+		// LeafToSampledAncestorJump
+		LeafToSampledAncestorJump leafToSampleJump = new LeafToSampledAncestorJump();
+		leafToSampleJump.initByName("tree", speciesTree, "weight", "10.0");
+
+		// SAWilsonBalding
+		SAWilsonBalding saWilsonBalding = new SAWilsonBalding();
+		saWilsonBalding.initByName("tree", speciesTree, "weight", "10.0");
+
+		// SAExchange_Wide
+		SAExchange saExchangeWide = new SAExchange();
+		saExchangeWide.initByName("isNarrow", false, "tree", speciesTree, "weight", "10.0");
+
+		// SAExchange_Narrow
+		SAExchange saExchangeNarrow = new SAExchange();
+		saExchangeNarrow.initByName("tree", speciesTree, "weight", "10.0");
+
+		// SAUniform
+		SAUniform saUniform = new SAUniform();
+		saUniform.initByName("tree", speciesTree, "weight", "20.0");
+
+		// SAScaleOperator_Root
+		SAScaleOperator saScaleOperatorRoot = new SAScaleOperator();
+		saScaleOperatorRoot.initByName("rootOnly", true, "scaleFactor", "0.95", "tree", speciesTree, "weight", "1.0");
+
+		// SAScaleOperator_Root
+		SAScaleOperator saScaleOperatorTree = new SAScaleOperator();
+		saScaleOperatorTree.initByName("scaleFactor", "0.95", "tree", speciesTree, "weight", "3.0");
+
+		Integer bunin = 10000;
+		Integer chainLength = 50000000;
+		Integer logEvery = 100;
+		Integer statesLogged = (chainLength - bunin) / logEvery;
+
+		// Set up logger:
+		OrientedTreeLogger treeReport = new OrientedTreeLogger();
+		treeReport.initByName("logEvery", logEvery.toString(),
+				"burnin", bunin.toString(),
+				"speciesTree", speciesTree,
+//				"geneTree", geneTreeDist,
+				"log", speciesTree,
+				"silent", true);
+
+		TransmissionTreeLogger tntLogger = new TransmissionTreeLogger();
+		tntLogger.initByName("transmissionTree", speciesTree);
+
+		// Set up MCMC:
+		MCMC mcmc = new MCMC();
+		mcmc.initByName("chainLength", chainLength.toString(),
+						"state", state, 
+				"init", initializer,
+						"distribution", posterior, 
+				"operator", nodeReheight2,
+				"operator", coordinatedUniform,
+				"operator", coordinatedExponential,
+				"operator", upDownOperatorSpecies,
+				"operator", upDownOperatorGene,
+				"operator", scaleOperatorGene,
+				"operator", scaleOperatorRoot,
+				"operator", uniform,
+				"operator", subtreeSlide,
+				"operator", exchangeNarrow,
+				"operator", exchangeWide,
+////				"operator", saUpDownOperatorSpecies, // not changing
+				"operator", originScaler, // not changing
+				"operator", leafToSampleJump, // not changing
+				"operator", saWilsonBalding, // changes between first two orientations in all three groups
+				"operator", saExchangeWide, // not changing
+				"operator", saExchangeNarrow, // not changing
+				"operator", saUniform, // not changing
+				"operator", saScaleOperatorRoot, // not changing
+				"operator", saScaleOperatorTree, // not changing
+				"logger", treeReport);
+
+		// Run MCMC:
+		mcmc.run();
+
+		int[][] frequencies = treeReport.getAnalysis();
+
+		/*
+		 * Eight Possible non-oriented topologies: ((3,2),1) ((3,1),2) (3,(2,1))
+		 * ((3,2)1) (3,(2)1) ((3)1,2) ((3)2,1) (((3)2)1)
+		 */
+
+		// The 8 non-oriented topology frequencies have been calculated by Gavryushkina
+		// et al.
+		// (2014)
+		double[] probs = new double[] { 0.778327, 0.043189, 0.043189, 0.078642, 0.006930, 0.006930, 0.038657,
+				0.004135, };
+
+		double tolerance = 0.005;
+		double toleranceOriented = 0.015;
+		double orientedFrequency = 0.25;
+
+		for (int nonOrientedTopologyNr = 0; nonOrientedTopologyNr < 8; nonOrientedTopologyNr++) {
+			int sumTopology = Arrays.stream(frequencies[nonOrientedTopologyNr]).sum();
+			double probTopology = (double) sumTopology / (double) statesLogged;
+			Assert.assertEquals(probTopology, probs[nonOrientedTopologyNr], tolerance);
+
+			// For each non-oriented topology, there are four possible orientations
+			// outputed.
+			// We check for topologies with ancestral nodes separately below, because we do
+			// not care for the orientation of Fake node children and therefore there are 2
+			// possible orientations.
+			// Last topology, where nodes 1 and 2 are direct ancestors can have only one
+			// orientation and therefore is not validated.
+			if (nonOrientedTopologyNr == 0 || nonOrientedTopologyNr == 1 || nonOrientedTopologyNr == 2) {
+				for (int j = 0; j < 4; j++) {
+					double frequency = (double) frequencies[nonOrientedTopologyNr][j] / (double) sumTopology;
+					Assert.assertEquals(frequency, orientedFrequency, toleranceOriented);
+
 				}
-				if (i == 18) {
-					System.out.println(newick);
+			}
+			if (nonOrientedTopologyNr == 3) {
+				for (int j = 0; j < 2; j++) {
+					double frequency = (double) (frequencies[nonOrientedTopologyNr][j]
+							+ frequencies[nonOrientedTopologyNr][j + 2]) / (double) sumTopology;
+					Assert.assertEquals(frequency, 0.50, toleranceOriented);
+
+				}
+			}
+
+			if (nonOrientedTopologyNr == 4 || nonOrientedTopologyNr == 5 || nonOrientedTopologyNr == 6) {
+				for (int j = 0; j < 4; j += 2) {
+					double frequency = (double) (frequencies[nonOrientedTopologyNr][j]
+							+ frequencies[nonOrientedTopologyNr][j + 1]) / (double) sumTopology;
+					Assert.assertEquals(frequency, 0.50, toleranceOriented);
+
 				}
 			}
 
 		}
 
-		if (Arrays.equals(duplicate, freq)) {
-			System.out.println("Not Assigned: " + newick);
-			System.exit(0);
+//		
+//		int[][] test = new int[4][2];
+//		test[0] = frequencies[3];
+//		test[1] = frequencies[4];
+//		test[2] = frequencies[5];
+//		test[3] = frequencies[6];
+//		
+//
+//		for (int k = 0; k<4;k++) {
+//			test[0][k] +=  frequencies[3][k];
+//			test[0][k] += frequencies[6][k];
+//			test[0][k] += frequencies[7][k];
+//			
+//			test[1][k] +=  frequencies[5][k];
+//			
+//			test[2][k] +=  frequencies[4][k];
+//		}
+//		
+//		
+//		for (int l = 0; l < 3; l++) {
+//			int sum = Arrays.stream(test[l]).sum();
+//
+//			// For each non-oriented topology, there are for possible orientations outputed.
+//			// That is because in Beast Direct ancestor nodes are child nodes of a so-called
+//			// Fake node.
+//			// Their parent branch length is 0. Each of 4 orientations should be equally
+//			// likely.
+//			for (int j = 0; j < 4; j++) {
+//				double frequency = (double) test[l][j] / (double) sum;
+//				Assert.assertEquals(frequency, orientedFrequency, toleranceOriented);
+//
+//			}
+//		}
+	}
+
+
+	public class OrientedTreeLogger extends Logger {
+		public Input<Integer> burninInput = new Input<Integer>("burnin",
+				"Number of samples to skip (burn in)", Input.Validate.REQUIRED);
+
+		public Input<Boolean> silentInput = new Input<Boolean>("silent",
+				"Don't display final report.", false);
+
+		final public Input<SpeciesTreeInterface> speciesTreeInput = new Input<>("speciesTree",
+				"The species tree to be logged.", Validate.REQUIRED);
+
+		final public Input<List<GeneTree>> geneTreeInput = new Input<>("geneTree", "Gene tree within the species tree.",
+				new ArrayList<>());
+
+		private DecimalFormat df;
+
+
+		SpeciesTreeInterface speciesTree;
+		int m_nEvery = 1;
+		int burnin;
+		boolean silent = false;
+		int[][] duplicate = new int[8][4];
+
+		// There are 8 possible non-oriented topologies for a binary tree with two
+		// ancestral samples and one extant sample. Each of those can be produced
+		// in Beast2 in 4 different orientation.
+		int[][] freq = new int[8][4];
+
+		String number = "\\:(\\d+(\\.\\d+)?)(E\\-\\d+)?";
+
+		// Beast2 will log all topologies in one of these three oriented groups.
+		// The reason for this, is that a sampled ancestor node is added as a fake child
+		// with edge of length 0;
+		HashMap<Integer, Pattern> rx_1 = new HashMap<Integer, Pattern>() {
+			{ // Group 1
+				// (1,(2,3))
+				put(1, Pattern.compile("\\(1" + number + "\\,\\(2" + number + "\\,3" + number + "\\)(.*)\\)(.*)"));
+				// (1,(3,2))
+				put(2, Pattern.compile("\\(1" + number + "\\,\\(3" + number + "\\,2" + number + "\\)(.*)\\)(.*)"));
+				// ((2,3),1)
+				put(3, Pattern.compile("\\(\\(2" + number + "\\,3" + number + "\\)(.*)\\,1" + number + "\\)(.*)"));
+				// ((3,2),1)
+				put(4, Pattern.compile("\\(\\(3" + number + "\\,2" + number + "\\)(.*)\\,1" + number + "\\)(.*)"));
+			}
+		};
+
+		HashMap<Integer, Pattern> rx_2 = new HashMap<Integer, Pattern>() {
+			{ // Group 2
+				// (2, (1,3))
+				put(1, Pattern.compile("\\(2" + number + "\\,\\(1" + number + "\\,3" + number + "\\)(.*)\\)(.*)"));
+				// (2,(3,1))
+				put(2, Pattern.compile("\\(2" + number + "\\,\\(3" + number + "\\,1" + number + "\\)(.*)\\)(.*)"));
+				// ((1,3),2)
+				put(3, Pattern.compile("\\(\\(1" + number + "\\,3" + number + "\\)(.*)\\,2" + number + "\\)(.*)"));
+				// ((3,1),2)
+				put(4, Pattern.compile("\\(\\(3" + number + "\\,1" + number + "\\)(.*)\\,2" + number + "\\)(.*)"));
+			}
+		};
+
+		HashMap<Integer, Pattern> rx_3 = new HashMap<Integer, Pattern>() {
+			{ // Group 3
+				// (3,(1,2))
+				put(1, Pattern.compile("\\(3" + number + "\\,\\(1" + number + "\\,2" + number + "\\)(.*)\\)(.*)"));
+				// (3,(2,1))
+				put(2, Pattern.compile("\\(3" + number + "\\,\\(2" + number + "\\,1" + number + "\\)(.*)\\)(.*)"));
+				// ((2,1),3)
+				put(3, Pattern.compile("\\(\\(2" + number + "\\,1" + number + "\\)(.*)\\,3" + number + "\\)(.*)"));
+				// ((1,2),3)
+				put(4, Pattern.compile("\\(\\(1" + number + "\\,2" + number + "\\)(.*)\\,3" + number + "\\)(.*)"));
+			}
+		};
+
+		HashMap<Integer, HashMap<Integer, Pattern>> rx = new HashMap<Integer, HashMap<Integer, Pattern>>(){{
+			put(1, rx_1);
+			put(2, rx_2);
+			put(3, rx_3);
+		}};
+//		HashMap[] rx = {rx_1, rx_2, rx_3};
+
+		@Override
+		public void initAndValidate() {
+
+			List<BEASTObject> loggers = loggersInput.get();
+			final int nLoggers = loggers.size();
+			if (nLoggers == 0) {
+				throw new IllegalArgumentException("Logger with nothing to log specified");
+			}
+
+			if (everyInput.get() != null)
+				m_nEvery = everyInput.get();
+
+			burnin = burninInput.get();
+
+			if (silentInput.get() != null)
+				silent = silentInput.get();
+
+			speciesTree = speciesTreeInput.get();
+
 		}
 
-		if (Arrays.stream(freq).sum() != Arrays.stream(duplicate).sum() + 1) {
-			System.out.println("Tree assigned to more than one topology");
-			System.exit(0);
+		@Override
+		public void init() {
 		}
 
-		System.out.println(Arrays.toString(freq));
+		@Override
+		public void log(long nSample) {
 
-    }
+			if ((nSample % m_nEvery > 0) || nSample < burnin)
+				return;
 
-    /**
-     * Appends a double to the given StringBuffer, formatting it using
-     * the private DecimalFormat instance, if the input 'dp' has been
-     * given a non-negative integer, otherwise just uses default
-     * formatting.
-     * @param buf
-     * @param d
-     */
-    private void appendDouble(StringBuffer buf, double d) {
-        if (df == null) {
-            buf.append(d);
-        } else {
-            buf.append(df.format(d));
-        }
-    }
+			SpeciesTreeInterface tree = (SpeciesTreeInterface) speciesTree.getCurrent();
 
-	String toNewick(Node node) {
-        StringBuffer buf = new StringBuffer();
-        if (node.getLeft() != null) {
-            buf.append("(");
-			buf.append(toNewick(node.getLeft()));
-            if (node.getRight() != null) {
-                buf.append(',');
-				buf.append(toNewick(node.getRight()));
-            }
-            buf.append(")");
-        } else {
-//            buf.append(node.getNr() + 1);
-        }
+			String newick = toNewick(tree.getRoot());
+//			System.out.println(newick);
 
-		if (node.getID() == null) {
-			buf.append(node.getNr() + 1);
-		} else {
-			buf.append(node.getID());
+			boolean firstAncestor = false;
+			boolean secondAncestor = false;
+			Node first = null;
+			List<Node> leaves = tree.getRoot().getAllLeafNodes();
+			for (Node l : leaves) {
+				if (l.getID().equals("1")) {
+					first = l; 
+					firstAncestor = l.isDirectAncestor() ? true : false;
+				}
+				if (l.getID().equals("2")) {
+					secondAncestor = l.isDirectAncestor() ? true : false;
+				}
+			}
+			
+
+			for (int i = 0; i < freq.length; i++) {
+				duplicate[i] = Arrays.copyOf(freq[i], freq[i].length);
+			}
+
+
+			if (!secondAncestor) {
+				if (!firstAncestor) {
+					// Non-oriented tree ((3,2),1) number 0, prob 77.8327
+					// Non-oriented tree ((3,1),2) number 1, prob 4.3189
+					// Non-oriented tree (3,(2,1)) number 2, prob 4.3189
+					for (int nonOrientedTopologyNr=0; nonOrientedTopologyNr<3;nonOrientedTopologyNr++) {				
+						for (int i = 1; i <= freq[nonOrientedTopologyNr].length; i++) {
+							Matcher m = rx.get(nonOrientedTopologyNr + 1).get(i).matcher(newick);
+							if (m.matches()) {
+								freq[nonOrientedTopologyNr][i - 1] += 1;
+							}
+						}
+					}
+				} else if (firstAncestor) {
+					// Non-oriented tree ((3,2)1) number 3:
+					// node 1 is an ancestral node of both leaf nodes
+					if (first.getParent().getNonDirectAncestorChild().getAllChildNodes().size() == 3) {
+						int nonOrientedTopologyNr = 3;
+						int orientedNr = 1;
+						for (int i = 1; i <= freq[nonOrientedTopologyNr].length; i++) {
+							Matcher m = rx.get(orientedNr).get(i).matcher(newick);
+							if (m.matches()) {
+								freq[nonOrientedTopologyNr][i - 1] += 1;
+							}
+						}
+					}// Non-oriented tree (3,(2)1) number 4:
+					// node 1 is an ancestral node of leaf node 2 
+					else if (first.getParent().getNonDirectAncestorChild().getID() != null &&
+							first.getParent().getNonDirectAncestorChild().getID().equals("2")) {
+						int nonOrientedTopologyNr = 4;
+						int orientedNr = 3;
+						for (int i = 1; i <= freq[nonOrientedTopologyNr].length; i++) {
+							if (i == 4) {
+//								System.out.println();
+//								System.out.println("........................");
+//								System.out.println();
+							}
+							Matcher m = rx.get(orientedNr).get(i).matcher(newick);
+							if (m.matches()) {
+								freq[nonOrientedTopologyNr][i - 1] += 1;
+							}
+						}
+					} // Non-oriented tree (2,(3)1) number 5:
+					// node 1 is an ancestral node of leaf node 3
+					else if (first.getParent().getNonDirectAncestorChild().getID() != null &&
+							first.getParent().getNonDirectAncestorChild().getID().equals("3")) {
+						int nonOrientedTopologyNr = 5;
+						int orientedNr = 2;
+						for (int i = 1; i <= freq[nonOrientedTopologyNr].length; i++) {
+							Matcher m = rx.get(orientedNr).get(i).matcher(newick);
+							if (m.matches()) {
+								freq[nonOrientedTopologyNr][i - 1] += 1;
+							}
+						}
+					}
+				}
+			}// Non-oriented tree (1,(3)2) number 6:
+			// node 2 is an ancestral node of leaf node 3 
+			else if (!firstAncestor) {
+				int nonOrientedTopologyNr = 6;
+				int orientedNr = 1;
+				for (int i = 1; i <= freq[nonOrientedTopologyNr].length; i++) {
+					Matcher m = rx.get(orientedNr).get(i).matcher(newick);
+					if (m.matches()) {
+						freq[nonOrientedTopologyNr][i - 1] += 1;
+					}
+				}
+			} // Non-oriented tree (((3)2)1) number 7:
+				// 1 is ancestral of 2 and 3, 2 is ancestral of 3
+			else if (firstAncestor) {
+				int nonOrientedTopologyNr = 7;
+				int orientedNr = 1;
+				for (int i = 1; i <= freq[nonOrientedTopologyNr].length; i++) {
+					Matcher m = rx.get(orientedNr).get(i).matcher(newick);
+					if (m.matches()) {
+						freq[nonOrientedTopologyNr][i - 1] += 1;
+					}
+				}
+			} else
+				throw new IllegalArgumentException("Topology assignment fell through.");
+
+			if (Arrays.equals(duplicate, freq)) {
+				throw new IllegalArgumentException("Not Assigned: " + newick);
+			}
+
+			int sumBefore = 0;
+			int sumAfter = 0;
+
+			for (int nonOrientedTopologyNr = 0; nonOrientedTopologyNr < 8; nonOrientedTopologyNr++) {
+				sumAfter += Arrays.stream(freq[nonOrientedTopologyNr]).sum();
+				sumBefore += Arrays.stream(duplicate[nonOrientedTopologyNr]).sum();
+			}
+
+			if (sumAfter != sumBefore + 1) {
+				throw new IllegalArgumentException("Tree assigned to more than one topology");
+			}
+
 		}
-        buf.append(":");
 
-        double nodeLength;
-        if (node.isRoot()) {
-            nodeLength = getTreeHeight() - node.getHeight();
-        } else {
-            nodeLength = node.getLength();
-        }
-		appendDouble(buf, nodeLength);
+		@Override
+		public void close() {
+		}
 
-        return buf.toString();
-    }
+		/**
+		 * Obtain all frequencies
+		 *
+		 * @return topology frequencies.
+		 */
+		public int[][] getAnalysis() {
+			return freq;
+		}
 
-    // uses the height of the tallest species or gene tree
-    private double getTreeHeight() {
-        double speciesTreeHeight = speciesTreeInput.get().getRoot().getHeight();
+		// Get Newick string, without sorting the nodes before
+		String toNewick(Node node) {
+			StringBuffer buf = new StringBuffer();
+			if (node.getLeft() != null) {
+				buf.append("(");
+				buf.append(toNewick(node.getLeft()));
+				if (node.getRight() != null) {
+					buf.append(',');
+					buf.append(toNewick(node.getRight()));
+				}
+				buf.append(")");
+			}
+			if (node.getID() == null) {
+				buf.append(node.getNr() + 1);
+			} else {
+				buf.append(node.getID());
+			}
+			buf.append(":");
 
-        for (GeneTree gt: geneTreeInput.get()) {
-            speciesTreeHeight = Double.max(speciesTreeHeight, gt.getRoot().getHeight());
-        }
+			double nodeLength;
+			if (node.isRoot()) {
+				nodeLength = getTreeHeight() - node.getHeight();
+			} else {
+				nodeLength = node.getLength();
+			}
+			appendDouble(buf, nodeLength);
 
-        return speciesTreeHeight;
-    }
+			return buf.toString();
+		}
 
-    @Override
-    public void close(PrintStream out) {
-        SpeciesTreeInterface speciesTree = speciesTreeInput.get();
-        speciesTree.close(out);
-    }
+		/**
+		 * Appends a double to the given StringBuffer, formatting it using the private
+		 * DecimalFormat instance, if the input 'dp' has been given a non-negative
+		 * integer, otherwise just uses default formatting.
+		 * 
+		 * @param buf
+		 * @param d
+		 */
+		private void appendDouble(StringBuffer buf, double d) {
+			if (df == null) {
+				buf.append(d);
+			} else {
+				buf.append(df.format(d));
+			}
+		}
 
+		// uses the height of the tallest species or gene tree
+		private double getTreeHeight() {
+			double speciesTreeHeight = speciesTreeInput.get().getRoot().getHeight();
+
+			for (GeneTree gt : geneTreeInput.get()) {
+				speciesTreeHeight = Double.max(speciesTreeHeight, gt.getRoot().getHeight());
+			}
+
+			return speciesTreeHeight;
+		}
+
+	}
+	
 }
 

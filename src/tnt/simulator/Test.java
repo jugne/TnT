@@ -24,7 +24,7 @@ public class Test {
 
 			private double function(double t) {
 				return ((-2 * Math.log(Math.abs((c_2 - 1) * Math.exp(-c_1 * t) - c_2 - 1))
-						+ Math.log(Math.exp(-c_1 * t)) + (mu + psi + lambda) * t) / 2);
+						+ (-c_1 * t) + (mu + psi + lambda) * t) / 2);
 
 			}
 

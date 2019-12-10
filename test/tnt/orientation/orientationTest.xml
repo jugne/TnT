@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='StarBeast2' beautistatus='noAutoSetClockRate' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.util:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.evolution.likelihood:tnt.orientation" required="BEAST v2.5.2:starbeast2 v0.15.1:SA v2.0.1" version="2.5">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><beast beautitemplate='StarBeast2' beautistatus='noAutoSetClockRate' namespace="beast.core:beast.evolution.alignment:beast.evolution.tree.coalescent:beast.core.util:beast.evolution.nuc:beast.util:beast.evolution.operators:beast.evolution.sitemodel:beast.evolution.substitutionmodel:beast.evolution.likelihood:tnt.orientation:tnt.logger" required="BEAST v2.5.2:starbeast2 v0.15.1:SA v2.0.1" version="2.5">
 
 
     <data id="Gene" name="alignment">
@@ -27,7 +27,7 @@
 <map name="OneOnX" >beast.math.distributions.OneOnX</map>
 
 
-<run id="mcmc" spec="MCMC" chainLength="5000000" storeEvery="100">
+<run id="mcmc" spec="MCMC" chainLength="1000000" storeEvery="100">
     <state id="state" storeEvery="100">
     	
         <stateNode id="Tree.t:Species" spec="starbeast2.SpeciesTree">
@@ -160,8 +160,8 @@
         <log idref="originFBD.t:Species"/>
     </logger>
 
-    <logger id="speciesTreeLogger" fileName="$(filebase)..trees" logEvery="100" mode="tree">
-        <log id="SpeciesTreeLoggerX" spec="tnt.orientation.OrientationTest" transmissionTree="@Tree.t:Species"/>
+    <logger id="speciesTreeLogger" fileName="$(filebase).trees" logEvery="100" mode="tree">
+        <log id="SpeciesTreeLoggerX" spec="tnt.orientation.TransmissionTreeLogger" transmissionTree="@Tree.t:Species"/>
     </logger>
 
     <logger id="screenlog" logEvery="10000" model="@posterior">
