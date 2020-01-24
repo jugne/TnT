@@ -57,6 +57,8 @@ public class SimulatedGeneTree extends Tree {
 	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate", Input.Validate.REQUIRED);
 	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 			"Sampling rate per individual", Input.Validate.REQUIRED);
+	public Input<Boolean> completeInput = new Input<>("complete",
+			"Is input a complete tree", false);
 
 	public Tree transmissionTree;
     public TraitSet sampleCounts;
@@ -65,10 +67,21 @@ public class SimulatedGeneTree extends Tree {
 	private double bottleneckStrength;
 	private double maxBound;
 
-    public SimulatedGeneTree() { }
+	private boolean complete;
+
+	@Override
+	public void init(PrintStream out) {
+	}
+
+	@Override
+	public void close(PrintStream out) {
+	}
+
 
     @Override
     public void initAndValidate() {
+		complete = completeInput.get();
+
 		transmissionTree = transmissionTreeInput.get();
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
@@ -144,6 +157,7 @@ public class SimulatedGeneTree extends Tree {
 						minCoal = transmissionNode;
 					}
 
+					if (!complete) {
 					double timeToNextNonObsTr = soveForTime(t,
 							birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
 							samplingRateInput.get().getArrayValue(0));
@@ -151,6 +165,7 @@ public class SimulatedGeneTree extends Tree {
 						minNonObsTrTime = timeToNextNonObsTr;
 						minNonObsTr = transmissionNode;
 
+					}
 					}
 				}
 			}

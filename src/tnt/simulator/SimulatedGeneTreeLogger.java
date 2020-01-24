@@ -1,10 +1,10 @@
 package tnt.simulator;
 
+import java.io.PrintStream;
+
 import beast.core.BEASTObject;
 import beast.core.Input;
 import beast.core.Loggable;
-
-import java.io.PrintStream;
 
 /**
  * Created by Tim Vaughan <tgvaughan@gmail.com> on 28/04/17.
@@ -34,6 +34,6 @@ public class SimulatedGeneTreeLogger extends BEASTObject implements Loggable {
 
     @Override
     public void close(PrintStream out) {
-        geneTree.init(out);
+		geneTree.close(out);
     }
 }
