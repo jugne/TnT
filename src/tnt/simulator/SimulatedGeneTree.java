@@ -91,6 +91,7 @@ public class SimulatedGeneTree extends Tree {
         sampleCounts = sampleCountsInput.get();
 
         assignFromWithoutID(getSimulatedGeneTree());
+		System.out.println(this.root.toNewick());
 		// Write simulated network to file if requested
 		if (fileNameInput.get() != null) {
 			try (PrintStream ps = new PrintStream(fileNameInput.get())) {
@@ -214,14 +215,25 @@ public class SimulatedGeneTree extends Tree {
 									node2 = recipientLineages.get(Randomizer.nextInt(k));
 								} while (node2 == node1);
 
-								Node parent = new Node(String.valueOf(nextIntNodeNr));
-								parent.setNr(nextIntNodeNr++);
-								parent.setHeight(t);
-								parent.addChild(node1);
-								parent.addChild(node2);
-								recipientLineages.remove(node1);
-								recipientLineages.remove(node2);
-								recipientLineages.add(parent);
+								Node parent;
+								if (node1.getHeight() == t) {
+									parent = node1;
+									parent.addChild(node2);
+									recipientLineages.remove(node2);
+								} else if (node2.getHeight() == t) {
+									parent = node2;
+									parent.addChild(node1);
+									recipientLineages.remove(node1);
+								} else {
+									parent = new Node(String.valueOf(nextIntNodeNr));
+									parent.setNr(nextIntNodeNr++);
+									parent.setHeight(t);
+									parent.addChild(node1);
+									parent.addChild(node2);
+									recipientLineages.remove(node1);
+									recipientLineages.remove(node2);
+									recipientLineages.add(parent);
+								}
 							} else {
 								break;
 							}
@@ -288,14 +300,25 @@ public class SimulatedGeneTree extends Tree {
 									node2 = lineageList.get(Randomizer.nextInt(k));
 								} while (node2 == node1);
 
-								Node parent = new Node(String.valueOf(nextIntNodeNr));
-								parent.setNr(nextIntNodeNr++);
-								parent.setHeight(t);
-								parent.addChild(node1);
-								parent.addChild(node2);
-								lineageList.remove(node1);
-								lineageList.remove(node2);
-								lineageList.add(parent);
+								Node parent;
+								if (node1.getHeight() == t) {
+									parent = node1;
+									parent.addChild(node2);
+									lineageList.remove(node2);
+								} else if (node2.getHeight() == t) {
+									parent = node2;
+									parent.addChild(node1);
+									lineageList.remove(node1);
+								} else {
+									parent = new Node(String.valueOf(nextIntNodeNr));
+									parent.setNr(nextIntNodeNr++);
+									parent.setHeight(t);
+									parent.addChild(node1);
+									parent.addChild(node2);
+									lineageList.remove(node1);
+									lineageList.remove(node2);
+									lineageList.add(parent);
+								}
 							} else {
 								break;
 							}
@@ -310,6 +333,11 @@ public class SimulatedGeneTree extends Tree {
         }
 
         // Return tree with remaining lineage as root
+		List<Node> ns = activeLineages.get(transmissionTree.getRoot());
+		Node r = activeLineages.get(transmissionTree.getRoot()).get(0);
+		Tree tr = new Tree(activeLineages.get(transmissionTree.getRoot()).get(0));
+		Node r2 = tr.getRoot();
+		System.out.println(r2.toNewick());
 		return new Tree(activeLineages.get(transmissionTree.getRoot()).get(0));
     }
 
