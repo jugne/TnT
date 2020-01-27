@@ -7,7 +7,7 @@ import beast.core.Distribution;
 import beast.core.State;
 import beast.evolution.tree.Node;
 
-public class GeneTree extends Distribution {
+public class GeneTreeDistribution extends Distribution {
 
 	public Node getRoot() {
 		// TODO Auto-generated method stub
