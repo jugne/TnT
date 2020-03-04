@@ -1,4 +1,4 @@
-package tnt.logger;
+package tnt.orientation;
 
 import java.io.PrintStream;
 import java.math.RoundingMode;
@@ -24,8 +24,7 @@ import tnt.distribution.GeneTreeDistribution;
 public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 	final public Input<SpeciesTreeInterface> speciesTreeInput = new Input<>("transmissionTree",
 			"The species tree to be logged.", Validate.REQUIRED);
-	final public Input<List<GeneTreeDistribution>> geneTreeInput = new Input<>("geneTree",
-			"Gene tree within the species tree.", new ArrayList<>());
+    final public Input<List<GeneTreeDistribution>> geneTreeInput = new Input<>("geneTree", "Gene tree within the species tree.", new ArrayList<>());
     final public Input<PopulationModel> populationModelInput = new Input<>("populationmodel", "population sizes to be logged with branches of the tree");
     // TODO: make this input a list of valuables
     final public Input<List<Function>> parameterInput = new Input<>("metadata", "meta data to be logged with the tree nodes",new ArrayList<>());
@@ -190,7 +189,7 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
     private double getTreeHeight() {
         double speciesTreeHeight = speciesTreeInput.get().getRoot().getHeight();
 
-		for (GeneTreeDistribution gt : geneTreeInput.get()) {
+        for (GeneTreeDistribution gt: geneTreeInput.get()) {
             speciesTreeHeight = Double.max(speciesTreeHeight, gt.getRoot().getHeight());
         }
 

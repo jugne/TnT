@@ -50,7 +50,7 @@ import starbeast2.CoordinatedUniform;
 import starbeast2.NodeReheight2;
 import starbeast2.SpeciesTreeInterface;
 import starbeast2.StarBeastTaxonSet;
-import tnt.distribution.GeneTree;
+import tnt.distribution.GeneTreeDistribution;
 
 public class OrientationTest{
 	
@@ -417,7 +417,7 @@ public class OrientationTest{
 		final public Input<SpeciesTreeInterface> speciesTreeInput = new Input<>("speciesTree",
 				"The species tree to be logged.", Validate.REQUIRED);
 
-		final public Input<List<GeneTree>> geneTreeInput = new Input<>("geneTree", "Gene tree within the species tree.",
+		final public Input<List<GeneTreeDistribution>> geneTreeInput = new Input<>("geneTree", "Gene tree within the species tree.",
 				new ArrayList<>());
 
 		private DecimalFormat df;
@@ -483,7 +483,6 @@ public class OrientationTest{
 			put(2, rx_2);
 			put(3, rx_3);
 		}};
-//		HashMap[] rx = {rx_1, rx_2, rx_3};
 
 		@Override
 		public void initAndValidate() {
@@ -700,7 +699,7 @@ public class OrientationTest{
 		private double getTreeHeight() {
 			double speciesTreeHeight = speciesTreeInput.get().getRoot().getHeight();
 
-			for (GeneTree gt : geneTreeInput.get()) {
+			for (GeneTreeDistribution gt : geneTreeInput.get()) {
 				speciesTreeHeight = Double.max(speciesTreeHeight, gt.getRoot().getHeight());
 			}
 

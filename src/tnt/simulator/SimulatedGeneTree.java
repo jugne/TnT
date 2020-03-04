@@ -11,7 +11,7 @@ import java.util.Map;
 
 import org.apache.commons.math3.analysis.differentiation.DerivativeStructure;
 import org.apache.commons.math3.analysis.differentiation.UnivariateDifferentiableFunction;
-import org.apache.commons.math3.analysis.solvers.NewtonRaphsonSolver;
+import org.apache.commons.math3.analysis.solvers.BrentSolver;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 
 import beast.core.Function;
@@ -57,8 +57,13 @@ public class SimulatedGeneTree extends Tree {
 	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate", Input.Validate.REQUIRED);
 	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 			"Sampling rate per individual", Input.Validate.REQUIRED);
-	public Input<Boolean> completeInput = new Input<>("complete",
-			"Is input a complete tree", false);
+
+	public Input<RealParameter> samplingExtantRateInput = new Input<RealParameter>("samplingExtantRate",
+			"Sampling rate of extant tips");
+
+	public Input<Boolean> hiddenKnownInput = new Input<>("complete",
+			"Simulate hidden bottlenecks", false);
+
 
 	public Tree transmissionTree;
     public TraitSet sampleCounts;
@@ -67,11 +72,17 @@ public class SimulatedGeneTree extends Tree {
 	private double bottleneckStrength;
 	private double maxBound;
 
-	private boolean complete;
+	public int hiddenNodes;
+	public List<Double> hiddenNodeTimes;
 
-	@Override
-	public void init(PrintStream out) {
-	}
+	private boolean hiddenKnown;
+	public HashMap<String, Node> geneTreeEventAssignment = new HashMap<>();
+
+	private double samplingExtantRate;
+
+//	@Override
+//	public void init(PrintStream out) {
+//	}
 
 	@Override
 	public void close(PrintStream out) {
@@ -80,17 +91,36 @@ public class SimulatedGeneTree extends Tree {
 
     @Override
     public void initAndValidate() {
-		complete = completeInput.get();
 
 		transmissionTree = transmissionTreeInput.get();
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
 		bottleneckStrength = bottleneckStrengthInput.get().getArrayValue(0);
-		maxBound = maxBoundInput.get() != null ? maxBoundInput.get().getArrayValue(0) : 1000;
+		maxBound = maxBoundInput.get() != null ? maxBoundInput.get().getArrayValue(0) : 10000;
+
+		samplingExtantRate = samplingExtantRateInput.get() == null ? 1 : samplingExtantRateInput.get().getArrayValue(0);
 
         sampleCounts = sampleCountsInput.get();
 
+		hiddenNodes = 0;
+		hiddenNodeTimes = new ArrayList();
+		hiddenKnown = false;
+
+		for (Node n : transmissionTree.getNodesAsArray()) {
+			if (n.isLeaf() && sampleCounts.getValue(n.getID()) == 0) {
+				hiddenKnown = true;
+				if (n.getParent().getChild(0) != n)
+					System.exit(0);
+//				break;
+			}
+			if (hiddenKnownInput.get()) {
+				hiddenKnown = true;
+			}
+		}
+
+
         assignFromWithoutID(getSimulatedGeneTree());
+		System.out.println(hiddenNodes);
 		// Write simulated network to file if requested
 		if (fileNameInput.get() != null) {
 			try (PrintStream ps = new PrintStream(fileNameInput.get())) {
@@ -157,15 +187,17 @@ public class SimulatedGeneTree extends Tree {
 						minCoal = transmissionNode;
 					}
 
-					if (!complete) {
+				}
+
+				if (!hiddenKnown) {
+					double endTime = transmissionNode.isRoot() ? maxBound
+							: transmissionNode.getParent().getHeight();
 					double timeToNextNonObsTr = soveForTime(t,
 							birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
-							samplingRateInput.get().getArrayValue(0));
+							samplingRateInput.get().getArrayValue(0), endTime) - t;
 					if (timeToNextNonObsTr < minNonObsTrTime) {
 						minNonObsTrTime = timeToNextNonObsTr;
 						minNonObsTr = transmissionNode;
-
-					}
 					}
 				}
 			}
@@ -189,12 +221,18 @@ public class SimulatedGeneTree extends Tree {
                         geneTreeSampleNode.setNr(nextLeafNodeNr++);
 						geneTreeSampleNode.setHeight(transmissionNode.getHeight());
 						activeLineages.get(transmissionNode).add(geneTreeSampleNode);
+						geneTreeEventAssignment.put(geneTreeSampleNode.getID(), transmissionNode);
                     }
 
                 } else {
 					// Observed transmission
 
 					Node recipient = transmissionNode.getChildren().get(1);
+					Node donor = transmissionNode.getChild(0);
+					if (donor.isLeaf() && sampleCounts.getValue(donor.getID()) == 0) {
+						hiddenNodes += 1;
+						hiddenNodeTimes.add(donor.getHeight());
+					}
 					List<Node> recipientLineages = activeLineages.get(recipient);
 					double recipientNe = popSize.get(recipient);
 
@@ -222,6 +260,8 @@ public class SimulatedGeneTree extends Tree {
 								recipientLineages.remove(node1);
 								recipientLineages.remove(node2);
 								recipientLineages.add(parent);
+								
+								geneTreeEventAssignment.put(parent.getID(), recipient);
 							} else {
 								break;
 							}
@@ -266,8 +306,12 @@ public class SimulatedGeneTree extends Tree {
 					lineageList.add(parent);
 					activeLineages.put(minCoal, lineageList);
 					
+					geneTreeEventAssignment.put(parent.getID(), minCoal);
+
 				} else if (minNonObsTrTime == dt) {
 					// Unobserved transmission
+					hiddenNodes += 1;
+					hiddenNodeTimes.add(minNonObsTrTime);
 
 					List<Node> lineageList = activeLineages.get(minNonObsTr);
 					double Ne = popSize.get(minNonObsTr);
@@ -296,6 +340,8 @@ public class SimulatedGeneTree extends Tree {
 								lineageList.remove(node1);
 								lineageList.remove(node2);
 								lineageList.add(parent);
+
+								geneTreeEventAssignment.put(parent.getID(), minNonObsTr);
 							} else {
 								break;
 							}
@@ -314,13 +360,13 @@ public class SimulatedGeneTree extends Tree {
     }
 
 	// Solve an inverse transform problem for time t of next occurence
-	private double soveForTime(double currentTime, double lambda, double mu, double psi) {
+	private double soveForTime(double currentTime, double lambda, double mu, double psi, double endTime) {
 
 		double u = Randomizer.nextDouble();
 		double c_1 = Math.abs(Math.sqrt( Math.pow((lambda - mu - psi), 2) + 4*lambda*psi ));
-		double c_2 = - (lambda - mu - psi)/c_1;
+		double c_2 = -(lambda - mu - 2 * lambda * samplingExtantRate - psi) / c_1;
 		
-		NewtonRaphsonSolver solver = new NewtonRaphsonSolver(1E-10);
+//		NewtonRaphsonSolver solver = new NewtonRaphsonSolver(1E-6);
 
 		UnivariateDifferentiableFunction f = new UnivariateDifferentiableFunction() {
 
@@ -335,10 +381,10 @@ public class SimulatedGeneTree extends Tree {
 						.add(t.multiply(-c_1).exp().log()).add(t.multiply(lambda + mu + psi))).divide(2);
 			}
 
-			// solve fot t: int_{currentTime}^{t} f(x) = -ln(u)
+			// solve fot t: int_{currentTime}^{t} f(x) = -ln(1-u)
 			@Override
 			public double value(double t) {
-				return this.function(t) + Math.log(u) - this.function(currentTime);
+				return this.function(t) + Math.log(1 - u) - this.function(currentTime);
 			}
 
 			@Override
@@ -349,7 +395,17 @@ public class SimulatedGeneTree extends Tree {
 			}
 		};
 
-		return solver.solve(10000, f, currentTime, maxBound);
+		BrentSolver solver = new BrentSolver();
+		double time = Double.POSITIVE_INFINITY; // return infinity if there are no roots within time interval of the
+												// transmission tree
+												// branch
+		try {
+			time = solver.solve(100000, f, currentTime, endTime);
+		} catch (Exception e) {
+		}
+		return time;
+		
+//		return solver.solve(100000, f, currentTime, maxBound);
 
 	}
 

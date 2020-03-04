@@ -1,10 +1,13 @@
 package tnt.likelihood;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import beast.evolution.tree.Node;
 
 public class GeneTreeEvent {
 	public enum GeneTreeEventType {
-		SAMPLE, BIFURCATION, MULTIFURCATION
+		SAMPLE, BIFURCATION, MULTIFURCATION, TANSMISSION
 	}
 
 	public GeneTreeEventType type;
@@ -17,6 +20,8 @@ public class GeneTreeEvent {
 	// Only used for multifurcation events,
 	// how many separate bif/multi-furcating events happen during bottleneck
 	public int multiCoalCount = 0;
+
+	public List<Integer> multiCoalSize = new ArrayList<>();
 
 	public int lineages;
 

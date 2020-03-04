@@ -18,7 +18,7 @@ public class Test {
 		double c_1 = Math.abs(Math.sqrt(Math.pow((lambda - mu - psi), 2) + 4 * lambda * psi));
 		double c_2 = -(lambda - mu - psi) / c_1;
 
-		NewtonRaphsonSolver solver = new NewtonRaphsonSolver(1E-9);
+		NewtonRaphsonSolver solver = new NewtonRaphsonSolver(1E-10);
 
 		UnivariateDifferentiableFunction f = new UnivariateDifferentiableFunction() {
 
@@ -35,7 +35,7 @@ public class Test {
 
 			@Override
 			public double value(double t) {
-				System.out.println(this.function(currentTime));
+//				System.out.println(this.function(currentTime));
 				return this.function(t) + Math.log(1 - u) - this.function(currentTime);
 			}
 

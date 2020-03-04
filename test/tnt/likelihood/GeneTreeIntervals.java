@@ -14,6 +14,7 @@ import beast.core.Input;
 import beast.core.Input.Validate;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
+import tnt.simulator.SimulatedGeneTree;
 
 /**
  *
@@ -23,24 +24,42 @@ import beast.evolution.tree.Tree;
 @Description("Extracts the intervals from a gene tree. Points in the intervals " +
         "are defined by the heights of nodes in the tree.")
 public class GeneTreeIntervals extends CalculationNode {
-	public Input<Tree> geneTreeInput = new Input<Tree>("geneTree", "Gene tree for which to calculate the intervals",
-			Validate.REQUIRED);
+	public Input<Tree> geneTreeInput = new Input<Tree>("geneTree", "Gene tree for which to calculate the intervals");
 
-    private Tree geneTree;
+	public Input<SimulatedGeneTree> simulatedGeneTreeInput=new Input<SimulatedGeneTree>("simulatedGeneTree","Gene tree for which to calculate the intervals",
+			Validate.XOR, geneTreeInput);
+
+	public Input<Tree> transmissionTreeInput = new Input<>("transmissionTreeInput",
+			"Fully labeled transmission tree on which to simulate gene trees",
+			Input.Validate.REQUIRED);
+//	public Input<TraitSet> sampleCountsInput = new Input<>(
+//			"sampleCounts",
+//			"TraitSet defining number of  samples per node in species tree.",
+//			Input.Validate.REQUIRED);
+
+	private SimulatedGeneTree geneTree;
+//	public TraitSet sampleCounts;
+//	public Tree transmissionTree;
     
 	private List<GeneTreeEvent> geneTreeEventList, storedGeneTreeEventList;
+	HashMap<Node, Integer> activeLineagesPerTransmissionTreeNode;
+	HashMap<Node, List<GeneTreeEvent>> eventsPerTransmissionTreeNode;
 
 	public boolean eventListDirty = true;
 
 	@Override
 	public void initAndValidate() {
-		geneTree = geneTreeInput.get();
+		geneTree = simulatedGeneTreeInput.get();
 		storedGeneTreeEventList = new ArrayList<>();
+//		transmissionTree = transmissionTreeInput.get();
+//		sampleCounts = sampleCountsInput.get();
+		activeLineagesPerTransmissionTreeNode = new HashMap<>();
+		eventsPerTransmissionTreeNode = new HashMap<>();
 	}
 
-	List<GeneTreeEvent> getGeneTreeEventList() {
+	HashMap<Node, List<GeneTreeEvent>> getGeneTreeEventList() {
 		update();
-		return geneTreeEventList;
+		return eventsPerTransmissionTreeNode;
 	}
 
 	private void update() {
@@ -49,6 +68,8 @@ public class GeneTreeIntervals extends CalculationNode {
 
 		HashMap<Double, List<Node>> fakeBifurcations = new HashMap<>();
 		geneTreeEventList = new ArrayList<GeneTreeEvent>();
+		activeLineagesPerTransmissionTreeNode = new HashMap<>();
+		eventsPerTransmissionTreeNode = new HashMap<>();
 
 		for (Node n : geneTree.getNodesAsArray()) {
 			if (!n.isRoot() && n.getParent().getHeight() - n.getHeight() == 0) {
@@ -95,49 +116,124 @@ public class GeneTreeIntervals extends CalculationNode {
 		}
 		
 		for (double time : multiCoal.keySet()) {
+			multiCoal.get(time).get(0).multiCoalSize.add(coalSize(multiCoal.get(time).get(0).node));
 			if (multiCoal.get(time).size() > 1) {
 				for (int i = 1; i < multiCoal.get(time).size(); i++) {
 					multiCoal.get(time).get(0).multiCoalCount += multiCoal.get(time).get(i).multiCoalCount;
+					multiCoal.get(time).get(0).multiCoalSize.add(coalSize(multiCoal.get(time).get(i).node));
 					geneTreeEventList.remove(multiCoal.get(time).get(i));
 				}
 			}
 		}
 		
 		
-		for (GeneTreeEvent e : geneTreeEventList) {
-			e.time = Math.round(e.time * 10000000000.0) / 10000000000.0;
-		}
+//		for (GeneTreeEvent e : geneTreeEventList) {
+//			e.time = Math.round(e.time * 10000000000.0) / 10000000000.0;
+//		}
 
+
+
+
+
+//		System.out.println(geneTree.getRoot().toNewick());
+		int id = 0;
+		for (Node trNode : transmissionTreeInput.get().getNodesAsArray()) {
+			if (!trNode.isLeaf()) {
+				Node mockNode = new Node();
+				mockNode.setID("mock_" + id);
+				id++;
+				mockNode.setHeight(trNode.getHeight());
+				GeneTreeEvent startEvent = new GeneTreeEvent();
+				startEvent.node = mockNode;
+				startEvent.type = GeneTreeEvent.GeneTreeEventType.TANSMISSION;
+				startEvent.time = trNode.getHeight();
+				geneTreeEventList.add(startEvent);
+				geneTree.geneTreeEventAssignment.put(startEvent.node.getID(), trNode);
+			}
+		}
 
 		geneTreeEventList = geneTreeEventList.stream()
 				.sorted(Comparator.comparingDouble(e -> e.time))
 				.collect(Collectors.toList());
 
-
-        int lineages = 0;
         
         for (GeneTreeEvent event : geneTreeEventList) {
+
+			Node trNode = geneTree.geneTreeEventAssignment.get(event.node.getID());
+//			GeneTreeEvent startEvent = null;
+			int nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode) == null ? 0
+					: activeLineagesPerTransmissionTreeNode.get(trNode);
+			if (!trNode.isLeaf() && nrLineage == 0) {
+//				if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1)) == null)
+//					System.out.println();
+				activeLineagesPerTransmissionTreeNode.put(trNode, getLineagesRecurse(trNode));
+				nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode);
+//				startEvent = new GeneTreeEvent();
+//				startEvent.type = GeneTreeEvent.GeneTreeEventType.TANSMISSION;
+//				startEvent.time = trNode.getHeight();
+//				startEvent.lineages = nrLineage;
+			}
+
         	switch(event.type) {
 			case SAMPLE:
-				lineages += 1;
+				nrLineage += 1;
+				activeLineagesPerTransmissionTreeNode.put(trNode, nrLineage);
+
 				break;
 			case BIFURCATION:
-				lineages -= 1;
+				nrLineage -= 1;
+				activeLineagesPerTransmissionTreeNode.put(trNode, nrLineage);
+				if (!trNode.isRoot() && event.node.getHeight() == trNode.getParent().getHeight()) {
+					Node otherChild = trNode == trNode.getParent().getChild(0) ? trNode.getParent().getChild(1)
+							: trNode.getParent().getChild(0);
+					activeLineagesPerTransmissionTreeNode.put(trNode.getParent(),
+							nrLineage + activeLineagesPerTransmissionTreeNode.get(otherChild));
+				}
 				break;
 			case MULTIFURCATION:
-				lineages = lineages - (event.fakeBifCount + event.multiCoalCount);
+				nrLineage -= (event.fakeBifCount + event.multiCoalCount);
+				activeLineagesPerTransmissionTreeNode.put(trNode, nrLineage);
+				if (!trNode.isRoot() && event.node.getHeight() == trNode.getParent().getHeight()) {
+					Node otherChild = trNode == trNode.getParent().getChild(0) ? trNode.getParent().getChild(1)
+							: trNode.getParent().getChild(0);
+					activeLineagesPerTransmissionTreeNode.put(trNode.getParent(),
+							nrLineage + activeLineagesPerTransmissionTreeNode.get(otherChild));
+				}
 				break;
         	}
 //			System.out.println("Node: " + event.node.getID());
 //			System.out.println("Type: " + event.type);
 //			System.out.println("Lineages after: " + lineages);
 //
-			if (lineages < 2)
-				System.out.println(geneTree.getRoot().toNewick());
-			event.lineages = lineages;
+			event.lineages = nrLineage;
+
+			if (eventsPerTransmissionTreeNode.get(trNode) == null) {
+				List<GeneTreeEvent> l = new ArrayList<>();
+				l.add(event);
+				eventsPerTransmissionTreeNode.put(trNode, l);
+			} else {
+				eventsPerTransmissionTreeNode.get(trNode).add(event);
+			}
+//			if (startEvent != null) {
+//				eventsPerTransmissionTreeNode.get(trNode).add(startEvent);
+//			}
         }
 
 		eventListDirty = false;
+	}
+
+	int getLineagesRecurse(Node trNode) {
+		int nLineages = 0;
+		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0)) == null)
+			nLineages += getLineagesRecurse(trNode.getChild(0));
+		else
+			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0));
+		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1)) == null)
+			nLineages += getLineagesRecurse(trNode.getChild(1));
+		else
+			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1));
+
+		return nLineages;
 	}
 
 	@Override
@@ -161,6 +257,32 @@ public class GeneTreeIntervals extends CalculationNode {
 		storedGeneTreeEventList.addAll(geneTreeEventList);
 
 		super.store();
+	}
+
+	protected int coalSize(Node n) {
+		int size = 0;
+
+		for (Node child : n.getChildren()) {
+			size += countZeroBranches(child, n.getHeight());
+//			if (!child.isLeaf() && !child.isFake() && child.getHeight() == n.getHeight()) {
+//				size += 1;
+//			}
+		}
+
+		// if multifurcation has k fake coalescent events
+		// there are k+2 lineages multifurcating
+		return size + 2;
+	}
+
+	protected int countZeroBranches(Node n, double height) {
+		int size = 0;
+		if (!n.isLeaf() && !n.isFake() && n.getHeight() == height) {
+			size += countZeroBranches(n.getChild(0), height);
+			size += countZeroBranches(n.getChild(1), height);
+			size += 1;
+		}
+
+		return size;
 	}
    
 }
