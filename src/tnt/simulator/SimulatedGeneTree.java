@@ -120,7 +120,6 @@ public class SimulatedGeneTree extends Tree {
 
 
         assignFromWithoutID(getSimulatedGeneTree());
-		System.out.println(hiddenNodes);
 		// Write simulated network to file if requested
 		if (fileNameInput.get() != null) {
 			try (PrintStream ps = new PrintStream(fileNameInput.get())) {
@@ -205,7 +204,7 @@ public class SimulatedGeneTree extends Tree {
 			
 			double dt = Math.min(minCoalTime, minNonObsTrTime);
 
-			if (!sortedTransmissionTreeNodes.isEmpty() && t + dt > sortedTransmissionTreeNodes.get(0).getHeight()) {
+			if (!sortedTransmissionTreeNodes.isEmpty() && t + dt >= sortedTransmissionTreeNodes.get(0).getHeight()) {
 				Node transmissionNode = sortedTransmissionTreeNodes.get(0);
 				t = transmissionNode.getHeight();
 
@@ -366,7 +365,7 @@ public class SimulatedGeneTree extends Tree {
 		double c_1 = Math.abs(Math.sqrt( Math.pow((lambda - mu - psi), 2) + 4*lambda*psi ));
 		double c_2 = -(lambda - mu - 2 * lambda * samplingExtantRate - psi) / c_1;
 		
-//		NewtonRaphsonSolver solver = new NewtonRaphsonSolver(1E-6);
+//		NewtonRaphsonSolver solver = new NewtonRaphsonSolver(1E-10);
 
 		UnivariateDifferentiableFunction f = new UnivariateDifferentiableFunction() {
 
@@ -403,6 +402,8 @@ public class SimulatedGeneTree extends Tree {
 			time = solver.solve(100000, f, currentTime, endTime);
 		} catch (Exception e) {
 		}
+		if (time != Double.POSITIVE_INFINITY && time >= endTime)
+			System.out.println();
 		return time;
 		
 //		return solver.solve(100000, f, currentTime, maxBound);

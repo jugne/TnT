@@ -32,14 +32,8 @@ public class GeneTreeIntervals extends CalculationNode {
 	public Input<Tree> transmissionTreeInput = new Input<>("transmissionTreeInput",
 			"Fully labeled transmission tree on which to simulate gene trees",
 			Input.Validate.REQUIRED);
-//	public Input<TraitSet> sampleCountsInput = new Input<>(
-//			"sampleCounts",
-//			"TraitSet defining number of  samples per node in species tree.",
-//			Input.Validate.REQUIRED);
 
 	private SimulatedGeneTree geneTree;
-//	public TraitSet sampleCounts;
-//	public Tree transmissionTree;
     
 	private List<GeneTreeEvent> geneTreeEventList, storedGeneTreeEventList;
 	HashMap<Node, Integer> activeLineagesPerTransmissionTreeNode;
@@ -51,8 +45,6 @@ public class GeneTreeIntervals extends CalculationNode {
 	public void initAndValidate() {
 		geneTree = simulatedGeneTreeInput.get();
 		storedGeneTreeEventList = new ArrayList<>();
-//		transmissionTree = transmissionTreeInput.get();
-//		sampleCounts = sampleCountsInput.get();
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
 	}
@@ -125,17 +117,7 @@ public class GeneTreeIntervals extends CalculationNode {
 				}
 			}
 		}
-		
-		
-//		for (GeneTreeEvent e : geneTreeEventList) {
-//			e.time = Math.round(e.time * 10000000000.0) / 10000000000.0;
-//		}
 
-
-
-
-
-//		System.out.println(geneTree.getRoot().toNewick());
 		int id = 0;
 		for (Node trNode : transmissionTreeInput.get().getNodesAsArray()) {
 			if (!trNode.isLeaf()) {

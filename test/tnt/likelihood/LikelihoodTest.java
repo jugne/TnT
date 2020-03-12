@@ -1,12 +1,10 @@
 package tnt.likelihood;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.apache.commons.math.util.MathUtils;
 import org.junit.Test;
@@ -24,7 +22,6 @@ import beast.evolution.tree.TraitSet;
 import beast.util.Randomizer;
 import beast.util.TreeParser;
 import feast.simulation.GPSimulator;
-import tnt.likelihood.GeneTreeEvent.GeneTreeEventType;
 import tnt.simulator.SimulatedGeneTree;
 
 public class LikelihoodTest {
@@ -50,35 +47,24 @@ public class LikelihoodTest {
 		t2_1.setID("t2_1");
 		Taxon t22_1 = new Taxon();
 		t22_1.setID("t22_1");
-//		Taxon t17_1 = new Taxon();
-//		t17_1.setID("t17_1");
-//		Taxon t18_1 = new Taxon();
-//		t18_1.setID("t18_1");
-//		Taxon t20_1 = new Taxon();
-//		t20_1.setID("t20_1");
-//		Taxon t29_1 = new Taxon();
-//		t29_1.setID("t29_1");
-//		Taxon t33_1 = new Taxon();
-//		t33_1.setID("t33_1");
 
 		taxonSet.initByName("taxon", t7_1, "taxon", t10_1, "taxon", t11_1, "taxon", t2_1, "taxon", t22_1, "taxon",
-				t6_1);// , "taxon", t17_1, "taxon", t18_1, "taxon", t20_1, "taxon", t29_1, "taxon",
-						// t33_1);
+				t6_1);
 
 		TreeParser transmissionTreeInput = new TreeParser();
 		transmissionTreeInput.initByName("newick", speciesTreeNewick, "adjustTipHeights", false, "IsLabelledNewick",
 				true);
 
 		TraitSet sampleCounts = new TraitSet();
-		sampleCounts.initByName("traitname", "sampleCounts", "taxa", taxonSet, "value", " t7_1=6,\n" +
-				"t10_1=6,\n" +
-				"t11_1=6,\n" +
-				"t6_1=6,\n" +
-				"t2_1=6,\n" +
-				"t22_1=6");
+		sampleCounts.initByName("traitname", "sampleCounts", "taxa", taxonSet, "value", " t7_1=10,\n" +
+				"t10_1=10,\n" +
+				"t11_1=10,\n" +
+				"t6_1=10,\n" +
+				"t2_1=10,\n" +
+				"t22_1=10");
 
 		RealParameter populationSizes = new RealParameter("1.0");
-		RealParameter bottleneckStrength = new RealParameter("1.0");
+		RealParameter bottleneckStrength = new RealParameter("4.0");
 
 		RealParameter birthRate = new RealParameter("1.0");
 		RealParameter deathRate = new RealParameter("0.4");
@@ -97,7 +83,7 @@ public class LikelihoodTest {
 		GeneTreeIntervals intervals = new GeneTreeIntervals();
 		intervals.initByName("simulatedGeneTree", geneTree, "transmissionTreeInput", transmissionTreeInput);
 
-		Integer runs = 1000000;
+		Integer runs = 100000;
 		Integer burnin = 0;
 		Integer logEvery = 1;
 
@@ -173,7 +159,7 @@ public class LikelihoodTest {
 		int s;
 
 		List<Double> derivatives = new ArrayList<Double>();
-		int[] endLineages = new int[6];
+//		int[] endLineages = new int[6];
 
 		@Override
 		public void initAndValidate() {
@@ -199,8 +185,6 @@ public class LikelihoodTest {
 
 			s = 0;
 
-//			intervals.initAndValidate();
-
 		}
 
 		@Override
@@ -222,129 +206,115 @@ public class LikelihoodTest {
 			HashMap<Node, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
 			double h = 0.000001;
 			double derivative = 0;
-//			double dt = 0.00001;
-//			double time = 0.0;
+
 //			System.out.println(geneTree.getRoot().toNewick());
 
 			List<Node> trNodeList = new ArrayList<Node>(eventList.keySet());
 			trNodeList = trNodeList.stream().sorted(Comparator.comparingDouble(n -> n.getHeight()))
 					.collect(Collectors.toList());
 
-//			for (Node trNode : trNodeList) {
-//			for (int i = 0; i < 1; i++) {
-//			System.out.println(geneTree.getRoot().toNewick());
-			Node trNode = trNodeList.get(2);
-			boolean donor = (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake()); // change
-																		// back
 
-//				if (trNode.getID() != null && trNode.getID().equals("t11_1")) {
-					List<GeneTreeEvent> localEventList = eventList.get(trNode).stream()
-							.sorted(Comparator.comparingDouble(e -> e.time))
-							.collect(Collectors.toList());
-					GeneTreeEvent prevEvent = new GeneTreeEvent();
-					prevEvent.time = trNode.getHeight();
-					for (GeneTreeEvent event : localEventList) {
+			Node trNode = trNodeList.get(5);
+			boolean donor = (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake());
+
+			List<GeneTreeEvent> localEventList = eventList.get(trNode).stream()
+					.sorted(Comparator.comparingDouble(e -> e.time))
+					.collect(Collectors.toList());
+			GeneTreeEvent prevEvent = new GeneTreeEvent();
+			prevEvent.time = trNode.getHeight();
+			for (GeneTreeEvent event : localEventList) {
 //				if (trNode.getParent().getHeight() - 0.001 <= event.time)
 //					break;
-						if (prevEvent.time < event.time) {
-//							derivative += derivativeNeInterval(event, prevEvent);
+
+				// Contribution from every interval, except the last
+				if (prevEvent.time < event.time) {
 					derivative += logInterval(event, prevEvent, Ne + h);
 					derivative -= logInterval(event, prevEvent, Ne);
-						}
-				if (!trNode.isRoot() && !donor && event.type == GeneTreeEventType.BIFURCATION
-						&& event.time == trNode.getParent().getHeight())
-					event.type = GeneTreeEventType.MULTIFURCATION;
-						switch (event.type) {
-						case SAMPLE:
-							break;
-						case BIFURCATION:
-//							derivative += derivativeNeBifurcation(event);
-					derivative += logBif(event, prevEvent, Ne + h);
-					derivative -= logBif(event, prevEvent, Ne);
-							break;
-						case MULTIFURCATION:
-					if (event.multiCoalSize.size() > 1)
-						System.out.println(++s);
-//							derivative += derivativeNeMultifurcation(event, prevEvent);
+				}
+
+				switch (event.type) {
+				case SAMPLE:
+					break;
+				case BIFURCATION:
+					// If event is recorded at time of transmission and
+					// transmission tree branch is recipient,
+					// log as transmission event.
+					// This means no multiplication with rate \lambda*P_0
 					if (!trNode.isRoot() && !donor && event.time == trNode.getParent().getHeight()) {
 						derivative += logTrans(event, prevEvent, Ne + h);
 						derivative -= logTrans(event, prevEvent, Ne);
 						break;
 					}
+					derivative += logBif(event, prevEvent, Ne + h);
+					derivative -= logBif(event, prevEvent, Ne);
+					break;
+				case MULTIFURCATION:
+					// To see how many multiple mergers we have so far
+					if (event.multiCoalSize.size() > 1)
+						System.out.println(++s);
+
+					// If event is recorded at time of transmission and
+					// transmission tree branch is recipient,
+					// log as transmission event.
+					// This means no multiplication with rate \lambda*P_0
+					if (!trNode.isRoot() && !donor && event.time == trNode.getParent().getHeight()) {
+						derivative += logTrans(event, prevEvent, Ne + h);
+						derivative -= logTrans(event, prevEvent, Ne);
+							break;
+						}
 					derivative += logMultif(event, prevEvent, Ne + h);
 					derivative -= logMultif(event, prevEvent, Ne);
-						}
-						prevEvent = event;
+				}
+				prevEvent = event;
+			}
 
-					}
-			if (!trNode.isRoot() && prevEvent.time < trNode.getParent().getHeight()) { // change back
+			if (!trNode.isRoot() && prevEvent.time < trNode.getParent().getHeight()) {
 						GeneTreeEvent mockEvent = new GeneTreeEvent();
 				mockEvent.time = trNode.getParent().getHeight();// - 0.001;
 				mockEvent.lineages = prevEvent.lineages;
-//						derivative += derivativeNeInterval(mockEvent, prevEvent);
 				derivative += logInterval(mockEvent, prevEvent, Ne + h);
 				derivative -= logInterval(mockEvent, prevEvent, Ne);
-				if (!donor) {
-					derivative += logTrans(mockEvent, prevEvent, Ne + h);
-					derivative -= logTrans(mockEvent, prevEvent, Ne);
-				}
-
-					}
-
+//				if (!donor) {
+//					derivative += logTrans(mockEvent, prevEvent, Ne + h);
+//					derivative -= logTrans(mockEvent, prevEvent, Ne);
 //				}
-
-//			}
-			
-//			GeneTreeEvent prevEvent = new GeneTreeEvent();
-//			prevEvent.time = 0.0;
-//			
-//			for (int i=0; i < eventList.size(); i++) {
-//				GeneTreeEvent event = eventList.get(i);
-//				if (prevEvent.time < event.time) {
-//					derivative += derivativeNeInterval(event, prevEvent);
-//				}
-//				switch (event.type) {
-//				case SAMPLE:
-//					break;
-//				case BIFURCATION:
-//					derivative += derivativeNeBifurcation(event);
-//					break;
-//				case MULTIFURCATION:
-//					derivative += derivativeNeMultifurcation(event, prevEvent);
-//				}
-//				prevEvent = event;
-//
-//			}
-			endLineages[prevEvent.lineages - 1] += 1;
+			}
 			derivatives.add(derivative / h);
 		}
 
 		public List<Double> getAnalysis() {
-			double[] normal = new double[endLineages.length];
-			for (int a = 0; a < endLineages.length; a++) {
-				normal[a] = endLineages[a] / (double) IntStream.of(endLineages).sum();
-			}
-			System.out.println("Frequencies: " + Arrays.toString(normal));
+//			double[] normal = new double[endLineages.length];
+//			for (int a = 0; a < endLineages.length; a++) {
+//				normal[a] = endLineages[a] / (double) IntStream.of(endLineages).sum();
+//			}
+//			System.out.println("Frequencies: " + Arrays.toString(normal));
+
+			double derivatives_100 = derivatives.subList(0, 100).stream()
+					.mapToDouble(a -> a)
+					.sum();
+			System.out.println("100 runs: " + derivatives_100 / 100);
+			double derivatives_1000 = derivatives.subList(0, 1000).stream()
+					.mapToDouble(a -> a)
+					.sum();
+			System.out.println("1000 runs: " + derivatives_1000 / 1000);
+			double derivatives_10000 = derivatives.subList(0, 10000).stream()
+					.mapToDouble(a -> a)
+					.sum();
+			System.out.println("1000 runs: " + derivatives_10000 / 10000);
+			double derivatives_100000 = derivatives.subList(0, 100000).stream()
+					.mapToDouble(a -> a)
+					.sum();
+			System.out.println("10000 runs: " + derivatives_100000 / 100000);
+
 			return derivatives;
 		}
 
-//		private double derivativeNe(GeneTreeEvent event, GeneTreeEvent prevEvent) {
-//			double h = 0.000001;
-//
-//			return (likelihood(event, prevEvent, Ne + h) - likelihood(event, prevEvent, Ne)) / h;
-//		}
-//
-//		private double likelihood(GeneTreeEvent event, GeneTreeEvent prevEvent, double Ne) {
-//
-//			return 0;
-//		}
 
 		private double logBif(GeneTreeEvent event, GeneTreeEvent prevEvent, double Ne) {
 			double ans = 0.0;
 			ans += 1.0 / Ne;
-//			ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))
-//					* 
-			ans += gUp(prevEvent.lineages, event.lineages, tau, Ne)
+			ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))
+					* gUp(prevEvent.lineages, event.lineages, tau, Ne)
 					* lambda * P_0(event.time);
 
 			return Math.log(ans);
@@ -362,9 +332,6 @@ public class LikelihoodTest {
 				mult *= binomialInt(sum - n_histories, event.multiCoalSize.get(s) - 1);
 				sum -= (event.multiCoalSize.get(s) - 1);
 			}
-//			for (int s : event.multiCoalSize) {
-//				mult *= waysToCoal(s, 1);
-//			}
 			ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
 					* gUp(prevEvent.lineages, event.lineages, tau, Ne)
 					* lambda * P_0(event.time);
@@ -384,9 +351,6 @@ public class LikelihoodTest {
 				mult *= binomialInt(sum - n_histories, event.multiCoalSize.get(s) - 1);
 				sum -= (event.multiCoalSize.get(s) - 1);
 			}
-//			for (int s : event.multiCoalSize) {
-//				mult *= waysToCoal(s, 1);
-//			}
 			ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
 					* gUp(prevEvent.lineages, event.lineages, tau, Ne);
 
@@ -405,135 +369,6 @@ public class LikelihoodTest {
 
 			ans -= sum * lambda
 					* integralP_0(prevEvent.time, event.time, lambda, mu, psi);
-
-			return ans;
-		}
-
-		private double derivativeNeMultifurcation(GeneTreeEvent event, GeneTreeEvent prevEvent) {
-			
-			int i = prevEvent.lineages;
-			int j = event.lineages;
-			
-			double ans = 0.0;
-//			ans += derivativeNeGUp(i, j, tau, Ne);
-			ans += derivativeNeG(i, j, tau, Ne);
-			ans *= lambda;
-			ans *= P_0(event.time);
-			ans /= stirling(i, j);
-
-					
-			
-			return ans;
-		}
-
-		private double derivativeNeG(int i, int j, double tau, double Ne) {
-			
-			double sum = 0;
-			double sumDerivatives = 0;
-			for (int s = 1; s <= i; s++) {
-				sum += gUp(i, s, tau, Ne);
-				sumDerivatives += derivativeNeGUp(i, s, tau, Ne);
-			}
-
-			double ans = (derivativeNeGUp(i, j, tau, Ne) * sum);
-			ans -= (gUp(i, j, tau, Ne) * sumDerivatives);
-			ans /= Math.pow(sum, 2);
-			
-			return ans;
-		}
-
-		private double derivativeNeGUp(int i, int j, double tau, double Ne) {
-
-			double ans = 0.0;
-			double part_1 = 0.0;
-			double part_2 = 0.0;
-			for (int k = j; k <= i; k++) {
-//				double part = ((2.0 * k - 1.0) * Math.pow(-1, k - j) * f_1(j, k - 1) * f_2(i, k)) /
-//						( MathUtils.factorial(j) * MathUtils.factorial(k - j) * f_1(i, k) ) * 
-//						Math.exp(-(k * (k - 1) * tau / (2.0 * Ne)));
-//
-//				part_1 += part;
-//				
-//				part_2 += part * (k * (k - 1) * tau / (2.0 * Math.pow(Ne, 2)));
-				
-				ans += ((2.0 * k - 1.0) * Math.pow(-1, k - j) * f_1(j, k - 1) * f_2(i, k) * k * (k - 1) * tau
-						* Math.exp(-k * (k - 1) * tau * 0.5 / Ne)) /
-						(2 * MathUtils.factorial(j) * MathUtils.factorial(k - j) * f_1(i, k) * Math.pow(Ne, 2));
-						
-						
-						
-//				ans += (2 * k - 1) * Math.pow(-1, k - j) * f_1(j, k - 1) * f_2(i, k)
-//						* Math.exp(-(k * (k - 1) * tau * 0.5) / Ne) * ((k * (k - 1) * tau * 0.5) / Math.pow(Ne, 2)) /
-//						(MathUtils.factorial(j) * MathUtils.factorial(k - j) * f_1(i, k));
-			}
-
-//			return part_1 * part_2;
-			return ans;
-		}
-
-		private double derivativeNeInterval(GeneTreeEvent event, GeneTreeEvent prevEvent) {
-			
-			double ans = (prevEvent.lineages) * (prevEvent.lineages - 1);
-			ans *= 0.5;
-			ans *= (event.time - prevEvent.time);
-			ans *= (1.0 / Math.pow(Ne, 2));
-
-			double sum = 0;
-			for (int j = 1; j < prevEvent.lineages; j++) {
-//				sum += derivativeNeGUp(prevEvent.lineages, j, tau, Ne);
-				sum += (1 / prevEvent.lineages) * stirling(prevEvent.lineages, j)
-						* derivativeNeG(prevEvent.lineages, j, tau, Ne);
-
-			}
-
-			sum *= -lambda;
-			sum *= integralP_0(prevEvent.time, event.time, lambda, mu,
-					psi);
-
-
-			ans += sum;
-
-			return ans;
-			
-//			return (prevEvent.lineages) * (prevEvent.lineages - 1) * 0.5 * (event.time - prevEvent.time)
-//					* (1.0 / Math.pow(Ne, 2))
-//					- (sum * lambda * integralP_0(prevEvent.time, event.time, lambda, mu,
-//							psi));
-		}
-
-		private double derivativeNeBifurcation(GeneTreeEvent event) {
-
-//			return -1.0 / Ne + derivativeNeG(event.lineages + 1, event.lineages, tau, Ne)* lambda
-//					* P_0(event.time, lambda, mu, psi)) *
-//					(1.0 / ((1.0 / Ne) + g(event.lineages + 1, event.lineages, tau, Ne) * lambda
-//							* P_0(event.time, lambda, mu, psi)));
-			
-			double ans = 0;
-			ans = (-(1.0 / Math.pow(Ne, 2))
-					+ derivativeNeG(event.lineages + 1, event.lineages, tau, Ne)
-//					+ derivativeNeGUp(event.lineages + 1, event.lineages, tau, Ne) 
-							* lambda * P_0(event.time))
-					* (1.0
-							/ ((1.0 / Ne)
-//							+ gUp(event.lineages + 1, event.lineages, tau, Ne)
-									+ (g(event.lineages + 1, event.lineages, tau, Ne)
-											* lambda * P_0(event.time)))
-							/ stirling(event.lineages + 1, event.lineages));
-			;
-
-			return ans;
-
-		}
-		
-		private double g(int i, int j, double tau, double Ne) {
-			double normalised = 0.0;
-			
-			for (int s = 1; s <= i; s++) {
-				normalised += gUp(i, s, tau, Ne);
-			}
-
-			double ans = gUp(i, j, tau, Ne);
-			ans /= normalised;
 
 			return ans;
 		}
@@ -607,52 +442,6 @@ public class LikelihoodTest {
 			for (int i = 1; i <= k; i++)
 				binom = binom * (n + 1 - i) / i;
 			return binom;
-		}
-
-		private double stirling2(int n, int k) {
-			double s = 0;
-			
-			for(int l=1; l<=n; l++) {
-				k = l;
-
-			double ans = 1;
-			double k_fact = MathUtils.factorial(k);
-
-			ans = ans / k_fact;
-
-			double sum = 0;
-			for (int i = 0; i <= k; i++) {
-				double tmp = 1;
-				tmp *= Math.pow(-1, i);
-				tmp *= (k_fact / (MathUtils.factorial(i) * MathUtils.factorial(k - i)));
-				tmp *= Math.pow(k - i, n);
-				sum += tmp;
-			}
-
-			ans *= sum;
-			s+=ans;
-			}
-
-			return s;
-		}
-
-		private double stirling(int i, int j) {
-			int ans = 0;
-			double j_fact = MathUtils.factorial(j);
-			
-			for (int k=0; k<=j; k++) {
-				int tmp = 1;
-				tmp *= Math.pow(-1, k);
-				tmp *= (j_fact / (MathUtils.factorial(k) * MathUtils.factorial(j - k)));
-				tmp *= Math.pow(j - k, i);
-				ans += tmp;
-
-			}
-			ans /= j_fact;
-
-
-
-			return ans;
 		}
 
 	}
