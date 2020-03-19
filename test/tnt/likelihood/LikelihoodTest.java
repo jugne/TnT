@@ -1,5 +1,7 @@
 package tnt.likelihood;
 
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -7,7 +9,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.math.util.MathUtils;
-import org.junit.Test;
 
 import beast.core.BEASTObject;
 import beast.core.Function;
@@ -19,20 +20,84 @@ import beast.evolution.alignment.Taxon;
 import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.TraitSet;
-import beast.util.Randomizer;
 import beast.util.TreeParser;
 import feast.simulation.GPSimulator;
 import tnt.simulator.SimulatedGeneTree;
 
+// Copies intro and fome helper functions from src/coalre/networkannotator/ReassortmentAnnotator.java 
+// in CoalRe package by N.F. Müller
 public class LikelihoodTest {
 
-	String speciesTreeNewick = "((t2_1:0.674025510498478,t7_1:0.674025510498478):1.02026915570423,((t6_1:0.441898780191674,(t11_1:0.321415277712137,t10_1:0.321415277712137):0.120483502479536):0.747685332950928,t22_1:0):0.504710553060102):2.13804639428371;";
+	static String speciesTreeNewick = "((t2_1:0.674025510498478,t7_1:0.674025510498478):1.02026915570423,((t6_1:0.441898780191674,(t11_1:0.321415277712137,t10_1:0.321415277712137):0.120483502479536):0.747685332950928,t22_1:0):0.504710553060102):2.13804639428371;";
+
+	public static String helpMessage = "LikelihoodTest - iteratively samples from gene tree distribution, given the fixed transmission tree.\n"
+			+ "Then tests, if Expected Score statistic is zero (assimptotically).\n"
+			+ " Test is done for one recipient bramnch of transmission tree.\n"
+			+ "\n"
+			+ "Option                   Description\n"
+			+ "--------------------------------------------------------------\n"
+			+ "-runs                    Choose how many iterations to run. (Default 1E7)\n"
+			+ "-calcEvery				Choose how often to calculate score statistic. Cannot be larger than runs. (Default 1E2)\n"
+			+ "\n"
+			+ "Output is written to a file named 'likelihood_test.txt'.";
+
+//	@Test
+//	public void topologyDistribution() throws Exception {
+	public static void main(String[] args) throws Exception {
+
+		Integer runs = 10000000;
+		Integer burnin = 0;
+		Integer logEvery = 1;
+		Integer calcEvery = 10;
+
+		int i = 0;
+		while (args[i].startsWith("-")) {
+			switch (args[i]) {
+			case "-help":
+				printUsageAndExit();
+				break;
+			case "-runs":
+				if (args.length <= i + 1)
+					printUsageAndError("-runs must be followed by a number");
+
+				try {
+					runs = Integer.parseInt(args[i + 1]);
+				} catch (NumberFormatException e) {
+					printUsageAndError("Error parsing runs number.");
+				}
+
+				if (runs <= 0) {
+					printUsageAndError("Runs must be > 0.");
+				}
+
+				i += 1;
+				break;
+			case "-calcEvery":
+				if (args.length <= i + 1)
+					printUsageAndError("-calcEvery must be followed by a number");
+
+				try {
+					calcEvery = Integer.parseInt(args[i + 1]);
+				} catch (NumberFormatException e) {
+					printUsageAndError("Error parsing calcEvery.");
+				}
+
+				if (calcEvery <= 0) {
+					printUsageAndError("CalcEvery must be > 0.");
+				}
+
+				i += 1;
+				break;
 
 
-	@Test
-	public void topologyDistribution() throws Exception {
+			default:
+				printUsageAndError("Unrecognised command line option '" + args[i] + "'.");
+			}
 
-		Randomizer.setSeed(23255466);
+			i += 1;
+		}
+
+//		Randomizer.setSeed(23255466);
 
 		TaxonSet taxonSet = new TaxonSet();
 		taxonSet.setID("taxonSet");
@@ -57,7 +122,7 @@ public class LikelihoodTest {
 				true);
 
 		TraitSet sampleCounts = new TraitSet();
-		sampleCounts.initByName("traitname", "sampleCounts", "taxa", taxonSet, "value", " t7_1=4,\n" +
+		sampleCounts.initByName("traitname", "sampleCounts", "taxa", taxonSet, "value", " t7_1=6,\n" +
 				"t10_1=1,\n" +
 				"t11_1=1,\n" +
 				"t6_1=1,\n" +
@@ -65,7 +130,7 @@ public class LikelihoodTest {
 				"t22_1=1");
 
 		RealParameter populationSizes = new RealParameter("1.0");
-		RealParameter bottleneckStrength = new RealParameter("1.0");
+		RealParameter bottleneckStrength = new RealParameter("10.0");
 
 		RealParameter birthRate = new RealParameter("1.0");
 		RealParameter deathRate = new RealParameter("0.4");
@@ -84,9 +149,7 @@ public class LikelihoodTest {
 		GeneTreeIntervals intervals = new GeneTreeIntervals();
 		intervals.initByName("simulatedGeneTree", geneTree, "transmissionTreeInput", transmissionTreeInput);
 
-		Integer runs = 10000000;
-		Integer burnin = 0;
-		Integer logEvery = 1;
+
 
 		LikelihoodDerivativeLogger log = new LikelihoodDerivativeLogger();
 		log.initByName("logEvery", logEvery.toString(),
@@ -98,24 +161,28 @@ public class LikelihoodTest {
 				"bottleneckStrength", bottleneckStrength,
 				"birthRate", birthRate,
 				"deathRate", deathRate,
-				"samplingRate", samplingRate);
+				"samplingRate", samplingRate,
+				"calcEvery", calcEvery);
 
 		GPSimulator sim = new GPSimulator();
 		sim.initByName("nSims", runs, "simulationObject", geneTree, "logger", log);
 
 		sim.run();
 		
-		List<Double> derivatives = log.getAnalysis();
-		double sum = derivatives.stream()
-				.mapToDouble(a -> a)
-				.sum();
+		log.getAnalysis();
 
-		System.out.println("Here: " + sum / derivatives.size());
+//		List<Double> derivatives = log.getAnalysis();
+//		double sum = derivatives.stream()
+//				.mapToDouble(a -> a)
+//				.sum();
+
+//		System.out.println("Here: " + sum / derivatives.size());
+		System.out.println("Done");
 
 
 	}
 
-	public class LikelihoodDerivativeLogger extends Logger {
+	public static class LikelihoodDerivativeLogger extends Logger {
 
 		public Input<Integer> burninInput = new Input<Integer>("burnin",
 				"Number of samples to skip (burn in)", Input.Validate.REQUIRED);
@@ -144,12 +211,16 @@ public class LikelihoodTest {
 		public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 				"Sampling rate per individual", Input.Validate.REQUIRED);
 
+		public Input<Integer> calcEveryInput = new Input<Integer>("calcEvery",
+				"How often to calculate score and record empirical expectation", Input.Validate.REQUIRED);
 
 
 		SimulatedGeneTree geneTree;
+		PrintStream ps;
 
 		GeneTreeIntervals intervals;
 		int m_nEvery = 1;
+		int calcEvery;
 		int burnin;
 		double Ne;
 		double tau;
@@ -157,12 +228,15 @@ public class LikelihoodTest {
 		double mu;
 		double psi;
 
-		int s;
+//		int s;
 		int kl;
+//		int kll;
+
+		double derivatives_approx;
+		double derivatives_exact;
 
 		List<Double> derivatives = new ArrayList<Double>();
 		List<Double> derivatives_2 = new ArrayList<Double>();
-//		int[] endLineages = new int[6];
 
 		@Override
 		public void initAndValidate() {
@@ -176,6 +250,7 @@ public class LikelihoodTest {
 			if (everyInput.get() != null)
 				m_nEvery = everyInput.get();
 
+			calcEvery = calcEveryInput.get();
 			burnin = burninInput.get();
 			geneTree = geneTreeInput.get();
 			intervals = treeIntervalsInput.get();
@@ -186,8 +261,21 @@ public class LikelihoodTest {
 			mu = deathRateInput.get().getArrayValue(0);
 			psi = samplingRateInput.get().getArrayValue(0);
 
-			s = 0;
+//			s = 0;
 			kl = 1;
+//			kll = 1;
+			
+			derivatives_approx = 0;
+			derivatives_exact = 0;
+
+			try {
+				ps = new PrintStream("likelihood_test.txt");
+				ps.print("n_run" + "\t" + "expected_score_approx" + "\t" + "expected_score_exact");
+				ps.print("\n");
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				System.exit(0);
+			}
 
 		}
 
@@ -236,8 +324,8 @@ public class LikelihoodTest {
 
 				// Contribution from every interval, except the last
 				if (prevEvent.time < event.time) {
-//					derivative_1 *= logInterval(event, prevEvent, Ne + h);
-//					derivative_2 *= logInterval(event, prevEvent, Ne - h);
+					derivative_1 *= logInterval(event, prevEvent, Ne + h);
+					derivative_2 *= logInterval(event, prevEvent, Ne - h);
 					derivative += derivativeNeLogInt(event, prevEvent);
 //					derivative += Math.log(logInterval(event, prevEvent, Ne + h));
 //					derivative -= Math.log(logInterval(event, prevEvent, Ne - h));
@@ -252,15 +340,15 @@ public class LikelihoodTest {
 					// log as transmission event.
 					// This means no multiplication with rate \lambda*P_0
 					if (!trNode.isRoot() && !donor && event.time == trNode.getParent().getHeight()) {
-//						derivative_1 *= logTrans(event, prevEvent, Ne + h);
-//						derivative_2 *= logTrans(event, prevEvent, Ne - h);
+						derivative_1 *= logTrans(event, prevEvent, Ne + h);
+						derivative_2 *= logTrans(event, prevEvent, Ne - h);
 						derivative += derivativeNeLogMulti(event, prevEvent);
 //						derivative += Math.log(logTrans(event, prevEvent, Ne + h));
 //						derivative -= Math.log(logTrans(event, prevEvent, Ne - h));
 						break;
 					}
-//					derivative_1 *= logBif(event, prevEvent, Ne + h);
-//					derivative_2 *= logBif(event, prevEvent, Ne - h);
+					derivative_1 *= logBif(event, prevEvent, Ne + h);
+					derivative_2 *= logBif(event, prevEvent, Ne - h);
 					derivative += derivativeNeLogBif(event, prevEvent);
 //					derivative += Math.log(logBif(event, prevEvent, Ne + h));
 //					derivative -= Math.log(logBif(event, prevEvent, Ne - h));
@@ -280,8 +368,8 @@ public class LikelihoodTest {
 					// log as transmission event.
 					// This means no multiplication with rate \lambda*P_0
 					if (!trNode.isRoot() && !donor && event.time == trNode.getParent().getHeight()) {
-//						derivative_1 *= logTrans(event, prevEvent, Ne + h);
-//						derivative_2 *= logTrans(event, prevEvent, Ne - h);
+						derivative_1 *= logTrans(event, prevEvent, Ne + h);
+						derivative_2 *= logTrans(event, prevEvent, Ne - h);
 						derivative += derivativeNeLogMulti(event, prevEvent);
 //						derivative += Math.log(logTrans(event, prevEvent, Ne + h));
 //						derivative -= Math.log(logTrans(event, prevEvent, Ne - h));
@@ -300,161 +388,197 @@ public class LikelihoodTest {
 						GeneTreeEvent mockEvent = new GeneTreeEvent();
 				mockEvent.time = trNode.getParent().getHeight();// - 0.001;
 				mockEvent.lineages = prevEvent.lineages;
-//				derivative_1 *= logInterval(mockEvent, prevEvent, Ne + h);
-//				derivative_2 *= logInterval(mockEvent, prevEvent, Ne - h);
+				derivative_1 *= logInterval(mockEvent, prevEvent, Ne + h);
+				derivative_2 *= logInterval(mockEvent, prevEvent, Ne - h);
 				derivative += derivativeNeLogInt(mockEvent, prevEvent);
 //				derivative += Math.log(logInterval(mockEvent, prevEvent, Ne + h));
 //				derivative -= Math.log(logInterval(mockEvent, prevEvent, Ne - h));
 				if (!donor) {
-//					derivative_1 *= logTrans(mockEvent, prevEvent, Ne + h);
-//					derivative_2 *= logTrans(mockEvent, prevEvent, Ne - h);
+					derivative_1 *= logTrans(mockEvent, prevEvent, Ne + h);
+					derivative_2 *= logTrans(mockEvent, prevEvent, Ne - h);
 					derivative += derivativeNeLogMulti(mockEvent, prevEvent);
 //					derivative += Math.log(logTrans(mockEvent, prevEvent, Ne + h));
 //					derivative -= Math.log(logTrans(mockEvent, prevEvent, Ne - h));
 				}
 			}
-//			double m = Math.log(derivative_1) - Math.log(derivative_2);
-//			m /= (2 * h);
+			double m = Math.log(derivative_1) - Math.log(derivative_2);
+			m /= (2 * h);
 ////			derivatives.add(derivative / (2 * h));
-//			derivatives.add(m);
+			derivatives.add(m);
 
 			derivatives_2.add(derivative);
 
-			if (derivatives_2.size() == 100) {
-//				double derivatives_100 = derivatives.subList(0, 100).stream()
-//						.mapToDouble(a -> a)
-//						.sum();
-
-				double derivatives_100_2 = derivatives_2.subList(0, 100).stream()
+			if (derivatives_2.size() / (double) calcEvery == derivatives_2.size() / calcEvery
+						&& derivatives_2.size() / calcEvery >= 1)
+			{
+				derivatives_approx += derivatives.subList((kl - 1) * calcEvery, kl * calcEvery).stream()
 						.mapToDouble(a -> a)
 						.sum();
 
-//				System.out.println("100 runs: " + derivatives_100 / 100);
-				System.out.println("100 runs: " + derivatives_100_2 / 100);
-			}
-
-			if (derivatives_2.size() == 1000) {
-//				double derivatives_1000 = derivatives.subList(0, 1000).stream()
-//						.mapToDouble(a -> a)
-//						.sum();
-
-				double derivatives_1000_2 = derivatives_2.subList(0, 1000).stream()
+				derivatives_exact += derivatives_2.subList((kl - 1) * calcEvery, kl * calcEvery).stream()
 						.mapToDouble(a -> a)
 						.sum();
-
-//				System.out.println("1000 runs: " + derivatives_1000 / 1000);
-				System.out.println("1000 runs: " + derivatives_1000_2 / 1000);
-			}
-
-			if (derivatives_2.size() / 10000.0 == derivatives_2.size() / 10000 && derivatives_2.size() / 10000 >= 1
-					&& derivatives_2.size() / 10000 < 10) {
-//				double derivatives_10000 = derivatives.subList(0, kl * 10000).stream()
-//						.mapToDouble(a -> a)
-//						.sum();
-
-				double derivatives_10000_2 = derivatives_2.subList(0, kl * 10000).stream()
-						.mapToDouble(a -> a)
-						.sum();
-
-//				System.out.println("10000 runs: " + derivatives_10000 / (kl * 10000));
-				System.out.println(kl + "x 10000 runs: " + derivatives_10000_2 / (kl * 10000));
+				
+				ps.print(derivatives_2.size() + "\t" + derivatives_approx / (kl * calcEvery) + "\t"
+						+ derivatives_exact / (kl * calcEvery));
+				ps.print("\n");
 				kl++;
 			}
 
-			if (derivatives_2.size() == 100000) {
-//				double derivatives_100000 = derivatives.subList(0, 100000).stream()
+
+//
+//
+//			if (derivatives_2.size() == 100) {
+//				double derivatives_100 = derivatives.subList(0, 100).stream()
 //						.mapToDouble(a -> a)
 //						.sum();
-				double derivatives_100000_2 = derivatives_2.subList(0, 100000).stream()
-						.mapToDouble(a -> a)
-						.sum();
-
-//				System.out.println("100000 runs: " + derivatives_100000 / 100000);
-				System.out.println("100000 runs: " + derivatives_100000_2 / 100000);
-			}
-
-			if (derivatives_2.size() == 1000000) {
-//				double derivatives_1000000 = derivatives.subList(0, 1000000).stream()
+//
+//				double derivatives_100_2 = derivatives_2.subList(0, 100).stream()
 //						.mapToDouble(a -> a)
 //						.sum();
-				double derivatives_1000000_2 = derivatives_2.subList(0, 1000000).stream()
-						.mapToDouble(a -> a)
-						.sum();
-
-//				System.out.println("1000000 runs: " + derivatives_1000000 / 1000000);
-				System.out.println("1000000 runs: " + derivatives_1000000_2 / 1000000);
-			}
-
-			if (derivatives_2.size() == 10000000) {
-//				double derivatives_10000000 = derivatives.subList(0, 1000000).stream()
+//
+//				System.out.println("100 runs: " + derivatives_100 / 100);
+//				System.out.println("100 runs: " + derivatives_100_2 / 100);
+//			}
+//
+//			if (derivatives_2.size() == 1000) {
+//				double derivatives_1000 = derivatives.subList(0, 1000).stream()
 //						.mapToDouble(a -> a)
 //						.sum();
-				double derivatives_10000000_2 = derivatives_2.subList(0, 1000000).stream()
-						.mapToDouble(a -> a)
-						.sum();
-
-//				System.out.println("10000000 runs: " + derivatives_10000000 / 10000000);
-				System.out.println("10000000 runs: " + derivatives_10000000_2 / 10000000);
-			}
+//
+//				double derivatives_1000_2 = derivatives_2.subList(0, 1000).stream()
+//						.mapToDouble(a -> a)
+//						.sum();
+//
+//				System.out.println("1000 runs: " + derivatives_1000 / 1000);
+//				System.out.println("1000 runs: " + derivatives_1000_2 / 1000);
+//			}
+//
+//			if (derivatives_2.size() / 10000.0 == derivatives_2.size() / 10000 && derivatives_2.size() / 10000 >= 1
+//			) {
+//				double derivatives_10000 = derivatives.subList(0, kl * 10000).stream()
+//						.mapToDouble(a -> a)
+//						.sum();
+//
+//				double derivatives_10000_2 = derivatives_2.subList(0, kl * 10000).stream()
+//						.mapToDouble(a -> a)
+//						.sum();
+//
+//				System.out.println(kl + "x 10000 runs: " + derivatives_10000 / (kl * 10000));
+//				System.out.println(kl + "x 10000 runs: " + derivatives_10000_2 / (kl * 10000));
+//				kl++;
+//			}
+//
+////			if (derivatives_2.size() / 100000.0 == derivatives_2.size() / 100000 && derivatives_2.size() / 100000 >= 1
+////					&& derivatives_2.size() / 100000 < 10) {
+////				double derivatives_100000 = derivatives.subList(0, kll * 100000).stream()
+////						.mapToDouble(a -> a)
+////						.sum();
+////
+////				double derivatives_100000_2 = derivatives_2.subList(0, kll * 100000).stream()
+////						.mapToDouble(a -> a)
+////						.sum();
+////
+////				System.out.println(kll + "x 100000 runs: " + derivatives_100000 / (kll * 100000));
+////				System.out.println(kll + "x 100000 runs: " + derivatives_100000_2 / (kll * 100000));
+////				kll++;
+////			}
+//
+////			if (derivatives_2.size() == 100000) {
+//////				double derivatives_100000 = derivatives.subList(0, 100000).stream()
+//////						.mapToDouble(a -> a)
+//////						.sum();
+////				double derivatives_100000_2 = derivatives_2.subList(0, 100000).stream()
+////						.mapToDouble(a -> a)
+////						.sum();
+////
+//////				System.out.println("100000 runs: " + derivatives_100000 / 100000);
+////				System.out.println("100000 runs: " + derivatives_100000_2 / 100000);
+////			}
+//
+////			if (derivatives_2.size() == 1000000) {
+////				double derivatives_1000000 = derivatives.subList(0, 1000000).stream()
+////						.mapToDouble(a -> a)
+////						.sum();
+////				double derivatives_1000000_2 = derivatives_2.subList(0, 1000000).stream()
+////						.mapToDouble(a -> a)
+////						.sum();
+////
+////				System.out.println("1000000 runs: " + derivatives_1000000 / 1000000);
+////				System.out.println("1000000 runs: " + derivatives_1000000_2 / 1000000);
+////			}
+//
+////			if (derivatives_2.size() == 10000000) {
+//////				double derivatives_10000000 = derivatives.subList(0, 1000000).stream()
+//////						.mapToDouble(a -> a)
+//////						.sum();
+////				double derivatives_10000000_2 = derivatives_2.subList(0, 1000000).stream()
+////						.mapToDouble(a -> a)
+////						.sum();
+////
+//////				System.out.println("10000000 runs: " + derivatives_10000000 / 10000000);
+////				System.out.println("10000000 runs: " + derivatives_10000000_2 / 10000000);
+////			}
 
 		}
 
-		public List<Double> getAnalysis() {
+		public void getAnalysis() {
 //			double[] normal = new double[endLineages.length];
 //			for (int a = 0; a < endLineages.length; a++) {
 //				normal[a] = endLineages[a] / (double) IntStream.of(endLineages).sum();
 //			}
 //			System.out.println("Frequencies: " + Arrays.toString(normal));
+			ps.close();
 
-			double derivatives_100 = derivatives.subList(0, 100).stream()
-					.mapToDouble(a -> a)
-					.sum();
+//			double derivatives_100 = derivatives.subList(0, 100).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//
+//			double derivatives_100_2 = derivatives_2.subList(0, 100).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//
+//			System.out.println("100 runs: " + derivatives_100 / 100);
+//			System.out.println("100_2 runs: " + derivatives_100_2 / 100);
+//
+//			double derivatives_1000 = derivatives.subList(0, 1000).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//
+//			double derivatives_1000_2 = derivatives_2.subList(0, 1000).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//
+//			System.out.println("1000 runs: " + derivatives_1000 / 1000);
+//			System.out.println("1000_2 runs: " + derivatives_1000_2 / 1000);
+//
+//			double derivatives_10000 = derivatives.subList(0, 10000).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//
+//			double derivatives_10000_2 = derivatives_2.subList(0, 10000).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//
+//			System.out.println("10000 runs: " + derivatives_10000 / 10000);
+//			System.out.println("10000_2 runs: " + derivatives_10000_2 / 10000);
+//
+//			double derivatives_100000 = derivatives.subList(0, 100000).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//			double derivatives_100000_2 = derivatives_2.subList(0, 100000).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//
+//			System.out.println("100000 runs: " + derivatives_100000 / 100000);
+//			System.out.println("100000_2 runs: " + derivatives_100000_2 / 100000);
+//
+//			double derivatives_1000000 = derivatives.subList(0, 1000000).stream()
+//					.mapToDouble(a -> a)
+//					.sum();
+//			System.out.println("1000000 runs: " + derivatives_1000000 / 1000000);
 
-			double derivatives_100_2 = derivatives_2.subList(0, 100).stream()
-					.mapToDouble(a -> a)
-					.sum();
-
-			System.out.println("100 runs: " + derivatives_100 / 100);
-			System.out.println("100_2 runs: " + derivatives_100_2 / 100);
-
-			double derivatives_1000 = derivatives.subList(0, 1000).stream()
-					.mapToDouble(a -> a)
-					.sum();
-
-			double derivatives_1000_2 = derivatives_2.subList(0, 1000).stream()
-					.mapToDouble(a -> a)
-					.sum();
-
-			System.out.println("1000 runs: " + derivatives_1000 / 1000);
-			System.out.println("1000_2 runs: " + derivatives_1000_2 / 1000);
-
-			double derivatives_10000 = derivatives.subList(0, 10000).stream()
-					.mapToDouble(a -> a)
-					.sum();
-
-			double derivatives_10000_2 = derivatives_2.subList(0, 10000).stream()
-					.mapToDouble(a -> a)
-					.sum();
-
-			System.out.println("10000 runs: " + derivatives_10000 / 10000);
-			System.out.println("10000_2 runs: " + derivatives_10000_2 / 10000);
-
-			double derivatives_100000 = derivatives.subList(0, 100000).stream()
-					.mapToDouble(a -> a)
-					.sum();
-			double derivatives_100000_2 = derivatives_2.subList(0, 100000).stream()
-					.mapToDouble(a -> a)
-					.sum();
-
-			System.out.println("100000 runs: " + derivatives_100000 / 100000);
-			System.out.println("100000_2 runs: " + derivatives_100000_2 / 100000);
-
-			double derivatives_1000000 = derivatives.subList(0, 1000000).stream()
-					.mapToDouble(a -> a)
-					.sum();
-			System.out.println("1000000 runs: " + derivatives_1000000 / 1000000);
-
-			return derivatives;
+//			return derivatives;
 		}
 
 
@@ -663,5 +787,23 @@ public class LikelihoodTest {
 		}
 
 	}
+
+	/**
+	 * Display error, print usage and exit with error.
+	 */
+	public static void printUsageAndError(String errMsg) {
+		System.err.println(errMsg);
+		System.err.println(helpMessage);
+		System.exit(1);
+	}
+
+	/**
+	 * Print usage info and exit.
+	 */
+	public static void printUsageAndExit() {
+		System.out.println(helpMessage);
+		System.exit(0);
+	}
+
 
 }
