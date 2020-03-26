@@ -27,6 +27,7 @@ import tnt.simulator.SimulatedGeneTree;
 
 // Copies intro and fome helper functions from src/coalre/networkannotator/ReassortmentAnnotator.java 
 // in CoalRe package by N.F. Müller
+
 public class LikelihoodTest {
 
 	static String speciesTreeNewick = "((t2_1:0.674025510498478,t7_1:0.674025510498478):1.02026915570423,((t6_1:0.441898780191674,(t11_1:0.321415277712137,t10_1:0.321415277712137):0.120483502479536):0.747685332950928,t22_1:0):0.504710553060102):2.13804639428371;";
@@ -46,8 +47,7 @@ public class LikelihoodTest {
 			+ "\n"
 			+ "Output is written to a file named 'likelihood_test.txt'.";
 
-//	@Test
-//	public void topologyDistribution() throws Exception {
+
 	public static void main(String[] args) throws Exception {
 
 		Integer runs = 10000000;
@@ -170,6 +170,8 @@ public class LikelihoodTest {
 				}
 
 				i += 1;
+				if (i >= args.length)
+					break;
 			}
 		}
 
@@ -296,6 +298,7 @@ public class LikelihoodTest {
 		double psi;
 
 		int kl;
+		int klm;
 
 		double sumDerivativesApprox;
 		double sumDerivativesExact;
@@ -327,6 +330,7 @@ public class LikelihoodTest {
 			psi = samplingRateInput.get().getArrayValue(0);
 
 			kl = 1;
+			klm = 0;
 			
 			sumDerivativesApprox = 0;
 			sumDerivativesExact = 0;
@@ -448,25 +452,31 @@ public class LikelihoodTest {
 			}
 			double m = Math.log(derivativeApprox_1) - Math.log(derivativeApprox_2);
 			m /= (2 * h);
-			derivativesApprox.add(m);
+			sumDerivativesApprox += m;
+			sumDerivativesExact += derivative;
+			klm += 1;
 
-			derivativesExact.add(derivative);
+//			derivativesApprox.add(m);
+//
+//			derivativesExact.add(derivative);
 
-			if (derivativesExact.size() / (double) calcEvery == derivativesExact.size() / calcEvery
-					&& derivativesExact.size() / calcEvery >= 1)
+//			if (derivativesExact.size() / (double) calcEvery == derivativesExact.size() / calcEvery
+//					&& derivativesExact.size() / calcEvery >= 1)
+			if (klm == 10)
 			{
-				sumDerivativesApprox += derivativesApprox.subList((kl - 1) * calcEvery, kl * calcEvery).stream()
-						.mapToDouble(a -> a)
-						.sum();
-
-				sumDerivativesExact += derivativesExact.subList((kl - 1) * calcEvery, kl * calcEvery).stream()
-						.mapToDouble(a -> a)
-						.sum();
+//				sumDerivativesApprox += derivativesApprox.subList((kl - 1) * calcEvery, kl * calcEvery).stream()
+//						.mapToDouble(a -> a)
+//						.sum();
+//
+//				sumDerivativesExact += derivativesExact.subList((kl - 1) * calcEvery, kl * calcEvery).stream()
+//						.mapToDouble(a -> a)
+//						.sum();
 				
-				ps.print(derivativesExact.size() + "\t" + sumDerivativesApprox / (kl * calcEvery) + "\t"
+				ps.print((kl * calcEvery) + "\t" + sumDerivativesApprox / (kl * calcEvery) + "\t"
 						+ sumDerivativesExact / (kl * calcEvery));
 				ps.print("\n");
 				kl++;
+				klm = 0;
 			}
 		}
 

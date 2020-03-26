@@ -21,26 +21,32 @@ public class TestCountinCoal {
 		// # of coalescences, where 5 lineages coalesce to 2 (5->2) in any order
 		int total_ways_to_6_3 = 0;
 
-		// # of coalescences, where (5->2) and there are two coalescent "clusters"
-		// formed: (1,2,3) and (4,5). Coalescent order within the clusters is not
+		// # of coalescences, where (6->3) and there are three coalescent "clusters"
+		// formed: (1,2,3) and (4,5) and (6). Coalescent order within the clusters is
+		// not
 		// important.
 		int ways_to_123_and_45_and_6_in6_any = 0;
 
 		// # of coalescences, where (6->2) and there are two coalescent "clusters"
-		// formed: (1,2,3) and (4,5). Coalescent order within the clusters is
-		// case 0: ((1,2),3) and (4,5)
-		// case 1: ((1,3),2) and (4,5)
-		// case 2: ((2,3),1) and (4,5)
+		// formed: (1,2,3) and (4,5) and (6). Coalescent order within the clusters is
+		// case 0: ((1,2),3) and (4,5) and (6)
+		// case 1: ((1,3),2) and (4,5) and (6)
+		// case 2: ((2,3),1) and (4,5) and (6)
+		// Coalescent order between the clusters is ANY.
 		int ways_to_123_and_45_and_6_in6_ordered_0 = 0;
 		int ways_to_123_and_46_and_6_in6_ordered_1 = 0;
 		int ways_to_123_and_46_and_6_in6_ordered_2 = 0;
 
+		// As above case 0, but order between the clusters is SPECIFIC
 		int ways_to_123_and_45_and_6_in6_ordered_00 = 0;
 
-		// tips are labeled 1..5, direction doesn't matter: (1,2)=(2,1)
-		// # of coalescences, where 5 lineages coalesce to 2 (5->2) in any order
+		// tips are labeled 1..6, direction doesn't matter: (1,2)=(2,1)
+		// # of coalescences, where 6 lineages coalesce to 2 (6->2) in any order
 		int total_ways_to_6_2 = 0;
 
+		// # of coalescences, where (6->2) and there are two coalescent "clusters"
+		// formed: (1,2,3) and (4,5, 6). Coalescent order within the clusters is not
+		// important.
 		int ways_to_123_and_456_in6_any = 0;
 
 		for (int j = 0; j < iterations; j++) {
