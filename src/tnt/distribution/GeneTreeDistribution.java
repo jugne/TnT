@@ -88,7 +88,7 @@ public class GeneTreeDistribution extends Distribution {
 		logP = 0;
 
 		// Calculate tree intervals
-		HashMap<Node, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
+		HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
 
 		// TODO implement return of null
 		// if gene tree and species tree are incompatible
@@ -97,14 +97,16 @@ public class GeneTreeDistribution extends Distribution {
 
 
 
-		for (Node trNode : eventList.keySet()) {
-			boolean donor = (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake());
+		for (Integer trNodeNr : eventList.keySet()) {
+			Node trNode = intervals.transmissionTreeInput.get().getNode(trNodeNr);
+			boolean donor = (trNode.isRoot()
+					|| (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake()));
 			double popSize = popSizes.getValue(trNode.getNr());
 
 			GeneTreeEvent prevEvent = new GeneTreeEvent();
 			prevEvent.time = trNode.getHeight();
 
-			for (GeneTreeEvent event : eventList.get(trNode)) {
+			for (GeneTreeEvent event : eventList.get(trNode.getNr())) {
 
 				// Check that there are no events that leave non-positive number of lineages
 				if (event.lineages == 0) {

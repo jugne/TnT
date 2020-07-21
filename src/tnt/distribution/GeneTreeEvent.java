@@ -7,7 +7,7 @@ import beast.evolution.tree.Node;
 
 public class GeneTreeEvent {
 	public enum GeneTreeEventType {
-		SAMPLE, BIFURCATION, MULTIFURCATION, TANSMISSION
+		SAMPLE, BIFURCATION, MULTIFURCATION, TRANSMISSION
 	}
 
 	public GeneTreeEventType type;

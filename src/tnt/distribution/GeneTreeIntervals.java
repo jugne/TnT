@@ -39,12 +39,12 @@ public class GeneTreeIntervals extends CalculationNode {
 	protected SpeciesTreeInterface transmissionTree;
     
 	private List<GeneTreeEvent> geneTreeEventList, storedGeneTreeEventList;
-	HashMap<Node, Integer> activeLineagesPerTransmissionTreeNode;
-	HashMap<Node, List<GeneTreeEvent>> eventsPerTransmissionTreeNode;
+	HashMap<Integer, Integer> activeLineagesPerTransmissionTreeNode;
+	HashMap<Integer, List<GeneTreeEvent>> eventsPerTransmissionTreeNode;
 
 	HashMap<Node, List<String>> nodesPerTransmissionTreeNode;
 
-	HashMap<String, Node> geneTreeNodeAssignment;
+	HashMap<Integer, Node> geneTreeNodeAssignment;
 	public boolean eventListDirty = true;
 
 //	HashMap<String, Node> localTipNumberMap;
@@ -64,14 +64,15 @@ public class GeneTreeIntervals extends CalculationNode {
 			for (int i = 0; i < geneTree.getLeafNodeCount(); i++) {
 				final Node geneTreeLeafNode = geneTree.getNode(i);
 				final String geneTreeLeafName = geneTreeLeafNode.getID();
-//				final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
+				final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
 
 				if (tipNumberMap.containsKey(geneTreeLeafName)) // not in BEAUTi
-					geneTreeNodeAssignment.put(geneTreeLeafName, transmissionTree.getNode(tipNumberMap.get(geneTreeLeafName)));
+					geneTreeNodeAssignment.put(geneTreeLeafNumber,
+							transmissionTree.getNode(tipNumberMap.get(geneTreeLeafName)));
 //					localTipNumberMap[geneTreeLeafNumber] = tipNumberMap.get(geneTreeLeafName);
 			}
-		} else {
-			geneTreeNodeAssignment = simulatedGeneTreeInput.get().geneTreeSampleAssignment;
+//		} else {
+//			geneTreeNodeAssignment = simulatedGeneTreeInput.get().geneTreeSampleAssignment;
 		}
 
 		storedGeneTreeEventList = new ArrayList<>();
@@ -80,7 +81,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	}
 
-	HashMap<Node, List<GeneTreeEvent>> getGeneTreeEventList() {
+	HashMap<Integer, List<GeneTreeEvent>> getGeneTreeEventList() {
 		update();
 		return eventsPerTransmissionTreeNode;
 	}
@@ -129,10 +130,10 @@ public class GeneTreeIntervals extends CalculationNode {
 			Node trNode = null;
 			if (!n.isLeaf()) {
 				Node child = n.getChild(0);
-				trNode = geneTreeNodeAssignment.get(child.getID());
+				trNode = geneTreeNodeAssignment.get(child.getNr());
 				while (trNode == null) {
 					child = child.getChild(0);
-					trNode = geneTreeNodeAssignment.get(child.getID());
+					trNode = geneTreeNodeAssignment.get(child.getNr());
 				}
 				while (!trNode.isRoot() && n.getHeight() > trNode.getParent().getHeight()) {
 					trNode = trNode.getParent();
@@ -141,15 +142,17 @@ public class GeneTreeIntervals extends CalculationNode {
 				// check if transmission tree is compatible with the gene tree
 				// TODO make sure this works as intended
 				if (n.getChildCount() > 1) {
-					Node tr1 = geneTreeNodeAssignment.get(n.getChild(0).getID());
-					Node tr2 = geneTreeNodeAssignment.get(n.getChild(1).getID());
-					if (tr1 != tr2 && (trNode == tr1 || trNode == tr2 || !trNode.getAllChildNodesAndSelf().contains(tr1)
-							|| !trNode.getAllChildNodesAndSelf().contains(tr2))) {
-						geneTreeNodeAssignment = null;
+					Node tr1 = geneTreeNodeAssignment.get(n.getChild(0).getNr());
+					Node tr2 = geneTreeNodeAssignment.get(n.getChild(1).getNr());
+					if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
+							|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
+							|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
+									&& !trNode.getAllChildNodesAndSelf().contains(tr1)))) {
+						eventsPerTransmissionTreeNode = null;
 						return;
 					}
 				}
-				geneTreeNodeAssignment.put(n.getID(), trNode);
+				geneTreeNodeAssignment.put(n.getNr(), trNode);
 			}
 		}
 
@@ -185,7 +188,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 				for (Node rest : nodeTime.get(time)) {
 					if (first != rest &&
-							geneTreeNodeAssignment.get(first.getID()) == geneTreeNodeAssignment.get(rest.getID())) {
+								geneTreeNodeAssignment.get(first.getNr()) == geneTreeNodeAssignment.get(rest.getNr())) {
 							if (fakeBifurcations.containsKey(rest)) {
 								event.fakeBifCount += fakeBifurcations.get(rest).size();
 								event.multiCoalSize.add(fakeBifurcations.get(rest).size() + 2);
@@ -200,7 +203,12 @@ public class GeneTreeIntervals extends CalculationNode {
 			} else if (first.getChildCount() == 2)
 				event.type = GeneTreeEvent.GeneTreeEventType.BIFURCATION;
 
-			geneTreeEventList.add(event);
+//			Node trNode = geneTreeNodeAssignment.get(event.node.getNr());
+//			if (!trNode.isRoot()
+//					&& (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake())
+//					&& event.time == trNode.getParent().getHeight())
+//				event.type = GeneTreeEvent.GeneTreeEventType.TANSMISSION;
+//			geneTreeEventList.add(event);
 		}
 
 		for (Node n : geneTree.getNodesAsArray()) {
@@ -212,6 +220,16 @@ public class GeneTreeIntervals extends CalculationNode {
 				geneTreeEventList.add(event);
 			}
 		}
+
+//		for (Node trNode : transmissionTree.getInternalNodes()) {
+//			GeneTreeEvent event = new GeneTreeEvent();
+//			event.time = trNode.getHeight();
+//			event.node = new Node();
+//			event.node.setNr(geneTree.getNodeCount() + 100);
+//			geneTreeNodeAssignment.put(event.node.getNr(), trNode);
+//			event.type = GeneTreeEvent.GeneTreeEventType.TRANSMISSION;
+//			geneTreeEventList.add(event);
+//		}
 
 
 
@@ -294,30 +312,30 @@ public class GeneTreeIntervals extends CalculationNode {
 //
 //				geneTreeNodeAssignment.put(event.node.getID(), trNode);
 //			} else {
-			Node trNode = geneTreeNodeAssignment.get(event.node.getID());
+			Node trNode = geneTreeNodeAssignment.get(event.node.getNr());
 //			}
 
 //			Node trNode = geneTree.geneTreeEventAssignment.get(event.node.getID());
-			if (trNode.getID() == null || !trNode.getID().equals("t7_1"))
-				continue;
-			int nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode) == null ? 0
-					: activeLineagesPerTransmissionTreeNode.get(trNode);
+//			if (trNode.getID() == null || !trNode.getID().equals("t7_1"))
+//				continue;
+			int nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode.getNr()) == null ? 0
+					: activeLineagesPerTransmissionTreeNode.get(trNode.getNr());
 			if (!trNode.isLeaf() && nrLineage == 0) {
-				activeLineagesPerTransmissionTreeNode.put(trNode, getLineagesRecurse(trNode));
-				nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode);
+				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), getLineagesRecurse(trNode));
+				nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode.getNr());
 			}
 
         	switch(event.type) {
 			case SAMPLE:
 				nrLineage += 1;
-				activeLineagesPerTransmissionTreeNode.put(trNode, nrLineage);
+				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), nrLineage);
 				if (trNode.getParent().isFake())
-					activeLineagesPerTransmissionTreeNode.put(trNode.getParent(), nrLineage);
+					activeLineagesPerTransmissionTreeNode.put(trNode.getParent().getNr(), nrLineage);
 
 				break;
 			case BIFURCATION:
 				nrLineage -= 1;
-				activeLineagesPerTransmissionTreeNode.put(trNode, nrLineage);
+				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), nrLineage);
 //				if (!trNode.isRoot() && event.node.getHeight() == trNode.getParent().getHeight()) {
 //					Node otherChild = trNode == trNode.getParent().getChild(0) ? trNode.getParent().getChild(1)
 //							: trNode.getParent().getChild(0);
@@ -327,7 +345,7 @@ public class GeneTreeIntervals extends CalculationNode {
 				break;
 			case MULTIFURCATION:
 				nrLineage -= (event.fakeBifCount + event.multiCoalCount);
-				activeLineagesPerTransmissionTreeNode.put(trNode, nrLineage);
+				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), nrLineage);
 //				if (!trNode.isRoot() && event.node.getHeight() == trNode.getParent().getHeight()) {
 //					Node otherChild = trNode == trNode.getParent().getChild(0) ? trNode.getParent().getChild(1)
 //							: trNode.getParent().getChild(0);
@@ -335,34 +353,55 @@ public class GeneTreeIntervals extends CalculationNode {
 //							nrLineage + activeLineagesPerTransmissionTreeNode.get(otherChild));
 //				}
 				break;
+//			case TRANSMISSION:
+//				if (!trNode.isRoot() && !trNode.isFake() && !trNode.isLeaf())
+//					activeLineagesPerTransmissionTreeNode.put(trNode, nrLineage);
+//				break;
         	}
 
 			if (nrLineage <= 0)
 				System.out.println();
 			event.lineages = nrLineage;
 
-			if (eventsPerTransmissionTreeNode.get(trNode) == null) {
+			if (eventsPerTransmissionTreeNode.get(trNode.getNr()) == null) {
 				List<GeneTreeEvent> l = new ArrayList<>();
 				l.add(event);
-				eventsPerTransmissionTreeNode.put(trNode, l);
+				eventsPerTransmissionTreeNode.put(trNode.getNr(), l);
 			} else {
-				eventsPerTransmissionTreeNode.get(trNode).add(event);
+				eventsPerTransmissionTreeNode.get(trNode.getNr()).add(event);
 			}
+
         }
+
+		for (Node trNode : transmissionTree.getNodesAsArray())
+			if (!trNode.isLeaf() && !trNode.isFake()) {
+				GeneTreeEvent event = new GeneTreeEvent();
+				event.time = trNode.getHeight();
+				event.type = GeneTreeEvent.GeneTreeEventType.TRANSMISSION;
+				event.lineages += getLineagesRecurse(trNode);
+
+				if (eventsPerTransmissionTreeNode.get(trNode.getNr()) == null) {
+					List<GeneTreeEvent> l = new ArrayList<>();
+					l.add(event);
+					eventsPerTransmissionTreeNode.put(trNode.getNr(), l);
+				} else {
+					eventsPerTransmissionTreeNode.get(trNode.getNr()).add(event);
+				}
+			}
 
 		eventListDirty = false;
 	}
 
 	int getLineagesRecurse(Node trNode) {
 		int nLineages = 0;
-		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0)) == null)
+		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0).getNr()) == null)
 			nLineages += getLineagesRecurse(trNode.getChild(0));
 		else
-			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0));
-		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1)) == null)
+			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0).getNr());
+		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1).getNr()) == null)
 			nLineages += getLineagesRecurse(trNode.getChild(1));
 		else
-			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1));
+			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1).getNr());
 
 		return nLineages;
 	}
