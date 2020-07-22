@@ -90,7 +90,7 @@ public class GeneTreeDistribution extends Distribution {
 		// Calculate tree intervals
 		HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
 
-		// TODO implement return of null
+		// TODO check if this is working as intended
 		// if gene tree and species tree are incompatible
 		if (eventList == null)
 			return Double.NEGATIVE_INFINITY;

@@ -208,7 +208,7 @@ public class GeneTreeIntervals extends CalculationNode {
 //					&& (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake())
 //					&& event.time == trNode.getParent().getHeight())
 //				event.type = GeneTreeEvent.GeneTreeEventType.TANSMISSION;
-//			geneTreeEventList.add(event);
+			geneTreeEventList.add(event);
 		}
 
 		for (Node n : geneTree.getNodesAsArray()) {
@@ -385,8 +385,14 @@ public class GeneTreeIntervals extends CalculationNode {
 					l.add(event);
 					eventsPerTransmissionTreeNode.put(trNode.getNr(), l);
 				} else {
-					eventsPerTransmissionTreeNode.get(trNode.getNr()).add(event);
+					eventsPerTransmissionTreeNode.get(trNode.getNr()).add(0, event); // transmission event here is
+																						// marked at the start of the
+																						// branch going backwards in
+																						// time.
+					// It is a mock event, used only to correctly store the number of incoming gene
+					// lineages from child transmission tree branches to parent branch.
 				}
+
 			}
 
 		eventListDirty = false;
