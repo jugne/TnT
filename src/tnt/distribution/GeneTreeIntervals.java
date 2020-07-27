@@ -3,6 +3,7 @@ package tnt.distribution;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +45,8 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	HashMap<Node, List<String>> nodesPerTransmissionTreeNode;
 
-	HashMap<Integer, Node> geneTreeNodeAssignment;
+	HashMap<Integer, Integer> geneTreeNodeAssignment;
+	HashMap<Integer, Integer> geneTreeTipAssignment;
 	public boolean eventListDirty = true;
 
 //	HashMap<String, Node> localTipNumberMap;
@@ -59,7 +61,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 			// generate map of species tree tip node names to node numbers
 			final Map<String, Integer> tipNumberMap = transmissionTree.getTipNumberMap();
-			geneTreeNodeAssignment = new HashMap<>();
+			geneTreeTipAssignment = new HashMap<>();
 //			localTipNumberMap = new int[geneTree.getLeafNodeCount()];
 			for (int i = 0; i < geneTree.getLeafNodeCount(); i++) {
 				final Node geneTreeLeafNode = geneTree.getNode(i);
@@ -67,8 +69,8 @@ public class GeneTreeIntervals extends CalculationNode {
 				final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
 
 				if (tipNumberMap.containsKey(geneTreeLeafName)) // not in BEAUTi
-					geneTreeNodeAssignment.put(geneTreeLeafNumber,
-							transmissionTree.getNode(tipNumberMap.get(geneTreeLeafName)));
+					geneTreeTipAssignment.put(geneTreeLeafNumber,
+							tipNumberMap.get(geneTreeLeafName));
 //					localTipNumberMap[geneTreeLeafNumber] = tipNumberMap.get(geneTreeLeafName);
 			}
 //		} else {
@@ -97,6 +99,8 @@ public class GeneTreeIntervals extends CalculationNode {
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
 
+		geneTreeNodeAssignment = new HashMap<>();
+		geneTreeNodeAssignment.putAll(geneTreeTipAssignment);
 //		int id = 0;
 //		for (Node trNode : transmissionTreeInput.get().getNodesAsArray()) {
 //			if (!trNode.isLeaf()) {
@@ -114,7 +118,11 @@ public class GeneTreeIntervals extends CalculationNode {
 //			}
 //		}
 
-		for (Node n : geneTree.getNodesAsArray()) {
+		List<Node> sortedNodes = Arrays.asList(geneTree.getNodesAsArray())
+				.stream()
+				.sorted(Comparator.comparingDouble(e -> e.getHeight()))
+				.collect(Collectors.toList());
+		for (Node n : sortedNodes) {
 
 			if (!n.isRoot() && n.getParent().getHeight() - n.getHeight() == 0) {
 				Node multifurcationParent = getMultifurcationParent(n, n.getParent());
@@ -130,10 +138,10 @@ public class GeneTreeIntervals extends CalculationNode {
 			Node trNode = null;
 			if (!n.isLeaf()) {
 				Node child = n.getChild(0);
-				trNode = geneTreeNodeAssignment.get(child.getNr());
+				trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(child.getNr()));
 				while (trNode == null) {
 					child = child.getChild(0);
-					trNode = geneTreeNodeAssignment.get(child.getNr());
+					trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(child.getNr()));
 				}
 				while (!trNode.isRoot() && n.getHeight() > trNode.getParent().getHeight()) {
 					trNode = trNode.getParent();
@@ -141,9 +149,11 @@ public class GeneTreeIntervals extends CalculationNode {
 
 				// check if transmission tree is compatible with the gene tree
 				// TODO make sure this works as intended
-				if (n.getChildCount() > 1) {
-					Node tr1 = geneTreeNodeAssignment.get(n.getChild(0).getNr());
-					Node tr2 = geneTreeNodeAssignment.get(n.getChild(1).getNr());
+				if (n.getChildCount() > 1 &&
+						n.getChild(0).getHeight() != n.getHeight() &&
+						n.getChild(1).getHeight() != n.getHeight()) {
+					Node tr1 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(n.getChild(0).getNr()));
+					Node tr2 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(n.getChild(1).getNr()));
 					if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
 							|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
 							|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
@@ -152,7 +162,7 @@ public class GeneTreeIntervals extends CalculationNode {
 						return;
 					}
 				}
-				geneTreeNodeAssignment.put(n.getNr(), trNode);
+				geneTreeNodeAssignment.put(n.getNr(), trNode.getNr());
 			}
 		}
 
@@ -312,7 +322,7 @@ public class GeneTreeIntervals extends CalculationNode {
 //
 //				geneTreeNodeAssignment.put(event.node.getID(), trNode);
 //			} else {
-			Node trNode = geneTreeNodeAssignment.get(event.node.getNr());
+			Node trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(event.node.getNr()));
 //			}
 
 //			Node trNode = geneTree.geneTreeEventAssignment.get(event.node.getID());
@@ -329,8 +339,9 @@ public class GeneTreeIntervals extends CalculationNode {
 			case SAMPLE:
 				nrLineage += 1;
 				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), nrLineage);
-				if (trNode.getParent().isFake())
-					activeLineagesPerTransmissionTreeNode.put(trNode.getParent().getNr(), nrLineage);
+//				if (trNode.getParent() != null && trNode.getParent().isFake()) // null can only happen on transmission
+//																				// trees with a single branch
+//					activeLineagesPerTransmissionTreeNode.put(trNode.getParent().getNr(), nrLineage);
 
 				break;
 			case BIFURCATION:
@@ -374,7 +385,7 @@ public class GeneTreeIntervals extends CalculationNode {
         }
 
 		for (Node trNode : transmissionTree.getNodesAsArray())
-			if (!trNode.isLeaf() && !trNode.isFake()) {
+			if (!trNode.isLeaf()) { // !trNode.isFake()
 				GeneTreeEvent event = new GeneTreeEvent();
 				event.time = trNode.getHeight();
 				event.type = GeneTreeEvent.GeneTreeEventType.TRANSMISSION;
@@ -404,9 +415,9 @@ public class GeneTreeIntervals extends CalculationNode {
 			nLineages += getLineagesRecurse(trNode.getChild(0));
 		else
 			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0).getNr());
-		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1).getNr()) == null)
+		if (trNode.getChildCount() > 1 && activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1).getNr()) == null)
 			nLineages += getLineagesRecurse(trNode.getChild(1));
-		else
+		else if (trNode.getChildCount() > 1)
 			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1).getNr());
 
 		return nLineages;

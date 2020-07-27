@@ -13,6 +13,7 @@ import beast.core.Input.Validate;
 import beast.core.State;
 import beast.core.parameter.RealParameter;
 import beast.evolution.tree.Node;
+import starbeast2.SpeciesTreeInterface;
 
 public class GeneTreeDistribution extends Distribution {
 
@@ -47,7 +48,7 @@ public class GeneTreeDistribution extends Distribution {
 
 	private double ploidy;
 
-	private int speciesNodeCount;
+	private int transmissionNodeCount;
 
 	private double lambda;
 	private double tau;
@@ -64,8 +65,8 @@ public class GeneTreeDistribution extends Distribution {
 	public void initAndValidate() {
 		ploidy = ploidyInput.get();
 		intervals = geneTreeIntervalsInput.get();
-		speciesNodeCount = intervals.transmissionTree.getNodeCount();
-		popSizesInput.get().setDimension(speciesNodeCount);
+		transmissionNodeCount = intervals.transmissionTree.getNodeCount();
+		popSizesInput.get().setDimension(transmissionNodeCount);
 	}
 
 	@Override
@@ -89,6 +90,8 @@ public class GeneTreeDistribution extends Distribution {
 
 		// Calculate tree intervals
 		HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
+		SpeciesTreeInterface transmissionTree = (SpeciesTreeInterface) intervals.transmissionTreeInput.get()
+				.getCurrent();
 
 		// TODO check if this is working as intended
 		// if gene tree and species tree are incompatible
@@ -96,9 +99,11 @@ public class GeneTreeDistribution extends Distribution {
 			return Double.NEGATIVE_INFINITY;
 
 
-
-		for (Integer trNodeNr : eventList.keySet()) {
-			Node trNode = intervals.transmissionTreeInput.get().getNode(trNodeNr);
+		
+		for (Node trNode : transmissionTree.getNodesAsArray()) {
+			if (trNode.isDirectAncestor())
+				continue;
+			// define donor as a left child
 			boolean donor = (trNode.isRoot()
 					|| (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake()));
 			double popSize = popSizes.getValue(trNode.getNr());
