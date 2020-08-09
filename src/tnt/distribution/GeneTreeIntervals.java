@@ -41,11 +41,14 @@ public class GeneTreeIntervals extends CalculationNode {
     
 	private List<GeneTreeEvent> geneTreeEventList, storedGeneTreeEventList;
 	HashMap<Integer, Integer> activeLineagesPerTransmissionTreeNode;
-	HashMap<Integer, List<GeneTreeEvent>> eventsPerTransmissionTreeNode;
+	HashMap<Integer, List<GeneTreeEvent>> eventsPerTransmissionTreeNode, storedEventsPerTransmissionTreeNode;
 
-	HashMap<Node, List<String>> nodesPerTransmissionTreeNode;
+	// key: gene tree node nr, value: transmission tree node nr
+	HashMap<Integer, List<Integer>> logicalGeneNodesPerTransmissionNode;
 
-	HashMap<Integer, Integer> geneTreeNodeAssignment;
+	// key: gene tree node nr, value: transmission tree node nr
+	HashMap<Integer, Integer> geneTreeNodeAssignment, storeGeneTreeNodeAssignement;
+	List<Node> multifurcationParents;
 	HashMap<Integer, Integer> geneTreeTipAssignment;
 	public boolean eventListDirty = true;
 
@@ -80,10 +83,11 @@ public class GeneTreeIntervals extends CalculationNode {
 		storedGeneTreeEventList = new ArrayList<>();
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
+		storedEventsPerTransmissionTreeNode = new HashMap<>();
 
 	}
 
-	HashMap<Integer, List<GeneTreeEvent>> getGeneTreeEventList() {
+	public HashMap<Integer, List<GeneTreeEvent>> getGeneTreeEventList() {
 		update();
 		return eventsPerTransmissionTreeNode;
 	}
@@ -98,9 +102,11 @@ public class GeneTreeIntervals extends CalculationNode {
 		geneTreeEventList = new ArrayList<GeneTreeEvent>();
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
+		logicalGeneNodesPerTransmissionNode = new HashMap<>();
 
 		geneTreeNodeAssignment = new HashMap<>();
 		geneTreeNodeAssignment.putAll(geneTreeTipAssignment);
+		multifurcationParents = new ArrayList<Node>();
 //		int id = 0;
 //		for (Node trNode : transmissionTreeInput.get().getNodesAsArray()) {
 //			if (!trNode.isLeaf()) {
@@ -138,6 +144,9 @@ public class GeneTreeIntervals extends CalculationNode {
 			Node trNode = null;
 			if (!n.isLeaf()) {
 				Node child = n.getChild(0);
+				// fake nodes at multifurcation can be sorted wrong. Get first real child.
+				while (child.getHeight() == n.getHeight())
+					child = child.getChild(0);
 				trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(child.getNr()));
 				while (trNode == null) {
 					child = child.getChild(0);
@@ -148,12 +157,17 @@ public class GeneTreeIntervals extends CalculationNode {
 				}
 
 				// check if transmission tree is compatible with the gene tree
+				// polytomies make nodes at the same height which might not be processed in
+				// child-parent order.
+				// Therefore, we check them separately after node assignment is done.
+
 				// TODO make sure this works as intended
 				if (n.getChildCount() > 1 &&
-						n.getChild(0).getHeight() != n.getHeight() &&
-						n.getChild(1).getHeight() != n.getHeight()) {
-					Node tr1 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(n.getChild(0).getNr()));
-					Node tr2 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(n.getChild(1).getNr()));
+						n.getChild(0).getHeight() != n.getHeight() && n.getChild(1).getHeight() != n.getHeight()) {
+					Node tr1 = transmissionTreeInput.get()
+							.getNode(geneTreeNodeAssignment.get(n.getChild(0).getNr()));
+					Node tr2 = transmissionTreeInput.get()
+							.getNode(geneTreeNodeAssignment.get(n.getChild(1).getNr()));
 					if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
 							|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
 							|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
@@ -162,7 +176,24 @@ public class GeneTreeIntervals extends CalculationNode {
 						return;
 					}
 				}
+				if (n.getChildCount() > 1 && (n.isRoot() || n.getParent().getHeight() != n.getHeight())
+						&& (n.getChild(0).getHeight() == n.getHeight() || n.getChild(1).getHeight() == n.getHeight()))
+					multifurcationParents.add(n);
+
 				geneTreeNodeAssignment.put(n.getNr(), trNode.getNr());
+			}
+		}
+
+		for (Node m : multifurcationParents) {
+			Node trNode = transmissionTree.getNode(geneTreeNodeAssignment.get(m.getNr()));
+			Node tr1 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(m.getChild(0).getNr()));
+			Node tr2 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(m.getChild(1).getNr()));
+			if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
+					|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
+					|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
+							&& !trNode.getAllChildNodesAndSelf().contains(tr1)))) {
+				eventsPerTransmissionTreeNode = null;
+				return;
 			}
 		}
 
@@ -185,7 +216,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 			GeneTreeEvent event = new GeneTreeEvent();
 			event.time = first.getHeight();
-			event.node = first;
+			event.node = first;// Pitchforks.getLogicalNode(first); // TODO validate this
 			event.fakeBifCount = 0;
 			if (fakeBifurcations.containsKey(first)) {
 				event.fakeBifCount += fakeBifurcations.get(first).size();
@@ -198,7 +229,8 @@ public class GeneTreeIntervals extends CalculationNode {
 
 				for (Node rest : nodeTime.get(time)) {
 					if (first != rest &&
-								geneTreeNodeAssignment.get(first.getNr()) == geneTreeNodeAssignment.get(rest.getNr())) {
+								geneTreeNodeAssignment.get(first.getNr()) == geneTreeNodeAssignment
+										.get(rest.getNr())) {
 							if (fakeBifurcations.containsKey(rest)) {
 								event.fakeBifCount += fakeBifurcations.get(rest).size();
 								event.multiCoalSize.add(fakeBifurcations.get(rest).size() + 2);
@@ -210,6 +242,8 @@ public class GeneTreeIntervals extends CalculationNode {
 					}
 				}
 				}
+//				if (event.multiCoalSize.size() > 2)
+//					System.out.println();
 			} else if (first.getChildCount() == 2)
 				event.type = GeneTreeEvent.GeneTreeEventType.BIFURCATION;
 
@@ -381,6 +415,14 @@ public class GeneTreeIntervals extends CalculationNode {
 			} else {
 				eventsPerTransmissionTreeNode.get(trNode.getNr()).add(event);
 			}
+			
+			if (logicalGeneNodesPerTransmissionNode.get(trNode.getNr()) == null) {
+				List<Integer> l = new ArrayList<>();
+				l.add(event.node.getNr());
+				logicalGeneNodesPerTransmissionNode.put(trNode.getNr(), l);
+			} else {
+				logicalGeneNodesPerTransmissionNode.get(trNode.getNr()).add(event.node.getNr());
+			}
 
         }
 
@@ -445,6 +487,10 @@ public class GeneTreeIntervals extends CalculationNode {
 		geneTreeEventList = storedGeneTreeEventList;
 		storedGeneTreeEventList = tmp;
 
+		HashMap<Integer, List<GeneTreeEvent>> tmp2 = eventsPerTransmissionTreeNode;
+		eventsPerTransmissionTreeNode = storedEventsPerTransmissionTreeNode;
+		storedEventsPerTransmissionTreeNode = tmp2;
+
 		super.restore();
 	}
 
@@ -453,8 +499,18 @@ public class GeneTreeIntervals extends CalculationNode {
 		storedGeneTreeEventList.clear();
 		storedGeneTreeEventList.addAll(geneTreeEventList);
 
+		storedEventsPerTransmissionTreeNode.clear();
+		storedEventsPerTransmissionTreeNode = new HashMap<Integer, List<GeneTreeEvent>>(eventsPerTransmissionTreeNode);
 		super.store();
 	}
 
+	public HashMap<Integer, Integer> getGeneTreeNodeAssignment() {
+		update();
+		return geneTreeNodeAssignment;
+	}
+
+	public HashMap<Integer, List<Integer>> getLogicalGeneNodesPerTransmissionNode() {
+		return logicalGeneNodesPerTransmissionNode;
+	}
    
 }

@@ -58,6 +58,7 @@ public class GeneTreeDistribution extends Distribution {
 	private double c2;
 	private double r;
 	private double rho;
+	RealParameter popSizes;
 	private GeneTreeIntervals intervals;
 
 
@@ -84,7 +85,8 @@ public class GeneTreeDistribution extends Distribution {
 		c1 = Math.sqrt((lambda - mu - psi) * (lambda - mu - psi) + 4 * lambda * psi);
 		c2 = -(lambda - mu - 2 * lambda * rho - psi) / c1;
 
-		RealParameter popSizes = popSizesInput.get();
+		popSizes = popSizesInput.get();
+		tau = tauInput.get().getValue();
 
 		logP = 0;
 
@@ -104,8 +106,10 @@ public class GeneTreeDistribution extends Distribution {
 			if (trNode.isDirectAncestor())
 				continue;
 			// define donor as a left child
-			boolean donor = (trNode.isRoot()
-					|| (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake()));
+//			boolean donor = (trNode.isRoot()
+//					|| (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake()));
+			boolean recipient = (!trNode.isRoot()
+					&& trNode.getParent().getChild(0) != trNode && !trNode.getParent().isFake());
 			double popSize = popSizes.getValue(trNode.getNr());
 
 			GeneTreeEvent prevEvent = new GeneTreeEvent();
@@ -132,7 +136,7 @@ public class GeneTreeDistribution extends Distribution {
 				case BIFURCATION:
 					// is bifurcation time is the end of transmission tree branch,
 					// then it is the observed transmission event
-					if (!trNode.isRoot() && !donor && event.time == trNode.getParent().getHeight()) {
+					if (!trNode.isRoot() && recipient && event.time == trNode.getParent().getHeight()) {
 						logP += transmission(event, prevEvent, popSize);
 					}
 					// otherwise, bifurcation contribution
@@ -142,7 +146,7 @@ public class GeneTreeDistribution extends Distribution {
 				case MULTIFURCATION:
 					// is multifurcation time is the end of transmission tree branch,
 					// then it is the observed transmission event
-					if (!trNode.isRoot() && !donor && event.time == trNode.getParent().getHeight()) {
+					if (!trNode.isRoot() && recipient && event.time == trNode.getParent().getHeight()) {
 						logP += transmission(event, prevEvent, popSize);
 					}
 					logP += multifurcation(event, prevEvent, popSize);
@@ -163,7 +167,8 @@ public class GeneTreeDistribution extends Distribution {
 			// on a gene tree and transmission tree branch, we have to calculate
 			// contribution of this interval
 			// and transmission venet at the end.
-			if (!trNode.isRoot() && prevEvent.time < trNode.getParent().getHeight()) {
+			if (logP != Double.NEGATIVE_INFINITY && !trNode.isRoot()
+					&& prevEvent.time < trNode.getParent().getHeight()) {
 				// TODO check if I really need the mock event
 
 				// mock event, to mark transmission that didn't result in merging of any
@@ -173,7 +178,7 @@ public class GeneTreeDistribution extends Distribution {
 				mockEvent.lineages = prevEvent.lineages;
 				logP += interval(mockEvent, prevEvent, popSize);
 
-				if (!donor) {
+				if (recipient) {
 					logP += transmission(mockEvent, prevEvent, popSize);
 				}
 			}
