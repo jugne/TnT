@@ -22,9 +22,9 @@ public class GeneTreeDistribution extends Distribution {
 	public Input<Double> ploidyInput = new Input<>("ploidy",
 			"Ploidy (copy number) for this gene, typically a whole number or half (default is 1).", 1.0);
 
-	// 'direct' parameters
-	public Input<RealParameter> originInput = new Input<RealParameter>("origin", "The time when the process started",
-			(RealParameter) null);
+//	// 'direct' parameters
+//	public Input<RealParameter> originInput = new Input<RealParameter>("origin", "The time when the process started",
+//			(RealParameter) null);
 	public Input<RealParameter> birthRateInput = new Input<RealParameter>("birthRate", "Birth rate",
 			Input.Validate.REQUIRED);
 	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate", Input.Validate.REQUIRED);
@@ -99,6 +99,7 @@ public class GeneTreeDistribution extends Distribution {
 		// if gene tree and species tree are incompatible
 		if (eventList == null)
 			return Double.NEGATIVE_INFINITY;
+
 
 
 		

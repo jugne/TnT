@@ -499,7 +499,6 @@ public class GeneTreeIntervals extends CalculationNode {
 		storedGeneTreeEventList.clear();
 		storedGeneTreeEventList.addAll(geneTreeEventList);
 
-		storedEventsPerTransmissionTreeNode.clear();
 		storedEventsPerTransmissionTreeNode = new HashMap<Integer, List<GeneTreeEvent>>(eventsPerTransmissionTreeNode);
 		super.store();
 	}
