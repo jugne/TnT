@@ -104,8 +104,8 @@ public class GeneTreeDistribution extends Distribution {
 
 		
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
-			if (trNode.isDirectAncestor())
-				continue;
+//			if (trNode.isDirectAncestor())
+//				continue;
 			// define donor as a left child
 //			boolean donor = (trNode.isRoot()
 //					|| (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake()));
@@ -195,12 +195,13 @@ public class GeneTreeDistribution extends Distribution {
 				* (event.time - prevEvent.time);
 
 		double sum = 0;
-		for (int j = 1; j < prevEvent.lineages; j++) {
-			sum += gUp(prevEvent.lineages, j, tau, Ne);
+//		for (int j = 1; j < prevEvent.lineages; j++) {
+//			sum += gUp(prevEvent.lineages, j, tau, Ne);
+//
+//		}
+		sum = gUp(prevEvent.lineages, prevEvent.lineages, tau, Ne);
 
-		}
-
-		ans -= sum * lambda
+		ans -= (1 - sum) * lambda
 				* integralP_0(prevEvent.time, event.time);
 
 		// Math.exp(ans);
@@ -232,11 +233,15 @@ public class GeneTreeDistribution extends Distribution {
 		int sum = event.multiCoalSize.stream().mapToInt(Integer::intValue)
 				.sum();
 		int n_histories = event.multiCoalSize.size();
+
 		for (int s = 0; s < n_histories; s++) {
+			if (n_histories > 1 && event.multiCoalSize.get(s) == 7)
+				System.out.println();
 			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
 			// W factor from NOAH A. ROSENBERG
-			mult *= binomialInt(sum - n_histories, event.multiCoalSize.get(s) - 1);
-			sum -= (event.multiCoalSize.get(s) - 1);
+			mult *= binomialInt(sum - (n_histories - s), event.multiCoalSize.get(s) - 1);
+//			sum -= (event.multiCoalSize.get(s) - 1);
+			sum -= event.multiCoalSize.get(s);
 		}
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
 				* gUp(prevEvent.lineages, event.lineages, tau, Ne)
@@ -252,6 +257,7 @@ public class GeneTreeDistribution extends Distribution {
 				* gUp(prevEvent.lineages, event.lineages, tau, Ne)
 				* lambda * P_0(event.time);
 
+
 		return Math.log(ans);
 	}
 
@@ -263,6 +269,8 @@ public class GeneTreeDistribution extends Distribution {
 
 	private double gUp(int i, int j, double tau, double Ne) {
 		double ans = 0.0;
+//		if (tau == 0)
+//			return ans;
 		for (int k = j; k <= i; k++) {
 			ans += (2 * k - 1) * Math.pow(-1, k - j) * f_1(j, k - 1) * f_2(i, k)
 					* Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne)) /
@@ -319,6 +327,8 @@ public class GeneTreeDistribution extends Distribution {
 	}
 
 	private long binomialInt(int n, int k) {
+		if (k == n)
+			return 1;
 		if (k > n - k)
 			k = n - k;
 

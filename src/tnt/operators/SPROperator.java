@@ -44,7 +44,7 @@ public class SPROperator extends TreeOperator {
 			"rootAttachLambda",
             "Mean of exponential distribution (relative to tree height)" +
                     "used to position attachments above the root.",
-            2.0);
+			2.0);
 
     public Input<Double> probCoalAttachInput = new Input<>(
             "probCoalAttach",
@@ -189,12 +189,12 @@ public class SPROperator extends TreeOperator {
 		nMultiMergerCandidates = multiMergSisterCandidates.size();
 		if (nMultiMergerCandidates > 0)
 			multiMergeSister = multiMergSisterCandidates.get(Randomizer.nextInt(multiMergSisterCandidates.size()));
-		if (origAttachWasMultiMerger) {
+//		if (origAttachWasMultiMerger) {
 			List<Node> origMultiMergSisterCandidates = getNodesForMultiMerger(subtreeNodes, srcNodeSister,
 					srcNode.getHeight());
 			nOrigMultiMergerCandidates = origMultiMergSisterCandidates.size();
 
-		}
+//		}
 		
         // Incorporate probability of existing attachment point into HR
 
@@ -332,6 +332,9 @@ public class SPROperator extends TreeOperator {
 		}
 		if (logHR == Double.POSITIVE_INFINITY)
 			System.out.println();
+		
+		if (tree.getRoot().getHeight() < 1.8)
+			System.out.println(this.treeInput.get().getRoot().getHeight());
         return logHR;
     }
 

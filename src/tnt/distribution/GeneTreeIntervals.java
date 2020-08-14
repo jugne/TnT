@@ -223,7 +223,7 @@ public class GeneTreeIntervals extends CalculationNode {
 				event.multiCoalCount += 1;
 				event.multiCoalSize.add(fakeBifurcations.get(first).size() + 2);
 				event.type = GeneTreeEvent.GeneTreeEventType.MULTIFURCATION;
-//			}
+			}
 
 			if (nodeTime.get(time).size() > 1) {
 
@@ -241,10 +241,10 @@ public class GeneTreeIntervals extends CalculationNode {
 						event.type = GeneTreeEvent.GeneTreeEventType.MULTIFURCATION;
 					}
 				}
-				}
+
 //				if (event.multiCoalSize.size() > 2)
 //					System.out.println();
-			} else if (first.getChildCount() == 2)
+			} else if (event.type == null && first.getChildCount() == 2)
 				event.type = GeneTreeEvent.GeneTreeEventType.BIFURCATION;
 
 //			Node trNode = geneTreeNodeAssignment.get(event.node.getNr());

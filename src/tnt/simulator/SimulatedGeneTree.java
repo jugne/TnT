@@ -197,9 +197,24 @@ public class SimulatedGeneTree extends Tree {
 					if (!hiddenKnown) {
 						double endTime = transmissionNode.isRoot() ? maxBound
 								: transmissionNode.getParent().getHeight();
+//						for (int i = 0; i < 20; i++) {
+//							System.out.println(soveForTime(t,
+//									birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
+//									samplingRateInput.get().getArrayValue(0), endTime) - t);
+//						}
+//						System.out.println("#####");
+//						for (int i = 0; i < 20; i++) {
+//							System.out.println(soveForTime(0,
+//									birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
+//									samplingRateInput.get().getArrayValue(0), endTime - t));
+//						}
+//						double timeToNextNonObsTr = soveForTime(0,
+//								birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
+//								samplingRateInput.get().getArrayValue(0), endTime - t);
 						double timeToNextNonObsTr = soveForTime(t,
 								birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
 								samplingRateInput.get().getArrayValue(0), endTime) - t;
+
 						if (timeToNextNonObsTr < minNonObsTrTime) {
 							minNonObsTrTime = timeToNextNonObsTr;
 							minNonObsTr = transmissionNode;
@@ -406,20 +421,36 @@ public class SimulatedGeneTree extends Tree {
 			}
 		};
 
-		BrentSolver solver = new BrentSolver();
+		BrentSolver solver = new BrentSolver(1e-15);
 		double time = Double.POSITIVE_INFINITY; // return infinity if there are no roots within time interval of the
 												// transmission tree
 												// branch
+
+		double kls = 0.0;
+		double klss = Math.log(1 - u);
 		try {
 			time = solver.solve(100000, f, currentTime, endTime);
 		} catch (NoBracketingException e) {
 		}
 		if (time != Double.POSITIVE_INFINITY && (time >= endTime || time <= currentTime))
 			time = Double.POSITIVE_INFINITY;
+		if (time != Double.POSITIVE_INFINITY)
+			kls = integralP_0(currentTime, time, lambda, mu, psi);
+
 		return time;
 		
 //		return solver.solve(100000, f, currentTime, maxBound);
 
+	}
+
+	private double integralP_0(double t_0, double t_1, double lambda, double mu, double psi) {
+		double c1 = Math.abs(Math.sqrt(Math.pow((lambda - mu - psi), 2) + 4 * lambda * psi));
+		double c2 = -(lambda - mu - 2 * lambda * samplingExtantRate - psi) / c1;
+
+		double ans = (1.0 / (2.0 * lambda)) * ((t_1 - t_0) * (mu + psi + lambda - c1) + 2.0 * Math
+				.log(((c2 - 1) * Math.exp(-c1 * t_0) - c2 - 1) / ((c2 - 1) * Math.exp(-c1 * t_1) - c2 - 1)));
+
+		return ans;
 	}
 
 }
