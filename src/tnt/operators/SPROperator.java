@@ -22,9 +22,7 @@ import static pitchfork.Pitchforks.isPolytomy;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import beast.core.Description;
 import beast.core.Input;
@@ -74,6 +72,9 @@ public class SPROperator extends TreeOperator {
         probCoalAttach = probCoalAttachInput.get();
 		probMultiMerger = probMultiMergerInput.get();
 		intervals = geneTreeIntervalsInput.get();
+//		intervals = new GeneTreeIntervals();
+//		intervals.initByName("geneTree", tree, "transmissionTreeInput",
+//				geneTreeIntervalsInput.get().transmissionTreeInput.get());
 
 		if (probCoalAttach + probMultiMerger > 1) {
 			System.err.print("Sum of probabilities is larger than one: probCoalAttach=" + probCoalAttach
@@ -136,26 +137,6 @@ public class SPROperator extends TreeOperator {
 			}
 		}
 
-//        // Incorporate probability of existing attachment point into HR
-//
-//		if (origAttachWasPolytomy) {
-//			logHR += Math.log(probCoalAttach);
-//		} else if (origAttachWasMultiMerger) {
-//			logHR += Math.log(probMultiMerger);
-//		} else {
-//            if (!srcNodeSister.isLeaf() && srcNodeSister.getHeight() > srcNode.getHeight())
-//				logHR += Math.log(1 - probCoalAttach);
-//
-//            if (srcNodeParent.isRoot()) {
-//                double offset = Math.max(srcNodeSister.getHeight(), srcNode.getHeight());
-//                double expRate = 1.0/(rootAttachLambda*offset);
-//                logHR += -expRate*(srcNodeParent.getHeight() - offset) + Math.log(expRate);
-//            } else {
-//                double L = srcNodeParent.getParent().getHeight() - Math.max(srcNodeSister.getHeight(), srcNode.getHeight());
-//                logHR += Math.log(1.0/L);
-//            }
-//        }
-
 		boolean parentWasRoot = srcNodeParent.isRoot();
 		Node srcNodeGrandparent = null;
 
@@ -183,18 +164,16 @@ public class SPROperator extends TreeOperator {
 
         List<Node> subtreeNodes = getNodesInSubtree(remainingSubtreeRoot, srcNode.getHeight());
         Node attachmentNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
-		List<Node> multiMergSisterCandidates = getNodesForMultiMerger(subtreeNodes, attachmentNode,
+		List<Double> multiMergHeightCandidates = getHeightsForMultiMerger(subtreeNodes, attachmentNode,
 				srcNode.getHeight());
-		Node multiMergeSister = null;
-		nMultiMergerCandidates = multiMergSisterCandidates.size();
+		Double multiMergeHeight = null;
+		nMultiMergerCandidates = multiMergHeightCandidates.size();
 		if (nMultiMergerCandidates > 0)
-			multiMergeSister = multiMergSisterCandidates.get(Randomizer.nextInt(multiMergSisterCandidates.size()));
-//		if (origAttachWasMultiMerger) {
-			List<Node> origMultiMergSisterCandidates = getNodesForMultiMerger(subtreeNodes, srcNodeSister,
+			multiMergeHeight = multiMergHeightCandidates.get(Randomizer.nextInt(multiMergHeightCandidates.size()));
+		List<Double> origMultiMergHeightsCandidates = getHeightsForMultiMerger(subtreeNodes, srcNodeSister,
 					srcNode.getHeight());
-			nOrigMultiMergerCandidates = origMultiMergSisterCandidates.size();
+		nOrigMultiMergerCandidates = origMultiMergHeightsCandidates.size();
 
-//		}
 		
         // Incorporate probability of existing attachment point into HR
 
@@ -229,7 +208,7 @@ public class SPROperator extends TreeOperator {
 
         if (attachmentNode.isLeaf() || attachmentNode.getHeight() < srcNode.getHeight()) {
             newAttachIsPolytomy = false;
-			if (multiMergeSister != null) {// && !origAttachWasPolytomy) { // no reversibility for polytomies currently
+			if (multiMergeHeight != null) {
 				if (Randomizer.nextDouble() < probMultiMerger) {
 					newAttachIsMultiMerger = true;
 					logHR -= Math.log(probMultiMerger);
@@ -240,8 +219,8 @@ public class SPROperator extends TreeOperator {
 			} else {
 				newAttachIsMultiMerger = false;
             }
-		} else if (multiMergeSister == null) {// || origAttachWasPolytomy) { // no reversibility for polytomies
-												// currently
+		} else if (multiMergeHeight == null) {
+
 			newAttachIsMultiMerger = false;
 
 			if (Randomizer.nextDouble() < probCoalAttach) {
@@ -277,7 +256,7 @@ public class SPROperator extends TreeOperator {
         if (newAttachIsPolytomy) {
             attachmentHeight = attachmentNode.getHeight();
 		} else if (newAttachIsMultiMerger) {
-			attachmentHeight = multiMergeSister.getHeight();
+			attachmentHeight = multiMergeHeight;
         } else {
             if (attachmentNode.isRoot()) {
                 double offset = Math.max(srcNode.getHeight(), attachmentNode.getHeight());
@@ -330,11 +309,11 @@ public class SPROperator extends TreeOperator {
 		if (newAttachIsMultiMerger && !newAttachIsPolytomy) {
 			logHR -= Math.log(1.0 / nMultiMergerCandidates);
 		}
-		if (logHR == Double.POSITIVE_INFINITY)
-			System.out.println();
-		
-		if (tree.getRoot().getHeight() < 1.8)
-			System.out.println(this.treeInput.get().getRoot().getHeight());
+		if (logHR == Double.POSITIVE_INFINITY) {
+			System.err.print("logHR +inf");
+			System.exit(1);
+		}
+
         return logHR;
     }
 
@@ -352,20 +331,18 @@ public class SPROperator extends TreeOperator {
         return nodeList;
     }
 
-	private List<Node> getNodesForMultiMerger(List<Node> nodesInSubtree, Node newAttach, double minAge) {
-		List<Node> nodeList = new ArrayList<>();
-		Set<Double> heights = new HashSet<Double>();
+	private List<Double> getHeightsForMultiMerger(List<Node> nodesInSubtree, Node newAttach, double minAge) {
+		List<Double> heights = new ArrayList<Double>();
 		
 		if (newAttach.isRoot())
-			return nodeList;
+			return heights;
 		for (Node n : nodesInSubtree) {
 			if (!n.isLeaf() && n != newAttach && n.getHeight() < Pitchforks.getLogicalParent(newAttach).getHeight()
 					&& n.getHeight() > newAttach.getHeight() && n.getHeight() > minAge
 					&& !heights.contains(n.getHeight())) { // only add possible node heights once
-				nodeList.add(n);
 				heights.add(n.getHeight());
 			}
 		}
-		return nodeList;
+		return heights;
 	}
 }

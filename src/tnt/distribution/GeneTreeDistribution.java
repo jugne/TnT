@@ -21,10 +21,6 @@ public class GeneTreeDistribution extends Distribution {
 			"intervals for a gene tree", Validate.REQUIRED);
 	public Input<Double> ploidyInput = new Input<>("ploidy",
 			"Ploidy (copy number) for this gene, typically a whole number or half (default is 1).", 1.0);
-
-//	// 'direct' parameters
-//	public Input<RealParameter> originInput = new Input<RealParameter>("origin", "The time when the process started",
-//			(RealParameter) null);
 	public Input<RealParameter> birthRateInput = new Input<RealParameter>("birthRate", "Birth rate",
 			Input.Validate.REQUIRED);
 	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate", Input.Validate.REQUIRED);
@@ -170,7 +166,6 @@ public class GeneTreeDistribution extends Distribution {
 			// and transmission venet at the end.
 			if (logP != Double.NEGATIVE_INFINITY && !trNode.isRoot()
 					&& prevEvent.time < trNode.getParent().getHeight()) {
-				// TODO check if I really need the mock event
 
 				// mock event, to mark transmission that didn't result in merging of any
 				// lineages
@@ -195,21 +190,15 @@ public class GeneTreeDistribution extends Distribution {
 				* (event.time - prevEvent.time);
 
 		double sum = 0;
-//		for (int j = 1; j < prevEvent.lineages; j++) {
-//			sum += gUp(prevEvent.lineages, j, tau, Ne);
-//
-//		}
 		sum = gUp(prevEvent.lineages, prevEvent.lineages, tau, Ne);
 
 		ans -= (1 - sum) * lambda
 				* integralP_0(prevEvent.time, event.time);
 
-		// Math.exp(ans);
 		return ans;
 	}
 
 	private double transmission(GeneTreeEvent event, GeneTreeEvent prevEvent, double Ne) {
-		// TODO Auto-generated method stub
 		double ans;
 		double mult = 1.0;
 		int sum = event.multiCoalSize.stream().mapToInt(Integer::intValue)
@@ -235,12 +224,9 @@ public class GeneTreeDistribution extends Distribution {
 		int n_histories = event.multiCoalSize.size();
 
 		for (int s = 0; s < n_histories; s++) {
-			if (n_histories > 1 && event.multiCoalSize.get(s) == 7)
-				System.out.println();
 			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
 			// W factor from NOAH A. ROSENBERG
 			mult *= binomialInt(sum - (n_histories - s), event.multiCoalSize.get(s) - 1);
-//			sum -= (event.multiCoalSize.get(s) - 1);
 			sum -= event.multiCoalSize.get(s);
 		}
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
