@@ -87,8 +87,8 @@ public class GeneTreeIntervals extends CalculationNode {
 	}
 
 	private void update() {
-//        if (!eventListDirty)
-//            return;
+		if (!eventListDirty)
+			return;
 
 		HashMap<Integer, List<Integer>> fakeBifurcations = new HashMap<>();
 		HashMap<Double, List<Integer>> nodeTime = new HashMap<>();
