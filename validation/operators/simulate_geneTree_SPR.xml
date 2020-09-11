@@ -18,26 +18,26 @@
     <taxonSet spec="TaxonSet" id="taxonSet">
     	<taxon spec="Taxon" id="B"/>
 <taxon spec="Taxon" id="D"/>
-<taxon spec="Taxon" id="G"/>
     </taxonSet>
     
     <run spec="GPSimulator" nSims="500000">
     	<simulationObject id="geneTree" spec="SimulatedGeneTree">
         			<transmissionTreeInput spec="TreeParser"
-                              newick="(B:0.01, D:0.0):0.0;" adjustTipHeights="false" IsLabelledNewick="true"/> 
+                              newick="(B:0.00001, D:0.0):0.0;" adjustTipHeights="false" IsLabelledNewick="true"/> 
 
         	<sampleCounts spec="TraitSet" traitname="sampleCounts" taxa="@taxonSet">
-				B=4,
-				D=4
+				B=9,
+				D=2
         	</sampleCounts>
 
 		<populationSizes spec="RealParameter" value="1.0"/>
 		<bottleneckStrength spec="RealParameter" value="1.0"/>
 		
-		<birthRate spec="RealParameter" value="1.0"/>
+		<birthRate spec="RealParameter" value="5.0"/>
 		<deathRate spec="RealParameter" value="0.5"/>
 		<samplingRate spec="RealParameter" value="0.1"/>
 		<samplingExtantRate spec="RealParameter" value="0.1"/>
+		<origin  spec="RealParameter" value="2.0"/>
 		
         </simulationObject>
 

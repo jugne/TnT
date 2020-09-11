@@ -40,6 +40,8 @@ public class GeneTreeDistribution extends Distribution {
 
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch population sizes.", Validate.REQUIRED);
+	public Input<RealParameter> originInput = new Input<RealParameter>("origin",
+			"Start of branching process.", Validate.REQUIRED);
 
 
 	private double ploidy;
@@ -189,11 +191,16 @@ public class GeneTreeDistribution extends Distribution {
 		ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * Ne))
 				* (event.time - prevEvent.time);
 
+		if (prevEvent.time > originInput.get().getArrayValue(0))
+			return ans;
+		double end_time = event.time;
+		if (event.time > originInput.get().getArrayValue(0))
+			end_time = originInput.get().getArrayValue();
 		double sum = 0;
 		sum = gUp(prevEvent.lineages, prevEvent.lineages, tau, Ne);
 
 		ans -= (1 - sum) * lambda
-				* integralP_0(prevEvent.time, event.time);
+				* integralP_0(prevEvent.time, end_time);
 
 		return ans;
 	}
@@ -223,13 +230,21 @@ public class GeneTreeDistribution extends Distribution {
 				.sum();
 		int n_histories = event.multiCoalSize.size();
 
+
+		if (event.time > originInput.get().getArrayValue(0))
+			return Double.NEGATIVE_INFINITY;
 		for (int s = 0; s < n_histories; s++) {
-			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
+//			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
+			waysToCoal(event.multiCoalSize.get(s), 1);
 			// W factor from NOAH A. ROSENBERG
 			mult *= binomialInt(sum - (n_histories - s), event.multiCoalSize.get(s) - 1);
 			sum -= event.multiCoalSize.get(s);
 		}
-		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
+		if (n_histories == 1)
+			ans = gUp(prevEvent.lineages, event.lineages, tau, Ne)
+					* lambda * P_0(event.time);
+		else
+			ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
 				* gUp(prevEvent.lineages, event.lineages, tau, Ne)
 				* lambda * P_0(event.time);
 
@@ -239,10 +254,11 @@ public class GeneTreeDistribution extends Distribution {
 	private double biffurcation(GeneTreeEvent event, GeneTreeEvent prevEvent, double Ne) {
 		double ans = 0.0;
 		ans += 1.0 / (ploidy * Ne);
+		if (event.time > originInput.get().getArrayValue(0))
+			return Math.log(ans);
 		ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))
 				* gUp(prevEvent.lineages, event.lineages, tau, Ne)
 				* lambda * P_0(event.time);
-
 
 		return Math.log(ans);
 	}
@@ -258,7 +274,7 @@ public class GeneTreeDistribution extends Distribution {
 //		if (tau == 0)
 //			return ans;
 		for (int k = j; k <= i; k++) {
-			ans += (2 * k - 1) * Math.pow(-1, k - j) * f_1(j, k - 1) * f_2(i, k)
+			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j) * f_1(j, k - 1) * f_2(i, k)
 					* Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne)) /
 					(MathUtils.factorial(j) * MathUtils.factorial(k - j) * f_1(i, k));
 		}

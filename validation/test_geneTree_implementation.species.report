@@ -1,0 +1,6 @@
+
+# total number of trees used = 990
+# 
+# 100.0% credible set (1 unique tree topologies, 990 trees in total)
+Rank	Count	Percent	Running	Percent_StdErr	Tree
+1	990	100.00000%	100.00000%	NaN%	((A)B,C)

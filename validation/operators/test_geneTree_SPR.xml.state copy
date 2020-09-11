@@ -1,0 +1,17 @@
+<itsabeastystatewerein version='2.0' sample='100000000'>
+<statenode id='transmissionTree'>(0:0.01,1:0.0)2:0.0</statenode>
+<statenode id='geneTree'>(((0:0.3332715654289149,5:0.3232715654289149)12:0.5630335400698703,(1:0.5672309603209551,(((2:0.04227257658718522,3:0.04227257658718522)10:0.03192013858128774,6:0.06419271516847297)11:0.2646944850974797,4:0.3288872002659527)13:0.2283437600550024)8:0.32907414517783007)9:1.0022042877202513,7:1.8885093932190364)14:0.0</statenode>
+<statenode id='origin.t:Species'>origin.t:Species[1 1] (-Infinity,Infinity): 2.0 </statenode>
+<statenode id='birthRate.t:Species'>birthRate.t:Species[1 1] (-Infinity,Infinity): 1.0 </statenode>
+<statenode id='deathRate.t:Species'>deathRate.t:Species[1 1] (-Infinity,Infinity): 0.5 </statenode>
+<statenode id='samplingRate.t:Species'>samplingRate.t:Species[1 1] (-Infinity,Infinity): 0.1 </statenode>
+<statenode id='removalProbability.t:Species'>removalProbability.t:Species[1 1] (-Infinity,Infinity): 0.0 </statenode>
+<statenode id='rho.t:Species'>rho.t:Species[1 1] (-Infinity,Infinity): 0.1 </statenode>
+<statenode id='popSizes.Species'>popSizes.Species[3 1] (-Infinity,Infinity): 1.0 1.0 1.0 </statenode>
+<statenode id='tau'>tau[1 1] (-Infinity,Infinity): 1.0 </statenode>
+</itsabeastystatewerein>
+<!--
+{"operators":[
+{"id":"SPR","p":"NaN","accept":30516900,"reject":69483101,"acceptFC":0,"rejectFC":0,"rejectIv":0,"rejectOp":0}
+]}
+-->
