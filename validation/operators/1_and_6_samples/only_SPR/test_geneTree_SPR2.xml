@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beast version="2.4" beautitemplate='StarBeast2' beautistatus='noAutoSetClockRate'
+    namespace="beast.core
+              :beast.evolution.alignment
+              :beast.evolution.tree.coalescent
+              :beast.core.util
+              :beast.evolution.nuc
+              :beast.evolution.tree
+              :beast.evolution.operators
+              :beast.evolution.sitemodel
+              :beast.evolution.substitutionmodel
+              :beast.evolution.likelihood
+              :beast.core.parameter
+              :beast.util
+              :starbeast2
+              :starbeast2.utils
+              :tnt.distribution
+              :tnt.operators
+              :pitchfork.operators
+              :pitchfork.util
+              :tnt.simulator
+				:pitchfork.util">
+              
+<!-- <data -->
+<!-- id="gene" -->
+<!-- name="alignment"> -->
+<!--     <sequence id="seq_B1" taxon="B1" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B2" taxon="B2" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B3" taxon="B3" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B4" taxon="B4" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B5" taxon="B5" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B6" taxon="B6" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B7" taxon="B7" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B8" taxon="B8" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B9" taxon="B9" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B10" taxon="B10" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B11" taxon="B11" totalcount="4" value="-"/> -->
+<!--     <sequence id="seq_B12" taxon="B12" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D1" taxon="D1" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D2" taxon="D2" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D3" taxon="D3" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D4" taxon="D4" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D5" taxon="D5" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D6" taxon="D6" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D7" taxon="D7" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D8" taxon="D8" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D9" taxon="D9" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D10" taxon="D10" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D11" taxon="D11" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D12" taxon="D12" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D13" taxon="D13" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D14" taxon="D14" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D15" taxon="D15" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D16" taxon="D16" totalcount="4" value="-"/> -->
+<!--      <sequence id="seq_D17" taxon="D17" totalcount="4" value="-"/> -->
+
+<!-- </data> -->
+
+<trait id="tipDates" spec='beast.evolution.tree.TraitSet' traitname='date-backward' units='year' value='
+    B = 0.0,
+    D=0.01'>
+    <taxa id="taxonsuperset" spec="TaxonSet">
+        <taxon id="B" spec="TaxonSet">
+            <taxon id="B1" spec="Taxon"/>
+<!--             <taxon id="B2" spec="Taxon"/> -->
+<!--             <taxon id="B3" spec="Taxon"/> -->
+<!--             <taxon id="B4" spec="Taxon"/> -->
+<!--             <taxon id="B5" spec="Taxon"/> -->
+<!--             <taxon id="B6" spec="Taxon"/> -->
+<!--             <taxon id="B7" spec="Taxon"/> -->
+<!--             <taxon id="B8" spec="Taxon"/> -->
+<!--             <taxon id="B9" spec="Taxon"/> -->
+<!--             <taxon id="B10" spec="Taxon"/> -->
+<!--             <taxon id="B11" spec="Taxon"/> -->
+<!--             <taxon id="B12" spec="Taxon"/> -->
+        </taxon>
+        <taxon id="D" spec="TaxonSet">
+            <taxon id="D1" spec="Taxon"/>
+            <taxon id="D2" spec="Taxon"/>
+            <taxon id="D3" spec="Taxon"/>
+            <taxon id="D4" spec="Taxon"/>
+            <taxon id="D5" spec="Taxon"/>
+            <taxon id="D6" spec="Taxon"/>
+<!--             <taxon id="D7" spec="Taxon"/> -->
+<!--             <taxon id="D8" spec="Taxon"/> -->
+<!--             <taxon id="D9" spec="Taxon"/> -->
+<!--             <taxon id="D10" spec="Taxon"/> -->
+<!--             <taxon id="D11" spec="Taxon"/> -->
+<!--             <taxon id="D12" spec="Taxon"/> -->
+<!--             <taxon id="D13" spec="Taxon"/> -->
+<!--             <taxon id="D14" spec="Taxon"/> -->
+<!--             <taxon id="D15" spec="Taxon"/> -->
+<!--             <taxon id="D16" spec="Taxon"/> -->
+<!--             <taxon id="D17" spec="Taxon"/> -->
+        </taxon>
+    </taxa>
+</trait>
+
+<taxonSet spec="TaxonSet" id="taxonSet">
+			<taxon idref="B1"/>
+	        <taxon idref="D1"/>
+            <taxon idref="D2" />
+            <taxon idref="D3" />
+            <taxon idref="D4" />
+            <taxon idref="D5" />
+            <taxon idref="D6" />
+<!--             <taxon idref="D7" /> -->
+<!--             <taxon idref="D8" /> -->
+<!--             <taxon idref="D9" /> -->
+<!--             <taxon idref="D10" /> -->
+<!--             <taxon idref="D11" /> -->
+<!--             <taxon idref="D12" /> -->
+<!--             <taxon idref="D13" /> -->
+<!--             <taxon idref="D14" /> -->
+<!--             <taxon idref="D15" /> -->
+<!--             <taxon idref="D16" /> -->
+<!--             <taxon idref="D17" /> -->
+</taxonSet>
+<!--     <taxonSet spec="TaxonSet" id="taxonSet"> -->
+<!--     	<taxon spec="Taxon" id="B"/> -->
+<!-- <taxon spec="Taxon" id="D"/> -->
+<!--     </taxonSet> -->
+
+<map name="Uniform" >beast.math.distributions.Uniform</map>
+<map name="Exponential" >beast.math.distributions.Exponential</map>
+<map name="LogNormal" >beast.math.distributions.LogNormalDistributionModel</map>
+<map name="Normal" >beast.math.distributions.Normal</map>
+<map name="Beta" >beast.math.distributions.Beta</map>
+<map name="Gamma" >beast.math.distributions.Gamma</map>
+<map name="LaplaceDistribution" >beast.math.distributions.LaplaceDistribution</map>
+<map name="prior" >beast.math.distributions.Prior</map>
+<map name="InverseGamma" >beast.math.distributions.InverseGamma</map>
+<map name="OneOnX" >beast.math.distributions.OneOnX</map>
+
+<run id="mcmc" spec="MCMC" chainLength="100000000" storeEvery="5000">
+    <state id="state" storeEvery="5000">
+    
+    	<stateNode id="transmissionTree" spec="starbeast2.SpeciesTree" taxonset="@taxonsuperset"/>
+<!--     	<tree id="geneTree" name="stateNode"> -->
+<!--             <taxonset id="TaxonSet.gene" spec="TaxonSet"> -->
+<!--                 <alignment idref="gene"/> -->
+<!--             </taxonset> -->
+<!--         </tree> -->
+
+        <parameter id="origin.t:Species" estimate="false" name="stateNode">20.0</parameter>
+        <parameter id="birthRate.t:Species" estimate="false" name="stateNode">1.0</parameter>
+        <parameter id="deathRate.t:Species" estimate="false" name="stateNode">0.5</parameter>
+        <parameter id="samplingRate.t:Species" estimate="false" name="stateNode">0.1</parameter>
+        <parameter id="removalProbability.t:Species" estimate="false" name="stateNode">0.0</parameter>
+        <parameter id="rho.t:Species" estimate="false" name="stateNode">0.1</parameter>
+        <parameter id="popSizes.Species" estimate="false" name="stateNode">1.0</parameter>
+        <parameter id="tau" estimate="false" name="stateNode">1.0</parameter>
+
+<stateNode id="geneTree" spec="tnt.simulator.SimulatedGeneTree" taxonset="@taxonSet">
+        			<transmissionTreeInput spec="TreeParser"
+                              newick="(B:0.01, D:0.0):0.0;" adjustTipHeights="false" IsLabelledNewick="true"/> 
+
+        	<sampleCounts spec="TraitSet" traitname="sampleCounts" taxa="@taxonsuperset">
+				B=1,
+				D=6
+        	</sampleCounts>
+
+		<populationSizes idref="popSizes.Species"/>
+		<bottleneckStrength spec="RealParameter" value="0.0"/>
+		
+		<birthRate idref="birthRate.t:Species"/>
+		<deathRate idref="deathRate.t:Species"/>
+		<samplingRate idref="samplingRate.t:Species"/>
+		<samplingExtantRate idref="rho.t:Species"/>
+		<origin  idref="origin.t:Species"/>
+		
+
+</stateNode>
+
+        
+	</state>
+	
+	<init id="SBI" spec="starbeast2.StarBeastInitializer" birthRate="@birthRate.t:Species" estimate="false" speciesTree="@transmissionTree" newick="(B:0.01, D:0.0):0.0;">
+        <geneTree idref="geneTree"/>
+        <populationModel id="popModel.Species" spec="starbeast2.ConstantPopulations" speciesTree="@transmissionTree" populationSizes="@popSizes.Species"/>
+    </init>
+    
+	<distribution id="posterior" spec="util.CompoundDistribution">
+        <distribution id="multiCoalescent" spec="util.CompoundDistribution">
+            <distribution id="geneTreeDistribution" spec="GeneTreeDistribution" populationSizes="@popSizes.Species" origin="@origin.t:Species" ploidy="1.0" 
+            tau="@tau" birthRate="@birthRate.t:Species" deathRate="@deathRate.t:Species" samplingRate="@samplingRate.t:Species" removalProbability="@removalProbability.t:Species" rho="@rho.t:Species">
+            	<geneTreeIntervals id="geneTreeIntervals" spec="GeneTreeIntervals" geneTree="@geneTree" transmissionTreeInput="@transmissionTree"/>
+            </distribution>	
+        </distribution>
+        <distribution id="prior" spec="util.CompoundDistribution">
+            <distribution id="FBD.t:Species" spec="beast.evolution.speciation.SABirthDeathModel" origin="@origin.t:Species" birthRate="@birthRate.t:Species" deathRate="@deathRate.t:Species" samplingRate="@samplingRate.t:Species" removalProbability="@removalProbability.t:Species" rho="@rho.t:Species" tree="@transmissionTree"/>
+        </distribution>
+    </distribution>
+    
+<!--     <operator spec="pitchfork.operators.ScaleOperator" rootOnly="true" scaleFactor="0.5" tree="@geneTree" weight="1.0" /> -->
+<!-- 	<operator spec="pitchfork.operators.UniformOperator" tree="@geneTree" scaleMergersTogether="false" weight="1.0" scaleFactor="0.5"/> -->
+<!-- 	<operator spec="tnt.operators.UniformOperator" tree="@geneTree" scaleRoot="true" weight="1.0"/> -->
+    
+<!--     <operator spec="SPROperator2" id="SPR" tree="@geneTree" weight="2.0"/> -->
+<!--     <operator spec="SPROperator" id="SPR" tree="@geneTree" weight="1.0" probCoalAttach="0.3" probMultiMerger="0.1" geneTreeIntervals="@geneTreeIntervals" rootAttachLambda="5.0"/> -->
+<!--     <operator spec="SPROperator" id="SPR2" tree="@geneTree" weight="1.0" probCoalAttach="0.0" probMultiMerger="0.3" geneTreeIntervals="@geneTreeIntervals" rootAttachLambda="1.0"/> -->
+<!--     <operator spec="SPROperator" id="SPR2" tree="@geneTree" weight="1.0" probCoalAttach="0.9" probMultiMerger="0.0" geneTreeIntervals="@geneTreeIntervals"/> -->
+    <operator spec="SPROperator" id="SPR2" tree="@geneTree" weight="1.0" probBottleneck="0.05" rootAttachLambda="0.5"/>
+    
+<!--     <operator spec="SPROperator" id="SPR" tree="@geneTree" weight="1.0" probCoalAttach="0.0" probMultiMerger="0.45" geneTreeIntervals="@geneTreeIntervals"/> -->
+<!--     <operator spec="SPROperator" tree="@geneTree" weight="1.0" probCoalAttach="0.0" probMultiMerger="0.7" geneTreeIntervals="@geneTreeIntervals"/> -->
+<!--     <operator spec="pitchfork.operators.SPROperator" tree="@geneTree" weight="1.0" probCoalAttach="0.9" rootAttachLambda="0.1"/> -->
+<!--             <operator spec="pitchfork.operators.ExpandCollapseOperator" weight="1.0" -->
+<!--                   rootAttachLambda="0.1" -->
+<!--                   tree="@geneTree"/> -->
+
+    
+<!--     <logger id="screenlog" logEvery="10000" model="@posterior"> -->
+<!--         <log idref="multiCoalescent"/> -->
+<!--         <log id="ESS.0" spec="util.ESS" arg="@posterior"/> -->
+<!--         <log spec="beast.evolution.tree.TreeStatLogger" tree="@geneTree"/> -->
+<!--     </logger> -->
+    
+<!--     <logger id="speciesTreeLogger" fileName="$(filebase).transmission.trees" logEvery="1000" mode="tree"> -->
+<!--         <log id="SpeciesTreeLoggerX" spec="starbeast2.SpeciesTreeLogger" speciesTree="@transmissionTree"/> -->
+<!--     </logger> -->
+
+<!--     <logger id="treelog.t:gene" fileName="$(filebase).gene.trees" logEvery="1000" mode="tree"> -->
+    	
+<!--         <log id="TreeWithMetaDataLogger.t:gene" spec="beast.evolution.tree.TreeWithMetaDataLogger" tree="@geneTree"/> -->
+<!--     </logger> -->
+    
+<!--     <logger spec="TreeTopologyDistLogger" fileName="$(filebase).gene.report" logEvery="1000" -->
+<!--         tree="@geneTree" burninSamples="10000" /> -->
+
+<!--     <logger spec="TreeTopologyDistLogger" fileName="$(filebase).species.report" logEvery="1000" -->
+<!--         tree="@transmissionTree" burninSamples="10000" /> -->
+        
+<!--     <logger fileName="$(filebase).speciesNodeHeights.log" logEvery="5000"> -->
+<!--         <log spec="NodeHeightLogger" tree="@transmissionTree" excludeSANodes="true"/> -->
+<!--     </logger> -->
+
+<!--     <logger fileName="$(filebase).geneNodeHeights.log" logEvery="5000"> -->
+<!--         <log spec="NodeHeightLogger" tree="@geneTree" excludeSANodes="true"/> -->
+<!--     </logger> -->
+    
+    <logger logEvery="100" fileName="$(filebase).geneTree.log">
+     		<log idref="multiCoalescent"/>
+       		<log id="treeHeight" spec="beast.evolution.tree.TreeStatLogger" tree="@geneTree"/>
+       		<log spec="PolytomyStatsLogger" tree="@geneTree"/>
+       
+<!--         		<log id="treeHeight" spec="beast.evolution.tree.TreeHeightLogger" tree="@gene_tree_truth"/> -->
+	</logger>
+    
+  </run>
+
+</beast>  
+    
+        
