@@ -99,14 +99,8 @@ public class GeneTreeDistribution extends Distribution {
 			return Double.NEGATIVE_INFINITY;
 
 
-
 		
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
-//			if (trNode.isDirectAncestor())
-//				continue;
-			// define donor as a left child
-//			boolean donor = (trNode.isRoot()
-//					|| (trNode.getParent().getChild(0) == trNode && !trNode.getParent().isFake()));
 			boolean recipient = (!trNode.isRoot()
 					&& trNode.getParent().getChild(0) != trNode && !trNode.getParent().isFake());
 			double popSize = popSizes.getValue(trNode.getNr());
@@ -228,25 +222,23 @@ public class GeneTreeDistribution extends Distribution {
 		double mult = 1.0;
 		int sum = event.multiCoalSize.stream().mapToInt(Integer::intValue)
 				.sum();
-		int n_histories = event.multiCoalSize.size();
 
+		int n_histories = event.multiCoalSize.size();
 
 		if (event.time > originInput.get().getArrayValue(0))
 			return Double.NEGATIVE_INFINITY;
 		for (int s = 0; s < n_histories; s++) {
-//			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
-			waysToCoal(event.multiCoalSize.get(s), 1);
+			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
+
 			// W factor from NOAH A. ROSENBERG
 			mult *= binomialInt(sum - (n_histories - s), event.multiCoalSize.get(s) - 1);
 			sum -= event.multiCoalSize.get(s);
 		}
-		if (n_histories == 1)
-			ans = gUp(prevEvent.lineages, event.lineages, tau, Ne)
+
+
+		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
+					* gUp(prevEvent.lineages, event.lineages, tau, Ne)
 					* lambda * P_0(event.time);
-		else
-			ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
-				* gUp(prevEvent.lineages, event.lineages, tau, Ne)
-				* lambda * P_0(event.time);
 
 		return Math.log(ans);
 	}
@@ -271,8 +263,7 @@ public class GeneTreeDistribution extends Distribution {
 
 	private double gUp(int i, int j, double tau, double Ne) {
 		double ans = 0.0;
-//		if (tau == 0)
-//			return ans;
+
 		for (int k = j; k <= i; k++) {
 			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j) * f_1(j, k - 1) * f_2(i, k)
 					* Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne)) /

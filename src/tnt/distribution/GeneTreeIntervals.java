@@ -200,6 +200,9 @@ public class GeneTreeIntervals extends CalculationNode {
 				event.multiCoalCount += 1;
 				event.multiCoalSize.add(fakeBifurcations.get(first.getNr()).size() + 2);
 				event.type = GeneTreeEvent.GeneTreeEventType.MULTIFURCATION;
+			} else {
+				event.multiCoalSize.add(2);
+				event.multiCoalCount += 1;
 			}
 
 			if (nodeTime.get(time).size() > 1) {
@@ -269,8 +272,7 @@ public class GeneTreeIntervals extends CalculationNode {
 				break;
         	}
 
-			if (nrLineage <= 0)
-				System.out.println();
+
 			event.lineages = nrLineage;
 
 			if (eventsPerTransmissionTreeNode.get(trNode.getNr()) == null) {
