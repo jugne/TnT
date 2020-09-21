@@ -21,21 +21,19 @@ import static pitchfork.Pitchforks.getTrueNodes;
 import static pitchfork.Pitchforks.isPolytomy;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Description;
 import beast.core.Input;
-import beast.core.Input.Validate;
 import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import pitchfork.Pitchforks;
-import tnt.distribution.GeneTreeEvent;
-import tnt.distribution.GeneTreeIntervals;
+import tnt.util.Tools;
 
-@Description("SPR operator for trees with polytomies.")
+@Description("SPR operator for trees with polytomies and multiple mergers.")
+// In this version we will assume that all three variants of attachement have equal probability
 public class SPROperator extends TreeOperator {
 
 	public Input<Double> rootAttachLambdaInput = new Input<>(
@@ -44,305 +42,246 @@ public class SPROperator extends TreeOperator {
                     "used to position attachments above the root.",
 			2.0);
 
-    public Input<Double> probCoalAttachInput = new Input<>(
-            "probCoalAttach",
-            "Probability of attaching to existing coalescent event.",
-            0.1);
-
-	public Input<Double> probMultiMergerInput = new Input<>(
-			"probMultiMerger",
-			"Probability of attaching at an existing coalescent event height.",
+	public Input<Double> probBottleneckInput = new Input<>(
+			"probBottleneck",
+			"Probability of attaching to existing coalescent event or making a multimerger.",
 			0.1);
 
-	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
-			"intervals for a gene tree", Validate.REQUIRED);
-
     Tree tree;
-	Double rootAttachLambda, probCoalAttach, probMultiMerger;
-	GeneTreeIntervals intervals;
-	HashMap<Integer, Integer> geneTreeNodeAssignment;
-
-	HashMap<Integer, List<Integer>> logicalGeneNodesPerTransmissionNode;
-	HashMap<Integer, List<GeneTreeEvent>> eventsPerTransmissionTreeNode;
+	Double rootAttachLambda, probBottleneck;
 
     @Override
     public void initAndValidate() {
-        rootAttachLambda = rootAttachLambdaInput.get();
-        tree = treeInput.get();
-        probCoalAttach = probCoalAttachInput.get();
-		probMultiMerger = probMultiMergerInput.get();
-		intervals = geneTreeIntervalsInput.get();
-//		intervals = new GeneTreeIntervals();
-//		intervals.initByName("geneTree", tree, "transmissionTreeInput",
-//				geneTreeIntervalsInput.get().transmissionTreeInput.get());
-
-		if (probCoalAttach + probMultiMerger > 1) {
-			System.err.print("Sum of probabilities is larger than one: probCoalAttach=" + probCoalAttach
-					+ ", probMultiMerger=" + probMultiMerger);
-			System.exit(1);
-		}
-
+		rootAttachLambda = rootAttachLambdaInput.get();
+		probBottleneck = probBottleneckInput.get();
+		tree = treeInput.get();
     }
 
     @Override
     public double proposal() {
+		double logHR = 0.0;
 
-		geneTreeNodeAssignment = intervals.getGeneTreeNodeAssignment();
+		boolean bottleneck = false;
 
-		logicalGeneNodesPerTransmissionNode = intervals.getLogicalGeneNodesPerTransmissionNode();
-		eventsPerTransmissionTreeNode = intervals.getGeneTreeEventList();
+		// Get list of nodes below finite-length edges
+		List<Node> trueNodes = getTrueNodes(tree);
 
-        double logHR = 0.0;
+		// Record number of (true) edges in original tree:
+		int nEdges = trueNodes.size() - 1;
 
-        // Get list of nodes below finite-length edges
-        List<Node> trueNodes = getTrueNodes(tree);
+		// Select non-root subtree at random
 
-        // Record number of (true) edges in original tree:
-        int nEdges = trueNodes.size() - 1;
-		int nOrigMultiMergerCandidates = 0;
-		int nMultiMergerCandidates = 0;
+		Node srcNode, srcNodeParent;
+		do {
+			srcNode = trueNodes.get(Randomizer.nextInt(trueNodes.size()));
+			srcNodeParent = srcNode.getParent();
+		} while (srcNodeParent == null);
 
-        // Select non-root subtree at random
+		Node lgicalParent = Pitchforks.getLogicalParent(srcNode);
+		Node srcNodeSister = getOtherChild(srcNodeParent, srcNode);
 
-        Node srcNode, srcNodeParent;
-        do {
-            srcNode = trueNodes.get(Randomizer.nextInt(trueNodes.size()));
-            srcNodeParent = srcNode.getParent();
-        } while (srcNodeParent == null);
-
-        Node srcNodeSister = getOtherChild(srcNodeParent, srcNode);
-
-		// Get transmission node that this node is embedded into
-		Node trNode = intervals.transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(srcNode.getNr()));
-		List<GeneTreeEvent> eventsInTransmissionBranch = eventsPerTransmissionTreeNode.get(trNode.getNr());
-		// Record whether the the original attachment was a multiple merger
-
-
-        // Record whether the the original attachment was a polytomy
-        boolean origAttachWasPolytomy = isPolytomy(srcNodeParent);
-
-		// Record whether the the original attachment was a multiple merger
-		// Do this only if origAttach was not polytomy
-		// This is because of it can be a multiple merger from before, but only formed a
-		// polytomy by attaching to existing node with probCoalAttach. That is, this
-		// event would have been more recent and reversing would return us to the start
-		// state.
-		boolean origAttachWasMultiMerger = false;
-		if (!origAttachWasPolytomy) {
-			for (GeneTreeEvent e : eventsInTransmissionBranch) {
-				if (e.multiCoalSize.size() > 1 && e.time == srcNodeParent.getHeight()) {
-					origAttachWasMultiMerger = true;
-				}
-
-			}
-		}
+		// Record whether the the original attachment was a polytomy or merger
+		boolean origAttachWasPolytomy = isPolytomy(srcNodeParent);
+		boolean origAttachWasMerger = Tools.isMultiMerger(trueNodes, lgicalParent);
+		boolean origAttachWasBottleneck = origAttachWasPolytomy || origAttachWasMerger;
 
 		boolean parentWasRoot = srcNodeParent.isRoot();
+		double oldParentHeight = srcNodeParent.getHeight();
+
+		// Disconnect subtree
+
+		srcNodeParent.removeChild(srcNodeSister);
+
 		Node srcNodeGrandparent = null;
-
-        // Disconnect subtree
-
-        srcNodeParent.removeChild(srcNodeSister);
-
-        if (srcNodeParent.isRoot()) {
-            srcNodeSister.setParent(null);
-        } else {
-			srcNodeGrandparent = srcNodeParent.getParent();
-            srcNodeGrandparent.removeChild(srcNodeParent);
-            srcNodeGrandparent.addChild(srcNodeSister);
-        }
-
-        srcNodeParent.setParent(null);
-
-        // Select new attachment node
-
-        Node remainingSubtreeRoot;
-        if (srcNodeSister.isRoot())
-            remainingSubtreeRoot = srcNodeSister;
-        else
-            remainingSubtreeRoot = tree.getRoot();
-
-        List<Node> subtreeNodes = getNodesInSubtree(remainingSubtreeRoot, srcNode.getHeight());
-        Node attachmentNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
-		List<Double> multiMergHeightCandidates = getHeightsForMultiMerger(subtreeNodes, attachmentNode,
-				srcNode.getHeight());
-		Double multiMergeHeight = null;
-		nMultiMergerCandidates = multiMergHeightCandidates.size();
-		if (nMultiMergerCandidates > 0)
-			multiMergeHeight = multiMergHeightCandidates.get(Randomizer.nextInt(multiMergHeightCandidates.size()));
-		List<Double> origMultiMergHeightsCandidates = getHeightsForMultiMerger(subtreeNodes, srcNodeSister,
-					srcNode.getHeight());
-		nOrigMultiMergerCandidates = origMultiMergHeightsCandidates.size();
-
-		
-        // Incorporate probability of existing attachment point into HR
-
-		if (origAttachWasPolytomy) {
-			logHR += Math.log(probCoalAttach);
-		} else if (origAttachWasMultiMerger) {
-			logHR += Math.log(probMultiMerger);
+		if (srcNodeParent.isRoot()) {
+			srcNodeSister.setParent(null);
 		} else {
-            if (!srcNodeSister.isLeaf() && srcNodeSister.getHeight() > srcNode.getHeight()) {
-            	if (nOrigMultiMergerCandidates == 0)
-            		logHR += Math.log(1 - probCoalAttach);
-            	else if (nOrigMultiMergerCandidates > 0)
-            		logHR += Math.log(1 - probCoalAttach - probMultiMerger);
-			} else if (nOrigMultiMergerCandidates > 0)
-				logHR += Math.log(1 - probMultiMerger);
-				
+			srcNodeGrandparent = srcNodeParent.getParent();
+			srcNodeGrandparent.removeChild(srcNodeParent);
+			srcNodeGrandparent.addChild(srcNodeSister);
+		}
+
+		srcNodeParent.setParent(null);
+
+		// Select new attachment node
+
+		Node remainingSubtreeRoot;
+		if (srcNodeSister.isRoot())
+			remainingSubtreeRoot = srcNodeSister;
+		else
+			remainingSubtreeRoot = tree.getRoot();
+
+		List<Node> subtreeNodes = getNodesInSubtree(remainingSubtreeRoot, srcNode.getHeight());
+		List<Node> innerNodes = Pitchforks.getTrueInternalNodes(tree);
+		Node heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
+//		while (heightNode.getHeight() == srcNode.getHeight()) {
+//			heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
+//		}
+		List<Node> eligibleSubtreeNodes = new ArrayList<>();
+		for (Node node : subtreeNodes) {
+			if (!node.isLeaf() || node.getHeight() > srcNode.getHeight())
+				eligibleSubtreeNodes.add(node);
+		}
+//
+		Node newAttachNode;
+		Double newHeight;
+
+			List<Node> fitNodes = new ArrayList<Node>();
+		List<Node> atSameHeight = new ArrayList<Node>();
+			newHeight = heightNode.getHeight();
+		for (Node n : subtreeNodes) {
+			if (n.getHeight() == newHeight)
+				atSameHeight.add(n);
+			if (n.getHeight() <= newHeight && (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > newHeight)) {
+					fitNodes.add(n);
+				}
+			}
+		if (fitNodes.size() == 0 || heightNode.isLeaf() || newHeight <= srcNode.getHeight())
+//			return Double.NEGATIVE_INFINITY;
+			bottleneck = false;
+		else {
+//			double bot = 1.0 / fitNodes.size();
+//			bot *= atSameHeight.size() / (double) subtreeNodes.size();
+//			bot *= probBottleneck;
+			if (Randomizer.nextDouble() < probBottleneck) {
+				bottleneck = true;
+				logHR -= Math.log(probBottleneck);
+			} else {
+				logHR -= Math.log(1 - probBottleneck);
+
+			}
+		}
+
+		if (bottleneck) {
+			newAttachNode = fitNodes.get(Randomizer.nextInt(fitNodes.size()));
+//			logHR -= Math.log(1.0 / subtreeNodes.size());
+			logHR -= Math.log(1.0 / fitNodes.size());
+			logHR -= Math.log(atSameHeight.size() / (double) subtreeNodes.size());
+		} else {
+			logHR -= Math.log(1.0 / subtreeNodes.size());
+			newAttachNode = heightNode;
+			if (newAttachNode.isRoot()) {
+				double offset = Math.max(srcNode.getHeight(), newAttachNode.getHeight());
+				double expRate = 1.0 / (rootAttachLambda * offset);
+				newHeight = offset + Randomizer.nextExponential(expRate);
+
+				logHR -= -expRate * (newHeight - offset)
+						+ Math.log(expRate);
+			} else {
+				double L = newAttachNode.getParent().getHeight() -
+						Math.max(srcNode.getHeight(), newAttachNode.getHeight());
+				newHeight = Randomizer.nextDouble() * L +
+						Math.max(srcNode.getHeight(), newAttachNode.getHeight());
+
+				logHR -= Math.log(1.0 / L);
+			}
+		}
+
+		// Incorporate probability of existing attachment point into HR
+		List<Node> origFitNodes = new ArrayList<Node>();
+		List<Node> atSameHeightOrig = new ArrayList<Node>();
+		for (Node n : subtreeNodes) {
+			if (n.getHeight() == oldParentHeight)
+				atSameHeightOrig.add(n);
+			if (n.getHeight() <= oldParentHeight
+					&& (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > oldParentHeight)) {
+				origFitNodes.add(n);
+			}
+		}
+
+		if (origAttachWasBottleneck) {
+			logHR += Math.log(probBottleneck);
+//			logHR += Math.log(1.0 / subtreeNodes.size());
+			logHR += Math.log(1.0 / origFitNodes.size());
+			logHR += Math.log(atSameHeightOrig.size() / (double) subtreeNodes.size());
+		} else {
+			if ((origFitNodes.size() == 1 && !srcNodeSister.isLeaf())
+					|| (origFitNodes.size() > 1) && oldParentHeight > srcNode.getHeight()) {
+				logHR += Math.log(1 - probBottleneck);
+
+			}
+//				return Double.NEGATIVE_INFINITY;
+			logHR += Math.log(1.0 / subtreeNodes.size());
 
 			if (parentWasRoot) {
-                double offset = Math.max(srcNodeSister.getHeight(), srcNode.getHeight());
-                double expRate = 1.0/(rootAttachLambda*offset);
-                logHR += -expRate*(srcNodeParent.getHeight() - offset) + Math.log(expRate);
-            } else {
-				double L = srcNodeGrandparent.getHeight() - Math.max(srcNodeSister.getHeight(), srcNode.getHeight());
-                logHR += Math.log(1.0/L);
-            }
-        }
-
-        // Determine whether polytomy is to be created
-
-        boolean newAttachIsPolytomy;
-		boolean newAttachIsMultiMerger;
-
-        if (attachmentNode.isLeaf() || attachmentNode.getHeight() < srcNode.getHeight()) {
-            newAttachIsPolytomy = false;
-			if (multiMergeHeight != null) {
-				if (Randomizer.nextDouble() < probMultiMerger) {
-					newAttachIsMultiMerger = true;
-					logHR -= Math.log(probMultiMerger);
-				} else {
-					newAttachIsMultiMerger = false;
-					logHR -= Math.log(1 - probMultiMerger);
-				}
+				double offset = Math.max(srcNodeSister.getHeight(), srcNode.getHeight());
+				double expRate = 1.0 / (rootAttachLambda * offset);
+				logHR += -expRate * (oldParentHeight - offset) + Math.log(expRate);
 			} else {
-				newAttachIsMultiMerger = false;
-            }
-		} else if (multiMergeHeight == null) {
-
-			newAttachIsMultiMerger = false;
-
-			if (Randomizer.nextDouble() < probCoalAttach) {
-				newAttachIsPolytomy = true;
-				logHR -= Math.log(probCoalAttach);
-			} else {
-				newAttachIsPolytomy = false;
-				logHR -= Math.log(1 - probCoalAttach);
+				double L = srcNodeGrandparent.getHeight()
+						- Math.max(srcNodeSister.getHeight(), srcNode.getHeight());
+				logHR += Math.log(1.0 / L);
 			}
+		}
+
+		// Reconnect subtree
+
+		srcNodeParent.setHeight(newHeight);
+
+		if (newAttachNode.isRoot()) {
+			srcNodeParent.addChild(newAttachNode);
 		} else {
-			int s = Randomizer.randomChoicePDF(
-					new double[] { probCoalAttach, probMultiMerger, 1 - probCoalAttach - probMultiMerger });
-
-			if (s == 0) {
-				newAttachIsPolytomy = true;
-				newAttachIsMultiMerger = false;
-                logHR -= Math.log(probCoalAttach);
-			} else if (s == 1) {
-				newAttachIsMultiMerger = true;
-				newAttachIsPolytomy = false;
-				logHR -= Math.log(probMultiMerger);
-            } else {
-                newAttachIsPolytomy = false;
-				newAttachIsMultiMerger = false;
-				logHR -= Math.log(1 - probCoalAttach - probMultiMerger);
-            }
-        }
-
-        // Select new attachment height
-
-        double attachmentHeight;
-
-        if (newAttachIsPolytomy) {
-            attachmentHeight = attachmentNode.getHeight();
-		} else if (newAttachIsMultiMerger) {
-			attachmentHeight = multiMergeHeight;
-        } else {
-            if (attachmentNode.isRoot()) {
-                double offset = Math.max(srcNode.getHeight(), attachmentNode.getHeight());
-                double expRate = 1.0/(rootAttachLambda*offset);
-                attachmentHeight = offset + Randomizer.nextExponential(expRate);
-
-                logHR -= -expRate*(attachmentHeight-offset)
-                        + Math.log(expRate);
-            } else {
-                double L = attachmentNode.getParent().getHeight() -
-                        Math.max(srcNode.getHeight(), attachmentNode.getHeight());
-                attachmentHeight = Randomizer.nextDouble()*L +
-                        Math.max(srcNode.getHeight(), attachmentNode.getHeight());
-
-                logHR -= Math.log(1.0/L);
-            }
-        }
-
-        // Reconnect subtree
-
-        srcNodeParent.setHeight(attachmentHeight);
-
-        if (attachmentNode.isRoot()) {
-            srcNodeParent.addChild(attachmentNode);
-        } else {
-            Node oldParent = attachmentNode.getParent();
-            oldParent.removeChild(attachmentNode);
-            oldParent.addChild(srcNodeParent);
-            srcNodeParent.addChild(attachmentNode);
-        }
-
-        // Ensure correct root if set if this has been modified:
-        if (srcNodeSister.isRoot())
-            tree.setRoot(srcNodeSister);
-        else if (srcNodeParent.isRoot())
-            tree.setRoot(srcNodeParent);
-
-        // Account for edge selection probability in HR:
-        if (origAttachWasPolytomy != newAttachIsPolytomy) {
-            if (origAttachWasPolytomy) {
-                logHR += Math.log(nEdges/(nEdges+1.0));
-            } else {
-                logHR += Math.log(nEdges/(nEdges-1.0));
-            }
-        }
-
-		if (origAttachWasMultiMerger && !origAttachWasPolytomy) {
-			logHR += Math.log(1.0 / nOrigMultiMergerCandidates);
-		}
-		if (newAttachIsMultiMerger && !newAttachIsPolytomy) {
-			logHR -= Math.log(1.0 / nMultiMergerCandidates);
-		}
-		if (logHR == Double.POSITIVE_INFINITY) {
-			System.err.print("logHR +inf");
-			System.exit(1);
+			Node oldParent = newAttachNode.getParent();
+			oldParent.removeChild(newAttachNode);
+			oldParent.addChild(srcNodeParent);
+			srcNodeParent.addChild(newAttachNode);
 		}
 
-        return logHR;
+		// Ensure correct root if set if this has been modified:
+		if (srcNodeSister.isRoot())
+			tree.setRoot(srcNodeSister);
+		else if (srcNodeParent.isRoot())
+			tree.setRoot(srcNodeParent);
+
+		boolean newAttachIsPolytomy = isPolytomy(srcNodeParent);
+
+		// Account for edge selection probability in HR:
+//		if (origAttachWasPolytomy != newAttachIsPolytomy) {
+//			if (origAttachWasPolytomy) {
+//				logHR += Math.log(nEdges / (nEdges + 1.0));
+//			} else {
+//				logHR += Math.log(nEdges / (nEdges - 1.0));
+//			}
+//		}
+
+		List<Node> trueNodesAfter = getTrueNodes(tree);
+		int nEdgesAfter = trueNodesAfter.size() - 1;
+		logHR -= Math.log(1.0 / nEdges);
+		logHR += Math.log(1.0 / nEdgesAfter);
+
+
+		return logHR;
     }
 
-    private List<Node> getNodesInSubtree(Node subtreeRoot, double minAge) {
-        List<Node> nodeList = new ArrayList<>();
+	private List<Node> getNodesInSubtree(Node subtreeRoot, double minAge) {
+		List<Node> nodeList = new ArrayList<>();
 
-        if (subtreeRoot.isRoot() || subtreeRoot.getParent().getHeight()>subtreeRoot.getHeight())
-            nodeList.add(subtreeRoot);
+		if (subtreeRoot.isRoot() || subtreeRoot.getParent().getHeight() > subtreeRoot.getHeight())
+			nodeList.add(subtreeRoot);
 
-        if (subtreeRoot.getHeight()>minAge) {
-            for (Node child : subtreeRoot.getChildren())
-                nodeList.addAll(getNodesInSubtree(child, minAge));
-        }
+		if (subtreeRoot.getHeight() > minAge) {
+			for (Node child : subtreeRoot.getChildren())
+				nodeList.addAll(getNodesInSubtree(child, minAge));
+		}
 
-        return nodeList;
-    }
+		return nodeList;
+	}
 
 	private List<Double> getHeightsForMultiMerger(List<Node> nodesInSubtree, Node newAttach, double minAge) {
 		List<Double> heights = new ArrayList<Double>();
-		
+
 		if (newAttach.isRoot())
 			return heights;
 		for (Node n : nodesInSubtree) {
-			if (!n.isLeaf() && n != newAttach && n.getHeight() < Pitchforks.getLogicalParent(newAttach).getHeight()
-					&& n.getHeight() > newAttach.getHeight() && n.getHeight() > minAge
-					&& !heights.contains(n.getHeight())) { // only add possible node heights once
+			if (!n.isLeaf() && n.getNr() != newAttach.getNr()
+					&& n.getHeight() < Pitchforks.getLogicalParent(newAttach).getHeight()
+					&& n.getHeight() > newAttach.getHeight() && n.getHeight() > minAge) {
 				heights.add(n.getHeight());
 			}
 		}
 		return heights;
 	}
+
+
+
 }
