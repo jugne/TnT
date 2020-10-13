@@ -26,4 +26,7 @@ public class GeneTreeEvent {
 	public int lineages;
 
 	public Node node;
+
+	// numbers of tree nodes involved in the event
+	public List<Integer> nodesInEventNr;
 }

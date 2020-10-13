@@ -131,9 +131,10 @@ public class GeneTreeDistribution extends Distribution {
 					// then it is the observed transmission event
 					if (!trNode.isRoot() && recipient && event.time == trNode.getParent().getHeight()) {
 						logP += transmission(event, prevEvent, popSize);
-					}
+					} else {
 					// otherwise, bifurcation contribution
 					logP += biffurcation(event, prevEvent, popSize);
+					}
 					break;
 
 				case MULTIFURCATION:
@@ -141,8 +142,9 @@ public class GeneTreeDistribution extends Distribution {
 					// then it is the observed transmission event
 					if (!trNode.isRoot() && recipient && event.time == trNode.getParent().getHeight()) {
 						logP += transmission(event, prevEvent, popSize);
+					} else {
+						logP += multifurcation(event, prevEvent, popSize);
 					}
-					logP += multifurcation(event, prevEvent, popSize);
 					break;
 
 
@@ -205,14 +207,18 @@ public class GeneTreeDistribution extends Distribution {
 		int sum = event.multiCoalSize.stream().mapToInt(Integer::intValue)
 				.sum();
 		int n_histories = event.multiCoalSize.size();
+
 		for (int s = 0; s < n_histories; s++) {
 			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
+
 			// W factor from NOAH A. ROSENBERG
-			mult *= binomialInt(sum - n_histories, event.multiCoalSize.get(s) - 1);
-			sum -= (event.multiCoalSize.get(s) - 1);
+			mult *= binomialInt(sum - (n_histories - s), event.multiCoalSize.get(s) - 1);
+			sum -= event.multiCoalSize.get(s);
 		}
+
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
-				* gUp(prevEvent.lineages, event.lineages, tau, Ne);
+				* gUp(prevEvent.lineages, event.lineages, tau, Ne)
+				* lambda * P_0(event.time);
 
 		return Math.log(ans);
 	}

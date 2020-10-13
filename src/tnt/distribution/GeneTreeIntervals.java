@@ -48,7 +48,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	// key: gene tree node nr, value: transmission tree node nr
 	HashMap<Integer, Integer> geneTreeNodeAssignment, storeGeneTreeNodeAssignement;
-	List<Node> multifurcationParents;
+//	List<Node> multifurcationParents;
 	HashMap<Integer, Integer> geneTreeTipAssignment;
 	public boolean eventListDirty = true;
 
@@ -99,7 +99,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 		geneTreeNodeAssignment = new HashMap<>();
 		geneTreeNodeAssignment.putAll(geneTreeTipAssignment);
-		multifurcationParents = new ArrayList<Node>();
+//		multifurcationParents = new ArrayList<Node>();
 
 		List<Node> sortedNodes = Arrays.asList(geneTree.getNodesAsArray())
 				.stream()
@@ -117,62 +117,68 @@ public class GeneTreeIntervals extends CalculationNode {
 					fakeBifurcations.put(multifurcationParent.getNr(), list);
 				}
 			}
-
-			Node trNode = null;
-			if (!n.isLeaf()) {
-				Node child = n.getChild(0);
-				// fake nodes at multifurcation can be sorted wrong. Get first real child.
-				while (child.getHeight() == n.getHeight())
-					child = child.getChild(0);
-				trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(child.getNr()));
-				while (trNode == null) {
-					child = child.getChild(0);
-					trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(child.getNr()));
-				}
-				while (!trNode.isRoot() && n.getHeight() > trNode.getParent().getHeight()) {
-					trNode = trNode.getParent();
-				}
-
-				// check if transmission tree is compatible with the gene tree
-				// polytomies make nodes at the same height which might not be processed in
-				// child-parent order.
-				// Therefore, we check them separately after node assignment is done.
-
-				// TODO make sure this works as intended
-				if (n.getChildCount() > 1 &&
-						n.getChild(0).getHeight() != n.getHeight() && n.getChild(1).getHeight() != n.getHeight()) {
-					Node tr1 = transmissionTreeInput.get()
-							.getNode(geneTreeNodeAssignment.get(n.getChild(0).getNr()));
-					Node tr2 = transmissionTreeInput.get()
-							.getNode(geneTreeNodeAssignment.get(n.getChild(1).getNr()));
-					if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
-							|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
-							|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
-									&& !trNode.getAllChildNodesAndSelf().contains(tr1)))) {
-						eventsPerTransmissionTreeNode = null;
-						return;
-					}
-				}
-				if (n.getChildCount() > 1 && (n.isRoot() || n.getParent().getHeight() != n.getHeight())
-						&& (n.getChild(0).getHeight() == n.getHeight() || n.getChild(1).getHeight() == n.getHeight()))
-					multifurcationParents.add(n);
-
-				geneTreeNodeAssignment.put(n.getNr(), trNode.getNr());
-			}
+		}
+			
+		if (!fillAssignmentAndCheck(geneTree.getRoot(), geneTreeNodeAssignment)) {
+			eventsPerTransmissionTreeNode = null;
+			return;
 		}
 
-		for (Node m : multifurcationParents) {
-			Node trNode = transmissionTree.getNode(geneTreeNodeAssignment.get(m.getNr()));
-			Node tr1 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(m.getChild(0).getNr()));
-			Node tr2 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(m.getChild(1).getNr()));
-			if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
-					|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
-					|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
-							&& !trNode.getAllChildNodesAndSelf().contains(tr1)))) {
-				eventsPerTransmissionTreeNode = null;
-				return;
-			}
-		}
+//			Node trNode = null;
+//			if (!n.isLeaf()) {
+//				Node child = n.getChild(0);
+//				// fake nodes at multifurcation can be sorted wrong. Get first real child.
+//				while (child.getHeight() == n.getHeight())
+//					child = child.getChild(0);
+//				trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(child.getNr()));
+//				while (trNode == null) {
+//					child = child.getChild(0);
+//					trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(child.getNr()));
+//				}
+//				while (!trNode.isRoot() && n.getHeight() > trNode.getParent().getHeight()) {
+//					trNode = trNode.getParent();
+//				}
+//
+//				// check if transmission tree is compatible with the gene tree
+//				// polytomies make nodes at the same height which might not be processed in
+//				// child-parent order.
+//				// Therefore, we check them separately after node assignment is done.
+//
+//				// TODO make sure this works as intended
+//				if (n.getChildCount() > 1 &&
+//						(n.getChild(0).getHeight() != n.getHeight() || n.getChild(1).getHeight() != n.getHeight())) {
+//					Node tr1 = transmissionTreeInput.get()
+//							.getNode(geneTreeNodeAssignment.get(n.getChild(0).getNr()));
+//					Node tr2 = transmissionTreeInput.get()
+//							.getNode(geneTreeNodeAssignment.get(n.getChild(1).getNr()));
+//					if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
+//							|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
+//							|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
+//									|| !trNode.getAllChildNodesAndSelf().contains(tr1)))) {
+//						eventsPerTransmissionTreeNode = null;
+//						return;
+//					}
+//				}
+//				if (n.getChildCount() > 1 && (n.isRoot() || n.getParent().getHeight() != n.getHeight())
+//						&& (n.getChild(0).getHeight() == n.getHeight() || n.getChild(1).getHeight() == n.getHeight()))
+//					multifurcationParents.add(n);
+//
+//				geneTreeNodeAssignment.put(n.getNr(), trNode.getNr());
+//			}
+//		}
+//
+//		for (Node m : multifurcationParents) {
+//			Node trNode = transmissionTree.getNode(geneTreeNodeAssignment.get(m.getNr()));
+//			Node tr1 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(m.getChild(0).getNr()));
+//			Node tr2 = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(m.getChild(1).getNr()));
+//			if (tr1 != tr2 && ((trNode == tr1 && !trNode.getAllChildNodesAndSelf().contains(tr2))
+//					|| (trNode == tr2 && !trNode.getAllChildNodesAndSelf().contains(tr1))
+//					|| (!trNode.getAllChildNodesAndSelf().contains(tr2)
+//							&& !trNode.getAllChildNodesAndSelf().contains(tr1)))) {
+//				eventsPerTransmissionTreeNode = null;
+//				return;
+//			}
+//		}
 
 		nodeTime = new HashMap<Double, List<Integer>>();
 		for (Node node : geneTree.getNodesAsArray()) {
@@ -192,6 +198,7 @@ public class GeneTreeIntervals extends CalculationNode {
 			Node first = geneTree.getNode(nodeTime.get(time).get(0));
 
 			GeneTreeEvent event = new GeneTreeEvent();
+			event.nodesInEventNr = nodeTime.get(time);
 			event.time = first.getHeight();
 			event.node = first;// Pitchforks.getLogicalNode(first); // TODO validate this
 			event.fakeBifCount = 0;
@@ -219,7 +226,12 @@ public class GeneTreeIntervals extends CalculationNode {
 							}
 							event.multiCoalCount += 1;
 						event.type = GeneTreeEvent.GeneTreeEventType.MULTIFURCATION;
+					} else if (geneTreeNodeAssignment.get(first.getNr()) != geneTreeNodeAssignment
+							.get(other)) {
+						eventsPerTransmissionTreeNode = null;
+						return;
 					}
+
 				}
 
 			} else if (event.type == null && first.getChildCount() == 2)
@@ -255,7 +267,7 @@ public class GeneTreeIntervals extends CalculationNode {
 				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), getLineagesRecurse(trNode));
 				nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode.getNr());
 			}
-
+			try {
         	switch(event.type) {
 			case SAMPLE:
 				nrLineage += 1;
@@ -270,7 +282,10 @@ public class GeneTreeIntervals extends CalculationNode {
 				nrLineage -= (event.fakeBifCount + event.multiCoalCount);
 				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), nrLineage);
 				break;
-        	}
+        	}}
+			catch(Exception e) {
+				System.out.println();
+			}
 
 
 			event.lineages = nrLineage;
@@ -332,6 +347,42 @@ public class GeneTreeIntervals extends CalculationNode {
 		return nLineages;
 	}
 
+	Boolean fillAssignmentAndCheck(Node subRoot, HashMap<Integer, Integer> geneTreeNodeAssignment) {
+		if (!subRoot.isLeaf()) {
+			if (!fillAssignmentAndCheck(subRoot.getChild(0), geneTreeNodeAssignment))
+				return false;
+			Node tr1 = transmissionTree
+					.getNode(geneTreeNodeAssignment.get(subRoot.getChild(0).getNr()));
+//			Node tr1ParentNode = tr1;
+			while (!tr1.isRoot()) {
+				Node tr1ParentNode = tr1.getParent();
+				if (tr1ParentNode.getHeight() >= subRoot.getHeight())
+					break;
+				tr1 = tr1ParentNode;
+
+			}
+
+			if (subRoot.getChildCount() > 1) {
+				if (!fillAssignmentAndCheck(subRoot.getChild(1), geneTreeNodeAssignment))
+					return false;
+				Node tr2 = transmissionTree
+						.getNode(geneTreeNodeAssignment.get(subRoot.getChild(1).getNr()));
+//				Node tr2ParentNode = tr2;
+				while (!tr2.isRoot()) {
+					Node tr2ParentNode = tr2.getParent();
+					if (tr2ParentNode.getHeight() >= subRoot.getHeight())
+						break;
+					tr2 = tr2ParentNode;
+				}
+				
+				if (tr1.getNr() != tr2.getNr())
+					return false;
+			}
+			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
+		}
+		return true;
+	}
+
 	Node getMultifurcationParent(Node child, Node parent) {
 		Node multParent;
 		if (!parent.isRoot() && child.getHeight() == parent.getParent().getHeight())
@@ -370,13 +421,16 @@ public class GeneTreeIntervals extends CalculationNode {
 		super.store();
 	}
 
+	// DO NOT use the following without testing before!!!!
 	public HashMap<Integer, Integer> getGeneTreeNodeAssignment() {
 		update();
+		if (eventsPerTransmissionTreeNode == null)
+			return null;
 		return geneTreeNodeAssignment;
 	}
-
-	public HashMap<Integer, List<Integer>> getLogicalGeneNodesPerTransmissionNode() {
-		return logicalGeneNodesPerTransmissionNode;
-	}
+//
+//	public HashMap<Integer, List<Integer>> getLogicalGeneNodesPerTransmissionNode() {
+//		return logicalGeneNodesPerTransmissionNode;
+//	}
    
 }
