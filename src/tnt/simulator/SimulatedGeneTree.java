@@ -342,7 +342,8 @@ public class SimulatedGeneTree extends Tree {
 					double recipientNe = popSize.get(recipient);
 
 					// From Tim: Can this be extracted to a method?  More-or-less duplicated below.
-					if (bottleneckStrength > 0 && recipientLineages.size() > 1 && !recipient.isDirectAncestor()) {
+					if  (bottleneckStrength > 0 && recipientLineages.size() > 1 &&
+								 !recipient.isDirectAncestor()) {
 						double duplicateTime = t;
 						double stopTime = t + bottleneckStrength;
 						while (duplicateTime < stopTime) {

@@ -27,11 +27,9 @@ import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
-import pitchfork.Pitchforks;
 import tnt.distribution.GeneTreeEvent;
 import tnt.distribution.GeneTreeEvent.GeneTreeEventType;
 import tnt.distribution.GeneTreeIntervals;
-import tnt.util.Tools;
 
 public class TransmissionAttach extends TreeOperator {
 
@@ -69,14 +67,17 @@ public class TransmissionAttach extends TreeOperator {
 		heightMin = Double.NEGATIVE_INFINITY;
 
         if (Randomizer.nextBoolean()) {
-			// Up		
+			// Up
+
+//			System.out.println("Up");
 
 			GeneTreeEvent chosenEvent = null;
+			List<GeneTreeEvent> fitToMove = new ArrayList<>();
 			try {
-				chosenEvent = getEventUp(eventList,
+				chosenEvent = getEventUp(eventList, fitToMove,
 						chosenRecipient.getParent().getHeight());
 			} catch (Exception e) {
-				System.out.println();
+				System.out.println(e.getMessage());
 				System.exit(-1);
 			}
 
@@ -100,6 +101,7 @@ public class TransmissionAttach extends TreeOperator {
 			}
 
 			logHR += Math.log(1.0 / (chosenRecipient.getParent().getHeight() - heightMin));
+			logHR -= Math.log(1.0 / fitToMove.size());
 			
 
 
@@ -110,10 +112,12 @@ public class TransmissionAttach extends TreeOperator {
         } else {
 			// Down
 
+//			System.out.println("Down");
 			GeneTreeEvent chosenEvent = getEventDown(eventList, chosenRecipient);
 
 			if (chosenEvent == null)
 				return Double.NEGATIVE_INFINITY;
+
 
 			double newHeight = heightMin
 					+ (chosenRecipient.getParent().getHeight() - heightMin) * Randomizer.nextDouble();
@@ -124,34 +128,18 @@ public class TransmissionAttach extends TreeOperator {
 			for (int n : chosenEvent.nodesInEventNr) {
 				tree.getNode(n).setHeight(newHeight);
 			}
+			
+			List<GeneTreeEvent> fitToMove = new ArrayList<>();
+			getEventUp(eventList, fitToMove,
+						chosenRecipient.getParent().getHeight());
 
 			logHR -= Math.log(1.0 / (chosenRecipient.getParent().getHeight() - heightMin));
+			logHR += Math.log(1.0 / fitToMove.size());
 
         }
 
 
         return logHR;
-    }
-
-    private List<Node> getCollapsableEdges(Tree tree) {
-
-        List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
-        List<Node> collapsableEdges = new ArrayList<>();
-
-
-        for (Node node : trueNodes) {
-			if (node.isRoot() || Pitchforks.isPolytomy(node.getParent())
-					|| Tools.isMultiMerger(trueNodes, node.getParent()))
-                    continue;
-
-            Node sister = getOtherChild(node.getParent(), node);
-			if (sister.getHeight() <= node.getHeight() || sister.isLeaf())
-                continue;
-
-            collapsableEdges.add(node);
-        }
-
-        return collapsableEdges;
     }
 
 
@@ -168,19 +156,27 @@ public class TransmissionAttach extends TreeOperator {
 		return;
     }
 
-	private GeneTreeEvent getEventUp(List<GeneTreeEvent> events, double trNodeParentHeight) {
+	private GeneTreeEvent getEventUp(List<GeneTreeEvent> events, List<GeneTreeEvent> fitToMode,
+			double trNodeParentHeight) {
 		// Get first event below trNodeHeight which is not SAMPLE or mock TRANSMISSION
 		// event
 		heightMin = Double.NEGATIVE_INFINITY;
+		GeneTreeEvent first = null;
 		for (int i = events.size() - 1; i >= 0; i--) {
-			if (events.get(i).type != GeneTreeEventType.SAMPLE && events.get(i).type != GeneTreeEventType.TRANSMISSION
-					&& trNodeParentHeight != events.get(i).node.getHeight()) {
-				return events.get(i);
+			if (events.get(i).type != GeneTreeEventType.SAMPLE
+					&& events.get(i).type != GeneTreeEventType.TRANSMISSION) {
+				if (trNodeParentHeight == events.get(i).node.getHeight()) // do not allow the move if there is already a
+																			// an event at transmission height
+					return null;
+
+				if (first == null)
+					first = events.get(i);
+				fitToMode.add(events.get(i));
 
 			}
 		}
 
-		return null;
+		return first;
 
 
 //		List<GeneTreeEvent> eligible = new ArrayList<>();

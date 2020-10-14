@@ -217,8 +217,7 @@ public class GeneTreeDistribution extends Distribution {
 		}
 
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
-				* gUp(prevEvent.lineages, event.lineages, tau, Ne)
-				* lambda * P_0(event.time);
+				* gUp(prevEvent.lineages, event.lineages, tau, Ne);
 
 		return Math.log(ans);
 	}

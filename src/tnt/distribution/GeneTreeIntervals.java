@@ -52,6 +52,8 @@ public class GeneTreeIntervals extends CalculationNode {
 	HashMap<Integer, Integer> geneTreeTipAssignment;
 	public boolean eventListDirty = true;
 
+	List<Double> trHeights, storedTrHeights;
+
 
 	@Override
 	public void initAndValidate() {
@@ -78,6 +80,7 @@ public class GeneTreeIntervals extends CalculationNode {
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
 		storedEventsPerTransmissionTreeNode = new HashMap<>();
+		storedTrHeights = new ArrayList<>();
 
 	}
 
@@ -96,6 +99,7 @@ public class GeneTreeIntervals extends CalculationNode {
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
 		logicalGeneNodesPerTransmissionNode = new HashMap<>();
+		trHeights = new ArrayList<Double>();
 
 		geneTreeNodeAssignment = new HashMap<>();
 		geneTreeNodeAssignment.putAll(geneTreeTipAssignment);
@@ -198,11 +202,12 @@ public class GeneTreeIntervals extends CalculationNode {
 			Node first = geneTree.getNode(nodeTime.get(time).get(0));
 
 			GeneTreeEvent event = new GeneTreeEvent();
-			event.nodesInEventNr = nodeTime.get(time);
+			event.nodesInEventNr = new ArrayList<>(nodeTime.get(time));
 			event.time = first.getHeight();
 			event.node = first;// Pitchforks.getLogicalNode(first); // TODO validate this
 			event.fakeBifCount = 0;
 			if (fakeBifurcations.containsKey(first.getNr())) {
+				event.nodesInEventNr.addAll(fakeBifurcations.get(first.getNr()));
 				event.fakeBifCount += fakeBifurcations.get(first.getNr()).size();
 				event.multiCoalCount += 1;
 				event.multiCoalSize.add(fakeBifurcations.get(first.getNr()).size() + 2);
@@ -327,7 +332,7 @@ public class GeneTreeIntervals extends CalculationNode {
 					// It is a mock event, used only to correctly store the number of incoming gene
 					// lineages from child transmission tree branches to parent branch.
 				}
-
+				trHeights.add(trNode.getHeight());
 			}
 
 		eventListDirty = false;
@@ -409,6 +414,10 @@ public class GeneTreeIntervals extends CalculationNode {
 		eventsPerTransmissionTreeNode = storedEventsPerTransmissionTreeNode;
 		storedEventsPerTransmissionTreeNode = tmp2;
 
+		List<Double> tmp3 = trHeights;
+		trHeights = storedTrHeights;
+		storedTrHeights = tmp3;
+
 		super.restore();
 	}
 
@@ -418,6 +427,7 @@ public class GeneTreeIntervals extends CalculationNode {
 		storedGeneTreeEventList.addAll(geneTreeEventList);
 
 		storedEventsPerTransmissionTreeNode = new HashMap<Integer, List<GeneTreeEvent>>(eventsPerTransmissionTreeNode);
+		storedTrHeights = new ArrayList<Double>(trHeights);
 		super.store();
 	}
 
@@ -427,6 +437,11 @@ public class GeneTreeIntervals extends CalculationNode {
 		if (eventsPerTransmissionTreeNode == null)
 			return null;
 		return geneTreeNodeAssignment;
+	}
+
+	public List<Double> getTransmissionHeights() {
+		update();
+		return trHeights;
 	}
 //
 //	public HashMap<Integer, List<Integer>> getLogicalGeneNodesPerTransmissionNode() {
