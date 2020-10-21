@@ -138,7 +138,7 @@ name="alignment">
 <!-- <tree id="transmissionTree" spec="starbeast2.SpeciesTreeParser" newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;" adjustTipHeights="false" IsLabelledNewick="true" taxonset="@taxonsuperset" trait='@tipDates'/> -->
 
 <run id="mcmc" spec="MCMC" chainLength="50000000" storeEvery="5000">
-	<init id="SBI" spec="starbeast2.StarBeastInitializer" birthRate="@birthRate.t:Species"
+	<init id="SBI" spec="tnt.util.StarBeastInitializer" birthRate="@birthRate.t:Species"
 	estimate="false" speciesTree="@transmissionTree"
 	newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;">
         <geneTree idref="geneTree"/>
