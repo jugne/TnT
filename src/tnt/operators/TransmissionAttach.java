@@ -17,6 +17,8 @@
 
 package tnt.operators;
 
+import static pitchfork.Pitchforks.getTrueNodes;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +32,7 @@ import beast.util.Randomizer;
 import tnt.distribution.GeneTreeEvent;
 import tnt.distribution.GeneTreeEvent.GeneTreeEventType;
 import tnt.distribution.GeneTreeIntervals;
+import tnt.util.Tools;
 
 public class TransmissionAttach extends TreeOperator {
 
@@ -64,12 +67,22 @@ public class TransmissionAttach extends TreeOperator {
 		if (eventList.size() == 0)
 			return Double.NEGATIVE_INFINITY;
 
+
 		heightMin = Double.NEGATIVE_INFINITY;
 
         if (Randomizer.nextBoolean()) {
 			// Up
 
 //			System.out.println("Up");
+			for (GeneTreeEvent e : eventList) {
+				// if there is already a node at transmission, don't move up.
+				// we avoid this in order to not create polytomies or multiple mergers which we
+				// cannot remove correctly.
+				if (e.type != GeneTreeEventType.MOCK
+						&& e.node.getHeight() == chosenRecipient.getParent().getHeight())
+					return Double.NEGATIVE_INFINITY;
+			}
+
 
 			GeneTreeEvent chosenEvent = null;
 			List<GeneTreeEvent> fitToMove = new ArrayList<>();
@@ -87,7 +100,10 @@ public class TransmissionAttach extends TreeOperator {
 			// record old height
 			double oldHeight = chosenEvent.node.getHeight();
 			// set new height for all nodes in event at
+			List<Node> trueNodes = getTrueNodes(tree);
 			for (int n : chosenEvent.nodesInEventNr) {
+				if (Tools.isMultiMerger(trueNodes, tree.getNode(n)))
+					System.out.println();
 				tree.getNode(n).setHeight(chosenRecipient.getParent().getHeight());
 			}
 			eventList.remove(chosenEvent);
@@ -164,7 +180,7 @@ public class TransmissionAttach extends TreeOperator {
 		GeneTreeEvent first = null;
 		for (int i = events.size() - 1; i >= 0; i--) {
 			if (events.get(i).type != GeneTreeEventType.SAMPLE
-					&& events.get(i).type != GeneTreeEventType.TRANSMISSION) {
+					&& events.get(i).type != GeneTreeEventType.MOCK) {
 				if (trNodeParentHeight == events.get(i).node.getHeight()) // do not allow the move if there is already a
 																			// an event at transmission height
 					return null;
@@ -199,7 +215,7 @@ public class TransmissionAttach extends TreeOperator {
 		heightMin = Double.NEGATIVE_INFINITY;
 		GeneTreeEvent e = null;
 		for (int i = events.size() - 1; i >= 0; i--) {
-			if (heightMin == Double.NEGATIVE_INFINITY && events.get(i).type != GeneTreeEventType.TRANSMISSION) {
+			if (heightMin == Double.NEGATIVE_INFINITY && events.get(i).type != GeneTreeEventType.MOCK) {
 				if (trNode.getParent().getHeight() != events.get(i).node.getHeight())
 					heightMin = events.get(i).node.getHeight();
 				else if (e == null && trNode.getParent().getHeight() == events.get(i).node.getHeight()) {

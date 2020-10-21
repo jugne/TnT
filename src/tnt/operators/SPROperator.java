@@ -21,7 +21,6 @@ import static pitchfork.Pitchforks.getTrueNodes;
 import static pitchfork.Pitchforks.isPolytomy;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import beast.core.Description;
@@ -75,7 +74,7 @@ public class SPROperator extends TreeOperator {
 		List<Node> trueNodes = getTrueNodes(tree);
 		List<Double> trHeights = intervals.getTransmissionHeights();
 
-		List<Node> trueNodesAtTransmission = getGeneNodesAtTransmission(trueNodes,
+		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmission(trueNodes,
 				trHeights);
 
 		// Record number of (true) edges in original tree:
@@ -132,10 +131,10 @@ public class SPROperator extends TreeOperator {
 		List<Node> subtreeNodes = getNodesInSubtree(remainingSubtreeRoot, srcNode.getHeight());
 		List<Node> innerNodes = Pitchforks.getTrueInternalNodes(tree);
 
-		List<Node> subtreeNodesAtTransmission = getGeneNodesAtTransmission(subtreeNodes,
+		List<Node> subtreeNodesAtTransmission = Tools.getGeneNodesAtTransmission(subtreeNodes,
 				trHeights);
 		
-		if (listEqualsIgnoreOrder(subtreeNodes, subtreeNodesAtTransmission)) {
+		if (Tools.listEqualsIgnoreOrder(subtreeNodes, subtreeNodesAtTransmission)) {
 			return Double.NEGATIVE_INFINITY;
 		}
 
@@ -282,7 +281,7 @@ public class SPROperator extends TreeOperator {
 //		}
 
 		List<Node> trueNodesAfter = getTrueNodes(tree);
-		List<Node> trueNodesAtTransmissionAfter = getGeneNodesAtTransmission(trueNodesAfter,
+		List<Node> trueNodesAtTransmissionAfter = Tools.getGeneNodesAtTransmission(trueNodesAfter,
 				trHeights);
 
 		int nEdgesAfter = trueNodesAfter.size() - 1 - trueNodesAtTransmissionAfter.size();
@@ -308,15 +307,15 @@ public class SPROperator extends TreeOperator {
 		return nodeList;
 	}
 
-	private List<Node> getGeneNodesAtTransmission(List<Node> nodeList, List<Double> transmissionHeights) {
-		List<Node> tmp = new ArrayList<>();
-		for (Node n : nodeList) {
-			if (transmissionHeights.contains(n.getHeight()))
-				tmp.add(n);
-		}
-
-		return tmp;
-	}
+//	private List<Node> getGeneNodesAtTransmission(List<Node> nodeList, List<Double> transmissionHeights) {
+//		List<Node> tmp = new ArrayList<>();
+//		for (Node n : nodeList) {
+//			if (transmissionHeights.contains(n.getHeight()))
+//				tmp.add(n);
+//		}
+//
+//		return tmp;
+//	}
 
 	private List<Double> getHeightsForMultiMerger(List<Node> nodesInSubtree, Node newAttach, double minAge) {
 		List<Double> heights = new ArrayList<Double>();
@@ -333,9 +332,7 @@ public class SPROperator extends TreeOperator {
 		return heights;
 	}
 
-	public static <T> boolean listEqualsIgnoreOrder(List<T> list1, List<T> list2) {
-		return new HashSet<>(list1).equals(new HashSet<>(list2));
-	}
+
 
 
 

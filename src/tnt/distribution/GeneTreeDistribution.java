@@ -92,6 +92,7 @@ public class GeneTreeDistribution extends Distribution {
 		HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
 		SpeciesTreeInterface transmissionTree = (SpeciesTreeInterface) intervals.transmissionTreeInput.get()
 				.getCurrent();
+//		System.out.println(intervals.geneTreeInput.get());
 
 		// TODO check if this is working as intended
 		// if gene tree and species tree are incompatible

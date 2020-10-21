@@ -201,6 +201,17 @@ public class GeneTreeIntervals extends CalculationNode {
 		for (Double time : nodeTime.keySet()) {
 			Node first = geneTree.getNode(nodeTime.get(time).get(0));
 
+			// check that no multiple mergers were created in different transmission
+			// branches
+			int trNr = geneTreeNodeAssignment.get(first.getNr());
+			for (int nr : nodeTime.get(time)) {
+				if (geneTreeNodeAssignment.get(nr) != trNr && (!first.isLeaf() && !geneTree.getNode(nr).isLeaf())) {
+					eventsPerTransmissionTreeNode = null;
+					return;
+				}
+
+			}
+
 			GeneTreeEvent event = new GeneTreeEvent();
 			event.nodesInEventNr = new ArrayList<>(nodeTime.get(time));
 			event.time = first.getHeight();
@@ -317,7 +328,7 @@ public class GeneTreeIntervals extends CalculationNode {
 			if (!trNode.isLeaf()) { // !trNode.isFake()
 				GeneTreeEvent event = new GeneTreeEvent();
 				event.time = trNode.getHeight();
-				event.type = GeneTreeEvent.GeneTreeEventType.TRANSMISSION;
+				event.type = GeneTreeEvent.GeneTreeEventType.MOCK;
 				event.lineages += getLineagesRecurse(trNode);
 
 				if (eventsPerTransmissionTreeNode.get(trNode.getNr()) == null) {
@@ -364,7 +375,6 @@ public class GeneTreeIntervals extends CalculationNode {
 				if (tr1ParentNode.getHeight() >= subRoot.getHeight())
 					break;
 				tr1 = tr1ParentNode;
-
 			}
 
 			if (subRoot.getChildCount() > 1) {
@@ -383,6 +393,8 @@ public class GeneTreeIntervals extends CalculationNode {
 				if (tr1.getNr() != tr2.getNr())
 					return false;
 			}
+			if (tr1.getHeight() == subRoot.getHeight() && !subRoot.isLeaf())
+				return false;
 			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
 		}
 		return true;
