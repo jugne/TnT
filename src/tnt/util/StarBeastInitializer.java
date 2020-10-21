@@ -35,6 +35,10 @@ import beast.evolution.tree.coalescent.ConstantPopulation;
 import beast.math.distributions.MRCAPrior;
 import beast.util.ClusterTree;
 import beast.util.TreeParser;
+import starbeast2.PopulationModel;
+import starbeast2.SpeciesTree;
+import starbeast2.SpeciesTreeInterface;
+import starbeast2.TreeStats;
 
 /**
 * @author Joseph Heled
