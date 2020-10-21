@@ -1,0 +1,67 @@
+<beast version="2.0"
+       namespace="beast.core
+                 :beast.core.util
+                 :beast.core.parameter
+                 :beast.evolution.alignment
+                 :beast.evolution.likelihood
+                 :beast.evolution.tree
+                 :beast.evolution.tree.coalescent
+                 :beast.evolution.sitemodel
+                 :beast.evolution.substitutionmodel
+                 :beast.evolution.operators
+                 :beast.math.distributions
+                 :feast.simulation
+                 :beast.util
+                 :tnt.simulator
+                 :pitchfork.util">
+
+    <taxonSet spec="TaxonSet" id="taxonSet">
+    	<taxon spec="Taxon" id="t20_1"/>
+    	<taxon spec="Taxon" id="t20_2"/>
+    	<taxon spec="Taxon" id="t21_1"/>
+    	<taxon spec="Taxon" id="t24_1"/>
+    </taxonSet>
+    
+    <run spec="GPSimulator" nSims="50000">
+    	<simulationObject id="geneTree" spec="SimulatedGeneTree">
+        			<transmissionTreeInput spec="TreeParser"
+                              newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;"
+                              adjustTipHeights="false" IsLabelledNewick="true"/> 
+
+        	<sampleCounts spec="TraitSet" traitname="sampleCounts" taxa="@taxonSet">
+				t20_1=4,
+				t20_2=4,
+				t21_1=4,
+				t24_1=4
+        	</sampleCounts>
+
+		<populationSizes spec="RealParameter" value="1.0"/>
+		<bottleneckStrength spec="RealParameter" value="1.0"/>
+		
+		<birthRate spec="RealParameter" value="0.2"/>
+		<deathRate spec="RealParameter" value="0.05"/>
+		<samplingRate spec="RealParameter" value="0.06"/>
+		<samplingExtantRate spec="RealParameter" value="0.01"/>
+		<origin  spec="RealParameter" value="20.0"/>
+		
+        </simulationObject>
+        
+<!--         <simulationObject id="seqAlign.high" spec="SimulatedAlignment" outputFileName="$(filebase).alignment.high.nexus" -->
+<!--                    sequenceLength="1000" tree="@geneTree"> -->
+<!--             <siteModel spec="SiteModel"> -->
+<!--                 <mutationRate spec="RealParameter" value="0.005"/> -->
+<!--                 <substModel spec="JukesCantor"/> -->
+<!--             </siteModel> -->
+<!--         </simulationObject> -->
+        
+       	<logger id="treelog.t:gene" fileName="$(filebase).gene.trees" logEvery="100" mode="tree">
+        	<log id="TreeWithMetaDataLogger.t:gene" spec="beast.evolution.tree.TreeWithMetaDataLogger" tree="@geneTree"/>
+    	</logger>
+    
+       <logger logEvery="1" fileName="$(filebase).log">
+       		<log id="treeHeight" spec="beast.evolution.tree.TreeStatLogger" tree="@geneTree"/>
+       		<log spec="PolytomyStatsLogger" tree="@geneTree"/>
+	</logger>
+
+    </run>
+</beast>
