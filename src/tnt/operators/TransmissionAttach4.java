@@ -211,9 +211,6 @@ public class TransmissionAttach4 extends TreeOperator {
 				remainingSubtreeRoot = tree.getRoot();
 
 			fitToAttach = getFitToUniformAttach(remainingSubtreeRoot, nodeToMove);
-//			fitToAttach.remove(nodeToMoveParent);
-//			List<Node> nodesToRemove = Pitchforks.getLogicalChildren(nodeToMove);
-//			fitToAttach.removeAll(nodesToRemove);
 			if (fitToAttach.size() == 0)
 				return Double.NEGATIVE_INFINITY;
 			Node newAttachNode = fitToAttach.get(Randomizer.nextInt(fitToAttach.size()));

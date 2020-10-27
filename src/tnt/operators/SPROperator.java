@@ -74,13 +74,11 @@ public class SPROperator extends TreeOperator {
 		List<Node> trueNodes = getTrueNodes(tree);
 		List<Double> trHeights = Tools.getTransmissionHeights(transmissionTree);
 
-		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmission(trueNodes,
-				trHeights);
 		List<Node> trueNodesWithParentsAtTransmission = Tools.getGeneNodesWithParentsAtTransmission(trueNodes,
 				trHeights);
 
 		// Record number of (true) edges in original tree:
-		int nEdges = trueNodes.size() - 1 - trueNodesAtTransmission.size();
+		int nEdges = trueNodes.size() - 1 - trueNodesWithParentsAtTransmission.size();
 
 		// Select non-root subtree at random
 
@@ -88,7 +86,8 @@ public class SPROperator extends TreeOperator {
 		do {
 			srcNode = trueNodes.get(Randomizer.nextInt(trueNodes.size()));
 			srcNodeParent = srcNode.getParent();
-		} while (srcNodeParent == null || trueNodesAtTransmission.contains(srcNodeParent)); // cannot detach nodes at
+		} while (srcNodeParent == null || trueNodesWithParentsAtTransmission.contains(srcNode)); // cannot detach nodes
+																									// at
 																							// transmission event,
 																							// because this operator
 																							// cannot put them there.
@@ -141,10 +140,8 @@ public class SPROperator extends TreeOperator {
 		}
 
 		Node heightNode;
-		do {
-			heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
+		heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
 
-		} while (subtreeNodesAtTransmission.contains(heightNode));
 
 //		while (heightNode.getHeight() == srcNode.getHeight()) {
 //			heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
@@ -162,7 +159,7 @@ public class SPROperator extends TreeOperator {
 		List<Node> atSameHeight = new ArrayList<Node>();
 			newHeight = heightNode.getHeight();
 		for (Node n : subtreeNodes) {
-			if (!subtreeNodesAtTransmission.contains(n)) {
+			if (!subtreeNodesAtTransmission.contains(n)) { // do not allow exact height to be transmission height
 				if (n.getHeight() == newHeight)
 					atSameHeight.add(n);
 				if (n.getHeight() <= newHeight
@@ -172,12 +169,8 @@ public class SPROperator extends TreeOperator {
 			}
 		}
 		if (fitNodes.size() == 0 || heightNode.isLeaf() || newHeight <= srcNode.getHeight())
-//			return Double.NEGATIVE_INFINITY;
 			bottleneck = false;
 		else {
-//			double bot = 1.0 / fitNodes.size();
-//			bot *= atSameHeight.size() / (double) subtreeNodes.size();
-//			bot *= probBottleneck;
 			if (Randomizer.nextDouble() < probBottleneck) {
 				bottleneck = true;
 				logHR -= Math.log(probBottleneck);
@@ -188,13 +181,20 @@ public class SPROperator extends TreeOperator {
 		}
 
 		if (bottleneck) {
+			// select a new attachment node
 			newAttachNode = fitNodes.get(Randomizer.nextInt(fitNodes.size()));
-//			logHR -= Math.log(1.0 / subtreeNodes.size());
+			// account for its probability
 			logHR -= Math.log(1.0 / fitNodes.size());
+			// account for probability to pick this specific height:
+			// nodes at the same height / all possible nodes
 			logHR -= Math.log(atSameHeight.size() / (double) (subtreeNodes.size() - subtreeNodesAtTransmission.size()));
 		} else {
-			logHR -= Math.log(1.0 / (subtreeNodes.size()-subtreeNodesAtTransmission.size()));
+			// if attaching at uniform height, we do not care about transmission heights,
+			// since the probability of picking them is vanishing
+			logHR -= Math.log(1.0 / (subtreeNodes.size()));
 			newAttachNode = heightNode;
+
+			// pick new height and account for its probability
 			if (newAttachNode.isRoot()) {
 				double offset = Math.max(srcNode.getHeight(), newAttachNode.getHeight());
 				double expRate = 1.0 / (rootAttachLambda * offset);
@@ -214,11 +214,11 @@ public class SPROperator extends TreeOperator {
 
 		// Incorporate probability of existing attachment point into HR
 		List<Node> origFitNodes = new ArrayList<Node>();
-		List<Node> atSameHeightOrig = new ArrayList<Node>();
+		List<Node> origAtSameHeight = new ArrayList<Node>();
 		for (Node n : subtreeNodes) {
 			if (!subtreeNodesAtTransmission.contains(n)) {
 				if (n.getHeight() == oldParentHeight)
-					atSameHeightOrig.add(n);
+					origAtSameHeight.add(n);
 				if (n.getHeight() <= oldParentHeight
 					&& (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > oldParentHeight)) {
 					origFitNodes.add(n);
@@ -228,18 +228,16 @@ public class SPROperator extends TreeOperator {
 
 		if (origAttachWasBottleneck) {
 			logHR += Math.log(probBottleneck);
-//			logHR += Math.log(1.0 / subtreeNodes.size());
 			logHR += Math.log(1.0 / origFitNodes.size());
 			logHR += Math
-					.log(atSameHeightOrig.size() / (double) (subtreeNodes.size() - subtreeNodesAtTransmission.size()));
+					.log(origAtSameHeight.size() / (double) (subtreeNodes.size() - subtreeNodesAtTransmission.size()));
 		} else {
 			if ((origFitNodes.size() == 1 && !srcNodeSister.isLeaf())
 					|| (origFitNodes.size() > 1) && oldParentHeight > srcNode.getHeight()) {
 				logHR += Math.log(1 - probBottleneck);
 
 			}
-//				return Double.NEGATIVE_INFINITY;
-			logHR += Math.log(1.0 / (subtreeNodes.size() - subtreeNodesAtTransmission.size()));
+			logHR += Math.log(1.0 / subtreeNodes.size());
 
 			if (parentWasRoot) {
 				double offset = Math.max(srcNodeSister.getHeight(), srcNode.getHeight());
@@ -271,22 +269,12 @@ public class SPROperator extends TreeOperator {
 		else if (srcNodeParent.isRoot())
 			tree.setRoot(srcNodeParent);
 
-		boolean newAttachIsPolytomy = isPolytomy(srcNodeParent);
-
-		// Account for edge selection probability in HR:
-//		if (origAttachWasPolytomy != newAttachIsPolytomy) {
-//			if (origAttachWasPolytomy) {
-//				logHR += Math.log(nEdges / (nEdges + 1.0));
-//			} else {
-//				logHR += Math.log(nEdges / (nEdges - 1.0));
-//			}
-//		}
 
 		List<Node> trueNodesAfter = getTrueNodes(tree);
-		List<Node> trueNodesAtTransmissionAfter = Tools.getGeneNodesAtTransmission(trueNodesAfter,
+		List<Node> trueNodesWithParentsAtTransmissionAfter = Tools.getGeneNodesWithParentsAtTransmission(trueNodesAfter,
 				trHeights);
 
-		int nEdgesAfter = trueNodesAfter.size() - 1 - trueNodesAtTransmissionAfter.size();
+		int nEdgesAfter = trueNodesAfter.size() - 1 - trueNodesWithParentsAtTransmissionAfter.size();
 
 		logHR -= Math.log(1.0 / nEdges);
 		logHR += Math.log(1.0 / nEdgesAfter);

@@ -16,6 +16,7 @@
               :starbeast2.utils
               :tnt.distribution
               :tnt.operators
+              :tnt.util
               :pitchfork.util
               :tnt.simulator">
               
@@ -137,8 +138,8 @@ name="alignment">
 
 <!-- <tree id="transmissionTree" spec="starbeast2.SpeciesTreeParser" newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;" adjustTipHeights="false" IsLabelledNewick="true" taxonset="@taxonsuperset" trait='@tipDates'/> -->
 
-<run id="mcmc" spec="MCMC" chainLength="50000000" storeEvery="5000">
-	<init id="SBI" spec="tnt.util.StarBeastInitializer" birthRate="@birthRate.t:Species"
+<run id="mcmc" spec="MCMC" chainLength="5000000" storeEvery="5000">
+	<init id="SBI" spec="StarBeastInitializer" birthRate="@birthRate.t:Species"
 	estimate="false" speciesTree="@transmissionTree"
 	newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;">
         <geneTree idref="geneTree"/>
@@ -201,7 +202,7 @@ name="alignment">
         <distribution id="multiCoalescent" spec="util.CompoundDistribution">
             <distribution id="geneTreeDistribution" spec="GeneTreeDistribution" populationSizes="@popSizes.Species" origin="@origin.t:Species" ploidy="1.0" 
             tau="@tau" birthRate="@birthRate.t:Species" deathRate="@deathRate.t:Species" samplingRate="@samplingRate.t:Species" removalProbability="@removalProbability.t:Species" rho="@rho.t:Species">
-            	<geneTreeIntervals id="geneTreeIntervals" spec="GeneTreeIntervals" geneTree="@geneTree" transmissionTreeInput="@transmissionTree"/>
+            	<geneTreeIntervals id="geneTreeIntervals" spec="GeneTreeIntervals" geneTree="@geneTree" transmissionTree="@transmissionTree"/>
             </distribution>	
         </distribution>
         <distribution id="prior" spec="util.CompoundDistribution">
@@ -213,24 +214,26 @@ name="alignment">
 <!--      <operator spec="beast.evolution.operators.UpDownOperator" scaleFactor="0.95" weight="1.0" -->
 <!--      			down="@geneTree"/> -->
 
-<!--     <operator spec="tnt.operators.SPROperator" id="SPR" tree="@geneTree" geneTreeIntervals="@geneTreeIntervals" weight="1.0"  -->
-<!--     			probBottleneck="0.1" rootAttachLambda="0.5"/> -->
+    <operator spec="tnt.operators.SPROperator" id="SPR" tree="@geneTree" transmissionTree="@transmissionTree"
+      weight="1.0" probBottleneck="0.1" rootAttachLambda="0.5"/>
 
-<!--     <operator spec="tnt.operators.ExpandCollapseOperator" id="EC" weight="1.0" -->
+<!--     <operator spec="tnt.operators.ExpandCollapseOperator" id="EC" weight="2.0" -->
 <!--                   rootAttachLambda="0.1" -->
 <!--                   tree="@geneTree"/> -->
                   
-    <operator spec="tnt.operators.CreateMergersOrReheight" id="Uniform" tree="@geneTree" geneTreeIntervals="@geneTreeIntervals" scaleRoot="true" weight="1.0"/>
+<!--     <operator spec="tnt.operators.CreateMergersOrReheight" id="Uniform" tree="@geneTree" transmissionTree="@transmissionTree" -->
+<!--      scaleRoot="true" weight="5.0" mergerProb="0.1"/> -->
     
-	<operator spec="tnt.operators.ExchangeOperator" tree="@geneTree" weight="3.0"/>
+<!-- 	<operator spec="tnt.operators.ExchangeOperator" tree="@geneTree" weight="1.0"/> -->
 	
 <!-- 	<operator spec="pitchfork.operators.ScaleOperator" scaleFactor="0.5" tree="@geneTree" weight="1.0"/> -->
 
 <!--     <operator spec="pitchfork.operators.ScaleOperator" rootOnly="true" scaleFactor="0.5" tree="@geneTree" weight="1.0"/> -->
 <!--     <operator spec="TransmissionAttach" id="trAttach" tree="@geneTree"  geneTreeIntervals="@geneTreeIntervals" weight="1.0"/> -->
-    <operator spec="TransmissionAttach2" id="trAttach2" tree="@geneTree"  geneTreeIntervals="@geneTreeIntervals" weight="1.0"/>
+<!--     <operator spec="TransmissionAttach2" id="trAttach2" tree="@geneTree"  geneTreeIntervals="@geneTreeIntervals" weight="5"/> -->
+    <operator spec="TransmissionAttach4" id="trAttach4" tree="@geneTree" rootAttachLambda="0.5"  geneTreeIntervals="@geneTreeIntervals" weight="1.0"/>
 
-    <logger id="treelog.t:gene" fileName="$(filebase).gene.trees" logEvery="1000" mode="tree">
+    <logger id="treelog.t:gene" fileName="$(filebase).gene.trees" logEvery="100" mode="tree">
         	<log id="TreeWithMetaDataLogger.t:gene" spec="beast.evolution.tree.TreeWithMetaDataLogger" tree="@geneTree"/>
     </logger>
     
@@ -238,14 +241,17 @@ name="alignment">
         	<log id="TreeWithMetaDataLogger.t:tr" spec="tnt.logger.TransmissionTreeLogger" geneTree="@geneTreeDistribution" transmissionTree="@transmissionTree"/>
     </logger>
 
+<!--     <logger logEvery="1"> -->
+<!--        		<log id="polyStats" spec="PolytomyStatsLogger" tree="@geneTree"/> -->
+<!--     </logger> -->
     
-    <logger logEvery="1000" fileName="$(filebase).geneTree.log">
+    <logger logEvery="100" fileName="$(filebase).geneTree.log">
      		<log idref="multiCoalescent"/>
        		<log id="treeHeight" spec="beast.evolution.tree.TreeStatLogger" tree="@geneTree"/>
        		<log spec="PolytomyStatsLogger" tree="@geneTree"/>
     </logger>
     
-     <logger id="screenlog" logEvery="10000" mode="autodetect">
+     <logger id="screenlog" logEvery="1000" mode="autodetect">
             <distribution idref="posterior" name="log"/>
             <log arg="@posterior" id="ESS.0" spec="util.ESS"/>
             <log idref="treeHeight"/>
