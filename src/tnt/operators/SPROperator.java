@@ -143,15 +143,6 @@ public class SPROperator extends TreeOperator {
 		heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
 
 
-//		while (heightNode.getHeight() == srcNode.getHeight()) {
-//			heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
-//		}
-		List<Node> eligibleSubtreeNodes = new ArrayList<>();
-		for (Node node : subtreeNodes) {
-			if (!node.isLeaf() || node.getHeight() > srcNode.getHeight())
-				eligibleSubtreeNodes.add(node);
-		}
-//
 		Node newAttachNode;
 		Double newHeight;
 
