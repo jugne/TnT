@@ -139,7 +139,7 @@ name="alignment">
 <!-- <tree id="transmissionTree" spec="starbeast2.SpeciesTreeParser" newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;" adjustTipHeights="false" IsLabelledNewick="true" taxonset="@taxonsuperset" trait='@tipDates'/> -->
 
 <run id="mcmc" spec="MCMC" chainLength="5000000" storeEvery="5000">
-	<init id="SBI" spec="StarBeastInitializer" birthRate="@birthRate.t:Species"
+	<init id="SBI" spec="tnt.util.StarBeastInitializer" birthRate="@birthRate.t:Species"
 	estimate="false" speciesTree="@transmissionTree"
 	newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;">
         <geneTree idref="geneTree"/>
@@ -248,7 +248,7 @@ name="alignment">
     <logger logEvery="100" fileName="$(filebase).geneTree.log">
      		<log idref="multiCoalescent"/>
        		<log id="treeHeight" spec="beast.evolution.tree.TreeStatLogger" tree="@geneTree"/>
-       		<log spec="PolytomyStatsLogger" tree="@geneTree"/>
+       		<log spec="tnt.util.PolytomyStatsLogger" tree="@geneTree"/>
     </logger>
     
      <logger id="screenlog" logEvery="1000" mode="autodetect">
