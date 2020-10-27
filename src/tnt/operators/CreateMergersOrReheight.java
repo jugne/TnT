@@ -31,7 +31,7 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import pitchfork.Pitchforks;
-import tnt.distribution.GeneTreeIntervals;
+import starbeast2.SpeciesTreeInterface;
 import tnt.util.Tools;
 
 @Description("Uniform node height operator compatible with trees having polytomies.")
@@ -48,22 +48,28 @@ public class CreateMergersOrReheight extends TreeOperator {
             "Tuning parameter for scaling root.",
             0.8);
 
-	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
-			"intervals for a gene tree", Validate.REQUIRED);
+	public Input<SpeciesTreeInterface> transmissionTreeInput = new Input<>("transmissionTree",
+			"Fully labeled transmission tree on which to simulate gene trees", Validate.REQUIRED);
+
+	public Input<Double> mergerProbInput = new Input<>(
+			"mergerProb",
+			"Merger creation probability.",
+			0.9);
 
     Tree tree;
-	GeneTreeIntervals intervals;
+	SpeciesTreeInterface transmissionTree;
 
     boolean scaleRoot;
     double scaleFactor;
-	double mergerProb = 0.9;
+	double mergerProb;
 
     @Override
     public void initAndValidate() {
         tree = treeInput.get();
         scaleRoot = scaleRootInput.get();
         scaleFactor = scaleFactorInput.get();
-		intervals = geneTreeIntervalsInput.get();
+		transmissionTree = transmissionTreeInput.get();
+		mergerProb = mergerProbInput.get();
     }
 
     @Override
@@ -73,7 +79,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 
 		boolean makeMerger = Randomizer.nextDouble() < mergerProb;
 		List<Node> trueNodes = getTrueInternalNodes(tree);
-		List<Double> trHeights = intervals.getTransmissionHeights();
+		List<Double> trHeights = Tools.getTransmissionHeights(transmissionTree);
 		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmission(trueNodes,
 				trHeights);
 

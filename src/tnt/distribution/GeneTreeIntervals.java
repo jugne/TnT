@@ -32,7 +32,7 @@ public class GeneTreeIntervals extends CalculationNode {
 	public Input<SimulatedGeneTree> simulatedGeneTreeInput=new Input<SimulatedGeneTree>("simulatedGeneTree","Gene tree for which to calculate the intervals",
 			Validate.XOR, geneTreeInput);
 
-	public Input<SpeciesTreeInterface> transmissionTreeInput = new Input<>("transmissionTreeInput",
+	public Input<SpeciesTreeInterface> transmissionTreeInput = new Input<>("transmissionTree",
 			"Fully labeled transmission tree on which to simulate gene trees",
 			Validate.REQUIRED);
 
@@ -47,7 +47,7 @@ public class GeneTreeIntervals extends CalculationNode {
 	HashMap<Integer, List<Integer>> logicalGeneNodesPerTransmissionNode;
 
 	// key: gene tree node nr, value: transmission tree node nr
-	HashMap<Integer, Integer> geneTreeNodeAssignment, storeGeneTreeNodeAssignement;
+	HashMap<Integer, Integer> geneTreeNodeAssignment, storedGeneTreeNodeAssignment;
 //	List<Node> multifurcationParents;
 	HashMap<Integer, Integer> geneTreeTipAssignment;
 	public boolean eventListDirty = true;
@@ -430,11 +430,17 @@ public class GeneTreeIntervals extends CalculationNode {
 		trHeights = storedTrHeights;
 		storedTrHeights = tmp3;
 
+		HashMap<Integer, Integer> tmp4 = geneTreeNodeAssignment;
+		geneTreeNodeAssignment = storedGeneTreeNodeAssignment;
+		storedGeneTreeNodeAssignment = tmp4;
+
 		super.restore();
 	}
 
 	@Override
 	protected void store() {
+		storedGeneTreeNodeAssignment = new HashMap<Integer, Integer>(geneTreeNodeAssignment);
+
 		storedGeneTreeEventList.clear();
 		storedGeneTreeEventList.addAll(geneTreeEventList);
 
@@ -451,10 +457,7 @@ public class GeneTreeIntervals extends CalculationNode {
 		return geneTreeNodeAssignment;
 	}
 
-	public List<Double> getTransmissionHeights() {
-		update();
-		return trHeights;
-	}
+
 //
 //	public HashMap<Integer, List<Integer>> getLogicalGeneNodesPerTransmissionNode() {
 //		return logicalGeneNodesPerTransmissionNode;

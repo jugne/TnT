@@ -31,7 +31,7 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import pitchfork.Pitchforks;
-import tnt.distribution.GeneTreeIntervals;
+import starbeast2.SpeciesTreeInterface;
 import tnt.util.Tools;
 
 @Description("SPR operator for trees with polytomies and multiple mergers.")
@@ -49,19 +49,19 @@ public class SPROperator extends TreeOperator {
 			"Probability of attaching to existing coalescent event or making a multimerger.",
 			0.1);
 
-	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
-			"intervals for a gene tree", Validate.REQUIRED);
+	public Input<SpeciesTreeInterface> transmissionTreeInput = new Input<>("transmissionTree",
+			"Fully labeled transmission tree on which to simulate gene trees", Validate.REQUIRED);
 
     Tree tree;
 	Double rootAttachLambda, probBottleneck;
-	GeneTreeIntervals intervals;
+	SpeciesTreeInterface transmissionTree;
 
     @Override
     public void initAndValidate() {
 		rootAttachLambda = rootAttachLambdaInput.get();
 		probBottleneck = probBottleneckInput.get();
 		tree = treeInput.get();
-		intervals = geneTreeIntervalsInput.get();
+		transmissionTree = transmissionTreeInput.get();
     }
 
     @Override
@@ -72,9 +72,11 @@ public class SPROperator extends TreeOperator {
 
 		// Get list of nodes below finite-length edges
 		List<Node> trueNodes = getTrueNodes(tree);
-		List<Double> trHeights = intervals.getTransmissionHeights();
+		List<Double> trHeights = Tools.getTransmissionHeights(transmissionTree);
 
 		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmission(trueNodes,
+				trHeights);
+		List<Node> trueNodesWithParentsAtTransmission = Tools.getGeneNodesWithParentsAtTransmission(trueNodes,
 				trHeights);
 
 		// Record number of (true) edges in original tree:
