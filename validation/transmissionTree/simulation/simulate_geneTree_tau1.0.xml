@@ -60,7 +60,7 @@
     
        <logger logEvery="1" fileName="$(filebase).log">
        		<log id="treeHeight" spec="beast.evolution.tree.TreeStatLogger" tree="@geneTree"/>
-       		<log spec="PolytomyStatsLogger" tree="@geneTree"/>
+       		<log spec="tnt.util.PolytomyStatsLogger" tree="@geneTree"/>
 	</logger>
 
     </run>
