@@ -1,6 +1,7 @@
 package tnt.util;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -65,5 +66,52 @@ public class Tools {
 			getRecipients(rightChild, recipients);
 		}
 		return;
+	}
+
+	/**
+	 * @param transmissionTree
+	 * @param subRoot                root at which to start filling the rest of
+	 *                               geneTreeNodeAssignment.
+	 * @param geneTreeNodeAssignment List of gene tree node assignments in the form
+	 *                               geneTreeNodeNr=transmissionTreeNodeNr. Must
+	 *                               provide it already filled with leaf node
+	 *                               assignments.
+	 * @return true if current gene tree is compatible with current transmission
+	 *         tree. Fill geneTreeNodeAssignment.
+	 */
+	public static Boolean fillAssignmentAndCheck(SpeciesTreeInterface transmissionTree, Node subRoot,
+			HashMap<Integer, Integer> geneTreeNodeAssignment) {
+		if (!subRoot.isLeaf()) {
+			if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(0), geneTreeNodeAssignment))
+				return false;
+			Node tr1 = transmissionTree
+					.getNode(geneTreeNodeAssignment.get(subRoot.getChild(0).getNr()));
+			while (!tr1.isRoot()) {
+				Node tr1ParentNode = tr1.getParent();
+				if (tr1ParentNode.getHeight() >= subRoot.getHeight())
+					break;
+				tr1 = tr1ParentNode;
+			}
+
+			if (subRoot.getChildCount() > 1) {
+				if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(1), geneTreeNodeAssignment))
+					return false;
+				Node tr2 = transmissionTree
+						.getNode(geneTreeNodeAssignment.get(subRoot.getChild(1).getNr()));
+				while (!tr2.isRoot()) {
+					Node tr2ParentNode = tr2.getParent();
+					if (tr2ParentNode.getHeight() >= subRoot.getHeight())
+						break;
+					tr2 = tr2ParentNode;
+				}
+
+				if (tr1.getNr() != tr2.getNr())
+					return false;
+			}
+			if (tr1.getHeight() == subRoot.getHeight() && !subRoot.isLeaf())
+				return false;
+			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
+		}
+		return true;
 	}
 }

@@ -28,7 +28,6 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import pitchfork.Pitchforks;
-import tnt.distribution.GeneTreeEvent;
 import tnt.distribution.GeneTreeIntervals;
 import tnt.util.Tools;
 
@@ -45,7 +44,6 @@ public class TransmissionAttach4 extends TreeOperator {
 
     Tree tree;
 	GeneTreeIntervals intervals;
-	HashMap<Integer, List<GeneTreeEvent>> eventsPerTransmissionTreeNode;
 	HashMap<Integer, Integer> geneNodeAssignment;
 	Double rootAttachLambda;
 
@@ -61,7 +59,6 @@ public class TransmissionAttach4 extends TreeOperator {
     public double proposal() {
 
         double logHR = 0.0;
-        eventsPerTransmissionTreeNode = intervals.getGeneTreeEventList();
 		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
 		// fill the recipient node list on
 		List<Node> recipients = new ArrayList<>();
@@ -76,9 +73,12 @@ public class TransmissionAttach4 extends TreeOperator {
 		Node chosenRecipient = recipients.get(Randomizer.nextInt(nRecipients));
 		// store numbers of all nodes that are descending from the chosen recipient node
 		List<Integer> recipientGroupNr = new ArrayList<>();
-		for (Node n : chosenRecipient.getAllChildNodesAndSelf()) {
-			recipientGroupNr.add(n.getNr());
-		}
+		recipientGroupNr.add(chosenRecipient.getNr());
+		recipientGroupNr.addAll(getChildNrs(chosenRecipient));
+
+		List<Integer> possibleLocations = new ArrayList<>();
+		possibleLocations.addAll(getAllParentNrs(chosenRecipient));
+		possibleLocations.addAll(recipientGroupNr);
 
 		List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
 		List<Node> fitToMove = new ArrayList<>();
@@ -89,8 +89,10 @@ public class TransmissionAttach4 extends TreeOperator {
 		if (Randomizer.nextBoolean()) {
 			// attach a node at transmission
 			
+
 			// get all nodes, that are not at transmission height and can be attached there
-			fitToMove = getNodesToMoveToTransmission(trueNodes, chosenRecipient.getParent().getHeight());
+			fitToMove = getNodesToMoveToTransmission(trueNodes, chosenRecipient.getParent().getHeight(),
+					possibleLocations);
 			if (fitToMove.size() == 0)
 				return Double.NEGATIVE_INFINITY;
 			
@@ -138,7 +140,7 @@ public class TransmissionAttach4 extends TreeOperator {
 			// 1. are assigned to a transmission node, which is in a subtree rooted at
 			// chosenRecipient;
 			// 2. are lower than chosenRecipient parent height (transmission event);
-			// 3. their parent nodes are heigher than chosenRecipient parent height
+			// 3. their parent nodes are higher than chosenRecipient parent height
 			// (transmission event);
 			fitToAttach = getEdgesAtTransmission(remainingSubtreeRoot, chosenRecipient, recipientGroupNr);
 			if (fitToAttach.size() == 0)
@@ -147,9 +149,15 @@ public class TransmissionAttach4 extends TreeOperator {
 			// select node at which to attach
 			Node newAttachNode;
 			newAttachNode = fitToAttach.get(Randomizer.nextInt(fitToAttach.size()));
+			
+			int trNodeNr = geneNodeAssignment.get(srcNode.getNr());
+			List<Integer> possibleAssignments = new ArrayList<>();
+			possibleAssignments.add(trNodeNr);
+			possibleAssignments.addAll(getAllParentNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
+			possibleAssignments.addAll(getChildNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
 
 			// store the nodes to choose from for backward move attachment
-			fitToAttachAfter = getFitToUniformAttach(remainingSubtreeRoot, srcNode);
+			fitToAttachAfter = getFitToUniformAttach(remainingSubtreeRoot, srcNode, possibleAssignments);
 			if (fitToAttach.size() == 0)
 				return Double.NEGATIVE_INFINITY;
 
@@ -171,6 +179,11 @@ public class TransmissionAttach4 extends TreeOperator {
 				tree.setRoot(srcNodeSibling);
 			else if (srcNodeParent.isRoot())
 				tree.setRoot(srcNodeParent);
+
+			geneNodeAssignment = intervals.geneTreeTipAssignment;
+			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), tree.getRoot(),
+					geneNodeAssignment))
+				return Double.NEGATIVE_INFINITY; // not compatible
 
 			// store the nodes that can be moved in backward move
 			List<Node> trueNodesAfter = Pitchforks.getTrueNodes(tree);
@@ -210,7 +223,13 @@ public class TransmissionAttach4 extends TreeOperator {
 			else
 				remainingSubtreeRoot = tree.getRoot();
 
-			fitToAttach = getFitToUniformAttach(remainingSubtreeRoot, nodeToMove);
+			int trNodeNr = geneNodeAssignment.get(nodeToMove.getNr());
+			List<Integer> possibleAssignments = new ArrayList<>();
+			possibleAssignments.add(trNodeNr);
+			possibleAssignments.addAll(getAllParentNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
+			possibleAssignments.addAll(getChildNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
+
+			fitToAttach = getFitToUniformAttach(remainingSubtreeRoot, nodeToMove, possibleAssignments);
 			if (fitToAttach.size() == 0)
 				return Double.NEGATIVE_INFINITY;
 			Node newAttachNode = fitToAttach.get(Randomizer.nextInt(fitToAttach.size()));
@@ -257,8 +276,14 @@ public class TransmissionAttach4 extends TreeOperator {
 			else if (nodeToMoveParent.isRoot())
 				tree.setRoot(nodeToMoveParent);
 
+			geneNodeAssignment = intervals.geneTreeTipAssignment;
+			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), tree.getRoot(),
+					geneNodeAssignment))
+				return Double.NEGATIVE_INFINITY; // not compatible
+
 			List<Node> trueNodesAfter = Pitchforks.getTrueNodes(tree);
-			fitToMoveAfter = getNodesToMoveToTransmission(trueNodesAfter, chosenRecipient.getParent().getHeight());
+			fitToMoveAfter = getNodesToMoveToTransmission(trueNodesAfter, chosenRecipient.getParent().getHeight(),
+					possibleLocations);
 			if (fitToMoveAfter.size() == 0)
 				return Double.NEGATIVE_INFINITY;
 
@@ -271,8 +296,9 @@ public class TransmissionAttach4 extends TreeOperator {
 		logHR += Math.log(1.0 / fitToMoveAfter.size());
 		logHR += Math.log(1.0 / fitToAttachAfter.size());
 
-		if (tree.getLeafNodeCount() < 16)
-			System.exit(-1);
+		// debugging with specific tree
+//		if (tree.getLeafNodeCount() < 16)
+//			System.exit(-1);
 
         return logHR;
     }
@@ -298,13 +324,15 @@ public class TransmissionAttach4 extends TreeOperator {
 	 *         or merger and are not at transmission height
 	 */
 	private List<Node> getNodesToMoveToTransmission(List<Node> trueNodes,
-			double trNodeParentHeight) {
+			double trNodeParentHeight, List<Integer> possibleLocations) {
 		List<Node> fitToMove = new ArrayList<>();
 
 		for (Node n : trueNodes) {
 //			if (!n.isRoot() && !Pitchforks.isPolytomy(n) && !Tools.isMultiMerger(trueNodes, n)
-			if (!n.isRoot() && !Pitchforks.isPolytomy(n.getParent()) && !Tools.isMultiMerger(trueNodes, n.getParent())
-					&& n.getParent().getHeight() != trNodeParentHeight && n.getHeight() != trNodeParentHeight) {
+			if (!n.isRoot()
+//					&& possibleLocations.contains(geneNodeAssignment.get(n.getNr()))
+					&& !Pitchforks.isPolytomy(n.getParent()) && !Tools.isMultiMerger(trueNodes, n.getParent())
+					&& n.getParent().getHeight() != trNodeParentHeight && n.getHeight() < trNodeParentHeight) {
 				fitToMove.add(n);
 			}
 		}
@@ -315,7 +343,12 @@ public class TransmissionAttach4 extends TreeOperator {
 		List<Node> fitToMove = new ArrayList<>();
 
 		for (Node n : trueNodes) {
-			if (!n.isRoot() && geneNodeAssignment.get(n.getParent().getNr()) == recipient.getNr()
+//			if (!n.isRoot())
+//				if (geneNodeAssignment.get(n.getParent().getNr()) != recipient.getNr()
+//						&& n.getParent().getHeight() == recipient.getParent().getHeight())
+//					System.out.println();
+			if (!n.isRoot()
+//					&& geneNodeAssignment.get(n.getParent().getNr()) == recipient.getNr()
 					&& n.getParent().getHeight() == recipient.getParent().getHeight())
 				fitToMove.add(n);
 		}
@@ -327,7 +360,7 @@ public class TransmissionAttach4 extends TreeOperator {
 		List<Node> edgesAtTransmission = new ArrayList<>();
 
 		if (Pitchforks.isLogicalNode(subtreeRoot)
-				&& recipientGroupNr.contains(geneNodeAssignment.get(subtreeRoot.getNr()))
+//				&& recipientGroupNr.contains(geneNodeAssignment.get(subtreeRoot.getNr()))
 				&& (subtreeRoot.isRoot() || subtreeRoot.getParent().getHeight() > recipient.getParent().getHeight()))
 			edgesAtTransmission.add(subtreeRoot);
 
@@ -342,16 +375,43 @@ public class TransmissionAttach4 extends TreeOperator {
 
 
 
-	private List<Node> getFitToUniformAttach(Node subtreeRoot, Node nodeToMove) {
+	private List<Node> getFitToUniformAttach(Node subtreeRoot, Node nodeToMove, List<Integer> possibleNodeAssignments) {
 		List<Node> fitToAttach = new ArrayList<>();
 
-		if (Pitchforks.isLogicalNode(subtreeRoot) && nodeToMove.getHeight() < subtreeRoot.getHeight()) {
+		if (Pitchforks.isLogicalNode(subtreeRoot)
+				&& (subtreeRoot.isRoot() || nodeToMove.getHeight() < subtreeRoot.getParent().getHeight())
+//				&& possibleNodeAssignments.contains(geneNodeAssignment.get(subtreeRoot.getNr()))
+		)
 			fitToAttach.add(subtreeRoot);
-			for (Node child : subtreeRoot.getChildren())
-				fitToAttach.addAll(getFitToUniformAttach(child, nodeToMove));
-		}
+		for (Node child : subtreeRoot.getChildren())
+				fitToAttach.addAll(getFitToUniformAttach(child, nodeToMove, possibleNodeAssignments));
+
 
 		return fitToAttach;
+	}
+
+	private List<Integer> getAllParentNrs(Node trNode) {
+		List<Integer> tmp = new ArrayList<>();
+		Node trNodeTmp = trNode;
+		while (!trNodeTmp.isRoot()) {
+			tmp.add(trNodeTmp.getParent().getNr());
+			trNodeTmp = trNodeTmp.getParent();
+		}
+
+		return tmp;
+	}
+
+	private List<Integer> getChildNrs(Node trNode) {
+		List<Integer> tmp = new ArrayList<>();
+
+		if (trNode.isLeaf())
+			return tmp;
+		for (Node child : trNode.getChildren()) {
+			tmp.add(child.getNr());
+			tmp.addAll(getChildNrs(child));
+		}
+
+		return tmp;
 	}
 
 

@@ -139,7 +139,7 @@ name="alignment">
 <!-- <tree id="transmissionTree" spec="starbeast2.SpeciesTreeParser" newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;" adjustTipHeights="false" IsLabelledNewick="true" taxonset="@taxonsuperset" trait='@tipDates'/> -->
 
 <run id="mcmc" spec="MCMC" chainLength="5000000" storeEvery="5000">
-	<init id="SBI" spec="tnt.util.StarBeastInitializer" birthRate="@birthRate.t:Species"
+	<init id="SBI" spec="tnt.util.TransmissionTreeInitializer" birthRate="@birthRate.t:Species"
 	estimate="false" speciesTree="@transmissionTree"
 	newick="(t24_1:15.4,(t21_1:7.7,(t20_2:1.94,t20_1:0):0.325):3.39):4.58;">
         <geneTree idref="geneTree"/>
@@ -221,8 +221,8 @@ name="alignment">
 <!--                   rootAttachLambda="0.1" -->
 <!--                   tree="@geneTree"/> -->
                   
-<!--     <operator spec="tnt.operators.CreateMergersOrReheight" id="Uniform" tree="@geneTree" transmissionTree="@transmissionTree" -->
-<!--      scaleRoot="true" weight="5.0" mergerProb="0.1"/> -->
+    <operator spec="tnt.operators.CreateMergersOrReheight" id="Uniform" tree="@geneTree" transmissionTree="@transmissionTree"
+     scaleRoot="true" weight="1.0" mergerProb="0.1"/>
     
 <!-- 	<operator spec="tnt.operators.ExchangeOperator" tree="@geneTree" weight="1.0"/> -->
 	
@@ -233,7 +233,7 @@ name="alignment">
 <!--     <operator spec="TransmissionAttach2" id="trAttach2" tree="@geneTree"  geneTreeIntervals="@geneTreeIntervals" weight="5"/> -->
     <operator spec="TransmissionAttach4" id="trAttach4" tree="@geneTree" rootAttachLambda="0.5"  geneTreeIntervals="@geneTreeIntervals" weight="1.0"/>
 
-    <logger id="treelog.t:gene" fileName="$(filebase).gene.trees" logEvery="100" mode="tree">
+    <logger id="treelog.t:gene" fileName="$(filebase).gene.trees" logEvery="1" mode="tree">
         	<log id="TreeWithMetaDataLogger.t:gene" spec="beast.evolution.tree.TreeWithMetaDataLogger" tree="@geneTree"/>
     </logger>
     

@@ -110,8 +110,6 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
 
         // Compute histogram
         List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
-		if (tree.getRoot().getChild(0).getHeight() == 12.01 || tree.getRoot().getChild(1).getHeight() == 12.01)
-			System.out.println();
 
         for (Node node : trueNodes) {
             int order = Pitchforks.getLogicalChildren(node).size();

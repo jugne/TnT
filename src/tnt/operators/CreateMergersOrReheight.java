@@ -133,7 +133,11 @@ public class CreateMergersOrReheight extends TreeOperator {
 			} else {
 				double L = maxHeight - minHeight;
 				logHR += Math.log(1.0 / L);
-				logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size())); // srcNode could not
+				if (scaleRoot)
+					logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
+				else
+					logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size())); // srcNode could
+																										// not
 																									// have been a root
 				logHR += Math.log(1.0 - mergerProb);
 			}

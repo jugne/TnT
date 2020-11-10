@@ -38,7 +38,6 @@ import beast.util.TreeParser;
 import starbeast2.PopulationModel;
 import starbeast2.SpeciesTree;
 import starbeast2.SpeciesTreeInterface;
-import starbeast2.TreeStats;
 
 /**
 * @author Joseph Heled
@@ -46,7 +45,7 @@ import starbeast2.TreeStats;
  */
 
 @Description("Set a starting point for a *BEAST analysis from gene alignment data.")
-public class StarBeastInitializer extends Tree implements StateNodeInitialiser {
+public class TransmissionTreeInitializer extends Tree implements StateNodeInitialiser {
 
     static enum Method {
         POINT("point-estimate"),
