@@ -110,8 +110,16 @@ public class Tools {
 			}
 			if (tr1.getHeight() == subRoot.getHeight() && !subRoot.isLeaf())
 				return false;
+			boolean recipient = isRecipient(tr1);
+			if (!tr1.isRoot() && !recipient && !subRoot.isLeaf() && tr1.getParent().getHeight() == subRoot.getHeight())
+				return false;
 			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
 		}
 		return true;
+	}
+
+	public static boolean isRecipient(Node trTreeNode) {
+		return (!trTreeNode.isRoot()
+				&& trTreeNode.getParent().getChild(0) != trTreeNode && !trTreeNode.getParent().isFake());
 	}
 }

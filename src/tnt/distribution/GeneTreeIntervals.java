@@ -42,6 +42,9 @@ public class GeneTreeIntervals extends CalculationNode {
     
 	private List<GeneTreeEvent> geneTreeEventList, storedGeneTreeEventList;
 	HashMap<Integer, Integer> activeLineagesPerTransmissionTreeNode;
+
+	// eventsPerTransmissionTreeNode is null if geneTree and transmissionTree are
+	// incompatible
 	HashMap<Integer, List<GeneTreeEvent>> eventsPerTransmissionTreeNode, storedEventsPerTransmissionTreeNode;
 
 	// key: gene tree node nr, value: transmission tree node nr
@@ -85,6 +88,11 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	}
 
+	/**
+	 * @return (1) list of geneTree events assigned to transmission tree branches in
+	 *         the map: trTreeNodeNr -> geneTreeEventList OR (2) null if geneTree is
+	 *         incompatible with transmissionTree
+	 */
 	public HashMap<Integer, List<GeneTreeEvent>> getGeneTreeEventList() {
 		update();
 		return eventsPerTransmissionTreeNode;
@@ -93,6 +101,19 @@ public class GeneTreeIntervals extends CalculationNode {
 	private void update() {
 		if (!eventListDirty)
 			return;
+
+		// generate map of species tree tip node names to node numbers
+		final Map<String, Integer> tipNumberMap = transmissionTree.getTipNumberMap();
+		geneTreeTipAssignment = new HashMap<>();
+		for (int i = 0; i < geneTree.getLeafNodeCount(); i++) {
+			final Node geneTreeLeafNode = geneTree.getNode(i);
+			final String geneTreeLeafName = geneTreeLeafNode.getID();
+			final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
+
+			if (tipNumberMap.containsKey(geneTreeLeafName)) // not in BEAUTi
+				geneTreeTipAssignment.put(geneTreeLeafNumber,
+						tipNumberMap.get(geneTreeLeafName));
+		}
 
 		HashMap<Integer, List<Integer>> fakeBifurcations = new HashMap<>();
 		HashMap<Double, List<Integer>> nodeTime = new HashMap<>();
@@ -126,6 +147,12 @@ public class GeneTreeIntervals extends CalculationNode {
 		if (!Tools.fillAssignmentAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment)) {
 			eventsPerTransmissionTreeNode = null;
 			return;
+		}
+		for (Node n : geneTree.getNodesAsArray()) {
+			if (!n.isRoot() && n.getHeight() > n.getParent().getHeight()) {
+				eventsPerTransmissionTreeNode = null;
+				return;
+			}
 		}
 
 		nodeTime = new HashMap<Double, List<Integer>>();
@@ -244,7 +271,8 @@ public class GeneTreeIntervals extends CalculationNode {
 				break;
         	}}
 			catch(Exception e) {
-				System.out.println();
+				System.exit(-1);
+
 			}
 
 
@@ -295,6 +323,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	int getLineagesRecurse(Node trNode) {
 		int nLineages = 0;
+		try {
 		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0).getNr()) == null)
 			nLineages += getLineagesRecurse(trNode.getChild(0));
 		else
@@ -303,6 +332,9 @@ public class GeneTreeIntervals extends CalculationNode {
 			nLineages += getLineagesRecurse(trNode.getChild(1));
 		else if (trNode.getChildCount() > 1)
 			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1).getNr());
+		} catch (Exception e) {
+			System.exit(-1);
+		}
 
 		return nLineages;
 	}

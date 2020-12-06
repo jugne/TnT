@@ -239,6 +239,8 @@ public class SimulatedGeneTree extends Tree {
 			popSize.put(transmissionNode, popSizesInput.get().getArrayValue(ind));
 			ind++;
 		}
+		Node aboveOrigin = new Node();
+		popSize.put(aboveOrigin, 1.0);
 
 		while (getTotalLineageCount(activeLineages) > 1 || !sortedTransmissionTreeNodes.isEmpty()) {
 
@@ -251,15 +253,44 @@ public class SimulatedGeneTree extends Tree {
 				if ((!transmissionNode.isRoot() && transmissionNode.getParent().getHeight() > t)
 						|| transmissionNode.isRoot()) {
 					int k = activeLineages.get(transmissionNode).size();
-					if (k > 1) {
-						double timeToNextCoal = Randomizer
-								.nextExponential(0.5 * k * (k - 1) * 1 / popSize.get(transmissionNode));
-						if (timeToNextCoal < minCoalTime) {
-							minCoalTime = timeToNextCoal;
-							minCoal = transmissionNode;
-						}
+					double Ne = popSize.get(transmissionNode);
+					if (transmissionNode.isRoot()) {
+						if (k > 1) {
+							double NeAbove = popSize.get(aboveOrigin);
+							double timeToNextCoalOrig = Randomizer
+									.nextExponential(0.5 * k * (k - 1) * 1.0 / NeAbove);
 
+							if (t < originInput.get().getArrayValue(0))
+								timeToNextCoalOrig += originInput.get().getArrayValue(0) - t;
+							double timeToNextCoalBefore = Randomizer
+									.nextExponential(0.5 * k * (k - 1) * 1.0 / Ne);
+							if (t + timeToNextCoalBefore > originInput.get().getArrayValue(0))
+								timeToNextCoalBefore = Double.POSITIVE_INFINITY;
+
+							double timeNextCoalMin = Math.min(timeToNextCoalOrig, timeToNextCoalBefore);
+
+							if (timeNextCoalMin < minCoalTime) {
+								minCoalTime = timeNextCoalMin;
+								minCoal = transmissionNode;
+							}
+
+						}
+					} else {
+						if (t > originInput.get().getArrayValue(0)) {
+							Ne = popSize.get(aboveOrigin);
+						}
+						if (k > 1) {
+							double timeToNextCoal = Randomizer
+									.nextExponential(0.5 * k * (k - 1) * 1.0 / Ne);
+							if (timeToNextCoal < minCoalTime) {
+								minCoalTime = timeToNextCoal;
+								minCoal = transmissionNode;
+							}
+
+						}
 					}
+
+
 
 					if (!hiddenKnown) {
 						double endTime = transmissionNode.isRoot() ? maxBound
@@ -349,7 +380,7 @@ public class SimulatedGeneTree extends Tree {
 						while (duplicateTime < stopTime) {
 							int nrLineages = recipientLineages.size();
 							double deltaT = Randomizer
-									.nextExponential(nrLineages * (nrLineages - 1) * 0.5 * 1 / recipientNe);
+									.nextExponential(nrLineages * (nrLineages - 1) * 0.5 * 1.0 / recipientNe);
 							if (duplicateTime + deltaT < stopTime) {
 								int k = recipientLineages.size();
 								Node node1 = recipientLineages.get(Randomizer.nextInt(k));
@@ -429,7 +460,7 @@ public class SimulatedGeneTree extends Tree {
 						while (duplicateTime < stopTime) {
 							int nrLineages = lineageList.size();
 							double deltaT = Randomizer
-									.nextExponential(nrLineages * (nrLineages - 1) * 0.5 * 1 / Ne);
+									.nextExponential(nrLineages * (nrLineages - 1) * 0.5 * 1.0 / Ne);
 							if (duplicateTime + deltaT < stopTime) {
 								int k = lineageList.size();
 								Node node1 = lineageList.get(Randomizer.nextInt(k));

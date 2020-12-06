@@ -10,7 +10,7 @@ public class GeneTreeEvent {
 	// bifurcation events are only those, that have SINGLE bifurcation happening on
 	// a tree at this event time point
 	// multifurcation event includes also situations with MORE THAN ONE bifurcation
-	// happening at the exactly same time
+	// happening at the exactly same time (multiple mergers)
 	public enum GeneTreeEventType {
 		SAMPLE, BIFURCATION, MULTIFURCATION, MOCK
 	}

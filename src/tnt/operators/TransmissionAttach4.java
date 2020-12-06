@@ -88,6 +88,7 @@ public class TransmissionAttach4 extends TreeOperator {
 
 		if (Randomizer.nextBoolean()) {
 			// attach a node at transmission
+//			System.out.println("attach at: " + chosenRecipient.getParent().getHeight());
 			
 
 			// get all nodes, that are not at transmission height and can be attached there
@@ -180,7 +181,7 @@ public class TransmissionAttach4 extends TreeOperator {
 			else if (srcNodeParent.isRoot())
 				tree.setRoot(srcNodeParent);
 
-			geneNodeAssignment = intervals.geneTreeTipAssignment;
+			geneNodeAssignment.putAll(intervals.geneTreeTipAssignment);
 			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), tree.getRoot(),
 					geneNodeAssignment))
 				return Double.NEGATIVE_INFINITY; // not compatible
@@ -191,10 +192,15 @@ public class TransmissionAttach4 extends TreeOperator {
 			if (fitToMoveAfter.size() == 0)
 				return Double.NEGATIVE_INFINITY;
 
+//			for (Node n : tree.getNodesAsArray()) {
+//				if (!n.isRoot() && n.getHeight() > n.getParent().getHeight())
+//					System.out.println();
+//			}
 
 		} else {
 			// detach from transmission
-			
+//			System.out.println("detach at: " + chosenRecipient.getParent().getHeight());
+
 			fitToMove = getFitToMoveAtTransmission(trueNodes, chosenRecipient);
 			if (fitToMove.size() == 0)
 				return Double.NEGATIVE_INFINITY;
@@ -276,7 +282,7 @@ public class TransmissionAttach4 extends TreeOperator {
 			else if (nodeToMoveParent.isRoot())
 				tree.setRoot(nodeToMoveParent);
 
-			geneNodeAssignment = intervals.geneTreeTipAssignment;
+			geneNodeAssignment.putAll(intervals.geneTreeTipAssignment);
 			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), tree.getRoot(),
 					geneNodeAssignment))
 				return Double.NEGATIVE_INFINITY; // not compatible
@@ -287,6 +293,10 @@ public class TransmissionAttach4 extends TreeOperator {
 			if (fitToMoveAfter.size() == 0)
 				return Double.NEGATIVE_INFINITY;
 
+			for (Node n : tree.getNodesAsArray()) {
+				if (!n.isRoot() && n.getHeight() > n.getParent().getHeight())
+					System.out.println();
+			}
 
 		}
 
