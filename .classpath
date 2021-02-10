@@ -6,8 +6,11 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/beast2"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/starbeast2"/>
 	<classpathentry kind="lib" path="/beast2/lib/commons-math3-3.1.1.jar"/>
-	<classpathentry kind="lib" path="/CoalRe/lib/feast.v5.2.0.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/5"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sampled-ancestors"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/feast"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/pitchfork"/>
+	<classpathentry kind="lib" path="/starbeast2/lib/guava-23.0.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/CoupledMCMC"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -52,8 +52,12 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	// key: gene tree node nr, value: transmission tree node nr
 	HashMap<Integer, Integer> geneTreeNodeAssignment, storedGeneTreeNodeAssignment;
+
+	// key: transmission tree node nr, value: list of assigned geneTreeNode nrs
+	HashMap<Integer, List<Integer>> inverseGeneTreeNodeAssignment, storedInverseGeneTreeNodeAssignment;
 //	List<Node> multifurcationParents;
 	public HashMap<Integer, Integer> geneTreeTipAssignment;
+	public HashMap<Integer, List<Integer>> inverseGeneTreeTipAssignment;
 	public boolean eventListDirty = true;
 
 	List<Double> trHeights, storedTrHeights;
@@ -79,6 +83,18 @@ public class GeneTreeIntervals extends CalculationNode {
 							tipNumberMap.get(geneTreeLeafName));
 			}
 		}
+		
+		inverseGeneTreeTipAssignment = new HashMap<>();
+		for (int geneNodeNr : geneTreeTipAssignment.keySet()) {
+			int trNodeNr = geneTreeTipAssignment.get(geneNodeNr);
+			List<Integer> tmp = new ArrayList<>();
+			if (inverseGeneTreeTipAssignment.containsKey(trNodeNr)) {
+				tmp = inverseGeneTreeTipAssignment.get(trNodeNr);
+			}
+			tmp.add(geneNodeNr);
+			inverseGeneTreeTipAssignment.put(trNodeNr, tmp);
+		}
+		
 
 		storedGeneTreeEventList = new ArrayList<>();
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
@@ -126,6 +142,9 @@ public class GeneTreeIntervals extends CalculationNode {
 		geneTreeNodeAssignment = new HashMap<>();
 		geneTreeNodeAssignment.putAll(geneTreeTipAssignment);
 
+		inverseGeneTreeNodeAssignment = new HashMap<>();
+		inverseGeneTreeNodeAssignment.putAll(inverseGeneTreeTipAssignment);
+
 		List<Node> sortedNodes = Arrays.asList(geneTree.getNodesAsArray())
 				.stream()
 				.sorted(Comparator.comparingDouble(e -> e.getHeight()))
@@ -144,7 +163,8 @@ public class GeneTreeIntervals extends CalculationNode {
 			}
 		}
 			
-		if (!Tools.fillAssignmentAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment)) {
+		if (!Tools.fillAssignmentAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment,
+				inverseGeneTreeNodeAssignment)) {
 			eventsPerTransmissionTreeNode = null;
 			return;
 		}
@@ -408,17 +428,26 @@ public class GeneTreeIntervals extends CalculationNode {
 		geneTreeNodeAssignment = storedGeneTreeNodeAssignment;
 		storedGeneTreeNodeAssignment = tmp4;
 
+		HashMap<Integer, List<Integer>> tmp5 = inverseGeneTreeNodeAssignment;
+		inverseGeneTreeNodeAssignment = storedInverseGeneTreeNodeAssignment;
+		storedInverseGeneTreeNodeAssignment = tmp5;
+
 		super.restore();
 	}
 
 	@Override
 	protected void store() {
 		storedGeneTreeNodeAssignment = new HashMap<Integer, Integer>(geneTreeNodeAssignment);
+		storedInverseGeneTreeNodeAssignment = new HashMap<Integer, List<Integer>>(inverseGeneTreeNodeAssignment);
 
 		storedGeneTreeEventList.clear();
 		storedGeneTreeEventList.addAll(geneTreeEventList);
 
-		storedEventsPerTransmissionTreeNode = new HashMap<Integer, List<GeneTreeEvent>>(eventsPerTransmissionTreeNode);
+		if (eventsPerTransmissionTreeNode != null)
+			storedEventsPerTransmissionTreeNode = new HashMap<Integer, List<GeneTreeEvent>>(
+					eventsPerTransmissionTreeNode);
+		else
+			storedEventsPerTransmissionTreeNode = null;
 		storedTrHeights = new ArrayList<Double>(trHeights);
 		super.store();
 	}
@@ -429,6 +458,13 @@ public class GeneTreeIntervals extends CalculationNode {
 		if (eventsPerTransmissionTreeNode == null)
 			return null;
 		return geneTreeNodeAssignment;
+	}
+
+	public HashMap<Integer, List<Integer>> getInverseGeneTreeNodeAssignment() {
+		update();
+		if (eventsPerTransmissionTreeNode == null)
+			return null;
+		return inverseGeneTreeNodeAssignment;
 	}
 
 

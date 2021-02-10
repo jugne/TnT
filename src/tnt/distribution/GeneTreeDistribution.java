@@ -103,10 +103,8 @@ public class GeneTreeDistribution extends Distribution {
 		double r_turnover = turnoverInput.get().getArrayValue();
 		double s = samplingProportionInput.get().getValue();
 		lambda = d / (1 - r_turnover);
-		psi = lambda * r_turnover * s / (1 - s + r * s);
-		mu = lambda * r_turnover - r * psi;
-//		mu = r_turnover * lambda;
-//		psi = mu * s / (1 - s);
+		mu = r_turnover * lambda;
+		psi = mu * s / (1 - s);
 	}
 
 	protected void updateParameters() {
@@ -282,10 +280,10 @@ public class GeneTreeDistribution extends Distribution {
 				* (end_time - prevEvent.time);
 
 		double sum = 0;
-		sum = gUp(prevEvent.lineages, prevEvent.lineages, tau, popSizes.getValue(0));
+		sum = gUp(prevEvent.lineages, prevEvent.lineages, tau, popSizes.getValue(0));//
 
-		ans -= (1 - sum) * lambda
-				* integralP_0(prevEvent.time, end_time);
+		ans -= (1 - sum) * lambda//
+				* integralP_0(prevEvent.time, end_time);//
 
 		return ans;
 	}
@@ -293,6 +291,9 @@ public class GeneTreeDistribution extends Distribution {
 	private double transmission(GeneTreeEvent event, GeneTreeEvent prevEvent) {
 		double ans;
 		double mult = 1.0;
+
+		if (event.time > originInput.get().getArrayValue(0))
+			return Double.NEGATIVE_INFINITY;
 
 		int sum = event.multiCoalSize.stream().mapToInt(Integer::intValue)
 				.sum();
@@ -309,6 +310,8 @@ public class GeneTreeDistribution extends Distribution {
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
 				* gUp(prevEvent.lineages, event.lineages, tau, popSizes.getValue(0));
 
+		if (Math.log(ans) == Double.NEGATIVE_INFINITY)
+			System.out.println();
 		return Math.log(ans);
 	}
 
@@ -348,9 +351,9 @@ public class GeneTreeDistribution extends Distribution {
 		}
 
 		ans += 1.0 / (ploidy * popSizes.getValue(0));
-		ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))
-				* gUp(prevEvent.lineages, event.lineages, tau, popSizes.getValue(0))
-				* lambda * P_0(event.time);
+		ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))//
+				* gUp(prevEvent.lineages, event.lineages, tau, popSizes.getValue(0))//
+				* lambda * P_0(event.time);//
 
 		return Math.log(ans);
 	}
@@ -364,14 +367,16 @@ public class GeneTreeDistribution extends Distribution {
 	private double gUp(int i, int j, double tau, double Ne) {
 		double ans = 0.0;
 
+		if (tau == 0.0 && i == j)
+			return 1.0;
+		if (tau == 0.0 && i != j)
+			return 0.0;
 		for (int k = j; k <= i; k++) {
 			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j) * f_1(j, k - 1) * f_2(i, k)
 					* Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne)) /
 					(MathUtils.factorialDouble(j) * MathUtils.factorialDouble(k - j) * f_1(i, k));
 		}
 
-		if (ans < 0.0)
-			System.out.println();
 		return ans;
 	}
 

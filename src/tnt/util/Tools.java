@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import beast.evolution.tree.Node;
+import pitchfork.Pitchforks;
 import starbeast2.SpeciesTreeInterface;
 
 public class Tools {
@@ -28,7 +29,67 @@ public class Tools {
 		return tmp;
 	}
 
-	public static List<Node> getGeneNodesWithParentsAtTransmission(List<Node> nodeList,
+
+	public static List<Node> getGeneNodesNotAtTransmission(List<Node> nodeList, List<Double> transmissionHeights) {
+		List<Node> tmp = new ArrayList<>();
+		for (Node n : nodeList) {
+			if (!transmissionHeights.contains(n.getHeight()))
+				tmp.add(n);
+		}
+
+		return tmp;
+	}
+
+	public static List<Node> getGeneNodesWithParentNotAtTransmission(List<Node> nodeList,
+			List<Double> transmissionHeights) {
+		List<Node> tmp = new ArrayList<>();
+		for (Node n : nodeList) {
+			if (n.isRoot() || !transmissionHeights.contains(n.getParent().getHeight()))
+				tmp.add(n);
+		}
+
+		return tmp;
+	}
+
+	/**
+	 * TRANSMISSION TREE METHOD
+	 * 
+	 * @param trNode Transmission tree node for which to get all upstream nodes in a
+	 *               tree, starting with its parent
+	 * @return list of all upstream nodes starting at trNode
+	 */
+	public static List<Integer> getAllParentNrs(Node trNode) {
+		List<Integer> tmp = new ArrayList<>();
+		Node trNodeTmp = trNode;
+		while (!trNodeTmp.isRoot()) {
+			tmp.add(trNodeTmp.getParent().getNr());
+			trNodeTmp = trNodeTmp.getParent();
+		}
+
+		return tmp;
+	}
+
+	/**
+	 * TRANSMISSION TREE METHOD
+	 * 
+	 * @param trNode Transmission tree node for which to get all downstream nodes in
+	 *               a tree, starting with its child nodes
+	 * @return List of all downstream nodes starting at trNode
+	 */
+	public static List<Integer> getChildNrs(Node trNode) {
+		List<Integer> tmp = new ArrayList<>();
+
+		if (trNode.isLeaf())
+			return tmp;
+		for (Node child : trNode.getChildren()) {
+			tmp.add(child.getNr());
+			tmp.addAll(getChildNrs(child));
+		}
+
+		return tmp;
+	}
+
+	public static List<Node> getGeneRootAndNodesWithParentsAtTransmission(List<Node> nodeList,
 			List<Double> transmissionHeights) {
 		List<Node> tmp = new ArrayList<>();
 		for (Node n : nodeList) {
@@ -68,6 +129,30 @@ public class Tools {
 		return;
 	}
 
+	public static List<Node> getTrueNodeSubTree(Node root) {
+		List<Node> subtreeNodes = new ArrayList<>();
+
+		subtreeNodes.add(root);
+		for (Node child : Pitchforks.getLogicalChildren(root))
+			subtreeNodes.addAll(getTrueNodeSubTree(child));
+
+		return subtreeNodes;
+	}
+
+	public static double findMinHeight(Node geneNode, List<Integer> possibleNodeAssignments,
+			HashMap<Integer, Integer> geneNodeAssignment, SpeciesTreeInterface transmissionTree) {
+		int parentAssignmentLabel = geneNodeAssignment.get(geneNode.getNr());
+		if (possibleNodeAssignments.contains(parentAssignmentLabel))
+			return geneNode.getHeight();
+		Node trNode = transmissionTree.getNode(parentAssignmentLabel);
+		while (true) {
+			if (possibleNodeAssignments.contains(trNode.getNr()))
+				return trNode.getHeight();
+			trNode = trNode.getParent();
+
+		}
+	}
+
 	/**
 	 * @param transmissionTree
 	 * @param subRoot                root at which to start filling the rest of
@@ -80,9 +165,17 @@ public class Tools {
 	 *         tree. Fill geneTreeNodeAssignment.
 	 */
 	public static Boolean fillAssignmentAndCheck(SpeciesTreeInterface transmissionTree, Node subRoot,
-			HashMap<Integer, Integer> geneTreeNodeAssignment) {
+			HashMap<Integer, Integer> geneTreeNodeAssignment,
+			HashMap<Integer, List<Integer>> inverseGeneTreeNodeAssignment) {
+
+		List<Double> trHeights = getTransmissionHeights(transmissionTree);
 		if (!subRoot.isLeaf()) {
-			if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(0), geneTreeNodeAssignment))
+			if (!subRoot.isRoot() && subRoot.getParent().getHeight() < subRoot.getHeight()) {
+				throw new RuntimeException("Negative branch length!");
+			}
+
+			if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(0), geneTreeNodeAssignment,
+					inverseGeneTreeNodeAssignment))
 				return false;
 			Node tr1 = transmissionTree
 					.getNode(geneTreeNodeAssignment.get(subRoot.getChild(0).getNr()));
@@ -94,7 +187,8 @@ public class Tools {
 			}
 
 			if (subRoot.getChildCount() > 1) {
-				if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(1), geneTreeNodeAssignment))
+				if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(1), geneTreeNodeAssignment,
+						inverseGeneTreeNodeAssignment))
 					return false;
 				Node tr2 = transmissionTree
 						.getNode(geneTreeNodeAssignment.get(subRoot.getChild(1).getNr()));
@@ -114,6 +208,23 @@ public class Tools {
 			if (!tr1.isRoot() && !recipient && !subRoot.isLeaf() && tr1.getParent().getHeight() == subRoot.getHeight())
 				return false;
 			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
+
+			List<Integer> tmp = new ArrayList<>();
+			if (inverseGeneTreeNodeAssignment != null) {
+				if (inverseGeneTreeNodeAssignment.containsKey(tr1.getNr())) {
+					tmp = inverseGeneTreeNodeAssignment.get(tr1.getNr());
+				}
+				tmp.add(subRoot.getNr());
+				inverseGeneTreeNodeAssignment.put(tr1.getNr(), tmp);
+			}
+		}
+		try {
+			if (trHeights.contains(subRoot.getHeight()) &&
+				subRoot.getHeight() != transmissionTree.getNode(geneTreeNodeAssignment.get(subRoot.getNr())).getParent()
+						.getHeight())
+			return false;
+		} catch (Exception e) {
+			throw new RuntimeException("Exception while checking the gene tree");
 		}
 		return true;
 	}

@@ -91,7 +91,8 @@ public class CreateMergersOrReheight extends TreeOperator {
 			// if one true inner node = everything is one polytomy. cannot operate on that
 			// if two inner nodes = one polytomy, plus root. cannot operate on that
 			int nTrueInnerNodes = trueNodes.size();
-			if (nTrueInnerNodes < 2)
+			if (nTrueInnerNodes < 2 || nTrueInnerNodes == 1 + trueNodesAtTransmission.size()
+					|| nTrueInnerNodes == trueNodesAtTransmission.size())
 				return Double.NEGATIVE_INFINITY;// nothing to choose from
 
 			Node srcNode;
@@ -127,13 +128,16 @@ public class CreateMergersOrReheight extends TreeOperator {
 			logHR -= Math.log(1.0 / nNewMergerHeights);
 
 			if (wasSrcNodeInMerger) {
-				logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
+				if (trueNodesAtTransmission.contains(tree.getRoot()))
+					logHR += Math.log(1.0 / (nTrueInnerNodes - trueNodesAtTransmission.size()));
+				else
+					logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
 				logHR += Math.log(1.0 / nNewMergerHeights);
 				logHR += Math.log(mergerProb);
 			} else {
 				double L = maxHeight - minHeight;
 				logHR += Math.log(1.0 / L);
-				if (scaleRoot)
+				if (scaleRoot || trueNodesAtTransmission.contains(tree.getRoot()))
 					logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
 				else
 					logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size())); // srcNode could
@@ -149,15 +153,18 @@ public class CreateMergersOrReheight extends TreeOperator {
 		} else {
 			logHR -= Math.log(1.0 - mergerProb);
 			int nTrueInnerNodes = trueNodes.size();
-			if (nTrueInnerNodes == 1 && !scaleRoot)
+			if ((nTrueInnerNodes == 1 || nTrueInnerNodes == 1 + trueNodesAtTransmission.size()) && !scaleRoot)
 				return Double.NEGATIVE_INFINITY;
+			if (nTrueInnerNodes == trueNodesAtTransmission.size())
+				return Double.NEGATIVE_INFINITY;
+
 			Node srcNode;
 			do {
 				srcNode = trueNodes.get(Randomizer.nextInt(nTrueInnerNodes));
 			} while ((!scaleRoot && srcNode.isRoot()) || trueNodesAtTransmission.contains(srcNode));
 
 			// account for choosing a node
-			if (scaleRoot)
+			if (scaleRoot || trueNodesAtTransmission.contains(tree.getRoot()))
 				logHR -= Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
 			else
 				logHR -= Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
@@ -202,12 +209,15 @@ public class CreateMergersOrReheight extends TreeOperator {
 				if (wasSrcNodeInMerger) {
 					int nNewMergerHeights = possibleMergerHeights.size();
 					logHR += Math.log(1.0 / nNewMergerHeights);
-					logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
+					if (trueNodesAtTransmission.contains(tree.getRoot()))
+						logHR += Math.log(1.0 / (nTrueInnerNodes - trueNodesAtTransmission.size()));
+					else
+						logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
 					logHR += Math.log(mergerProb);
 				} else {
 					logHR += Math.log(1.0 / L);
 					logHR += Math.log(1.0 - mergerProb);
-					if (scaleRoot)
+					if (scaleRoot || trueNodesAtTransmission.contains(tree.getRoot()))
 						logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
 					else
 						logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));

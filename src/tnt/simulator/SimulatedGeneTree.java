@@ -44,6 +44,8 @@ public class SimulatedGeneTree extends Tree {
 // For now we assume constant population sizes along each branch
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch effective population sizes.", Validate.REQUIRED);
+	public Input<RealParameter> popSizeAboveOriginInput = new Input<RealParameter>("popSizeAboveOrigin",
+			"Constant above origin effective population sizes.", (RealParameter)null);
 	public Input<String> fileNameInput = new Input<>("fileName",
 			"Name of file to which gene trees will be written. Only if not using logger.");
 
@@ -240,7 +242,10 @@ public class SimulatedGeneTree extends Tree {
 			ind++;
 		}
 		Node aboveOrigin = new Node();
-		popSize.put(aboveOrigin, 1.0);
+		if (popSizeAboveOriginInput.get()==null)
+			popSize.put(aboveOrigin, 1.0);
+		else
+			popSize.put(aboveOrigin, popSizeAboveOriginInput.get().getValue(0));
 
 		while (getTotalLineageCount(activeLineages) > 1 || !sortedTransmissionTreeNodes.isEmpty()) {
 
