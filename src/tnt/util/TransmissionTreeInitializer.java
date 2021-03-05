@@ -36,8 +36,8 @@ import beast.math.distributions.MRCAPrior;
 import beast.util.ClusterTree;
 import beast.util.TreeParser;
 import starbeast2.PopulationModel;
-import starbeast2.SpeciesTree;
 import starbeast2.SpeciesTreeInterface;
+import tnt.transmissionTree.TransmissionTree;
 
 /**
  * Adapted by Ugne Stolz, to keep tree direction correct when parsing from
@@ -69,7 +69,8 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
             "state or a point estimate based on alignments data (default point-estimate)",
             Method.POINT, Method.values());
 
-	final public Input<SpeciesTree> speciesTreeInput = new Input<>("speciesTree", "The species tree to initialize.",
+	final public Input<TransmissionTree> speciesTreeInput = new Input<>("speciesTree",
+			"The species tree to initialize.",
 			Input.Validate.REQUIRED);
     final public Input<String> newickInput = new Input<>("newick", "Newick string for a custom initial species tree.");
 
@@ -108,7 +109,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 
     @Override
     public void initStateNodes() {
-		final SpeciesTree transmissionTree = speciesTreeInput.get();
+		final TransmissionTree transmissionTree = speciesTreeInput.get();
 		final TaxonSet taxonSuperSet = transmissionTree.getTaxonset();
 		final Set<BEASTInterface> treeOutputs = speciesTreeInput.get().getOutputs();
         final Method method = initMethod.get();
@@ -200,8 +201,9 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 							"samplingRate", samplingRateInput.get(),
 							"origin", originInput.get());
 
-					final TreeParser parser = new TreeParser(geneTree.getSimulatedGeneTree().getRoot().toNewick());
-					gtree.assignFromWithoutID(parser);
+//					final TreeParser parser = new TreeParser(geneTree.getSimulatedGeneTree().getRoot().toNewick());
+//					gtree.assignFromWithoutID(parser);
+					gtree.assignFromWithoutID(geneTree.getSimulatedGeneTree());
 				} else {
 					gtree.makeCaterpillar(rootHeight, rootHeight / gtree.getInternalNodeCount(), true);
                 }
@@ -317,7 +319,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
     }
 
 
-    private void fullInit(final SpeciesTree speciesTree) {
+	private void fullInit(final TransmissionTree speciesTree) {
         // Build gene trees from  alignments
     	
 
@@ -474,7 +476,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
         }
     }
 
-    private void randomInit(final SpeciesTree speciesTree, List<MRCAPrior> calibrations) {
+	private void randomInit(final TransmissionTree speciesTree, List<MRCAPrior> calibrations) {
     	final RealParameter birthRateParameter = birthRate.get();
     	final Double lambda = (birthRateParameter == null) ? 1.0 : birthRateParameter.getValue();
     	final Double initialPopSize = 1.0 / lambda; // scales coalescent tree height inverse to birth rate

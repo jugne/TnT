@@ -23,7 +23,6 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
-import pitchfork.Pitchforks;
 
 /**
  * @author Ugne Stolz. Created on 22 Oct 2019 Adapted from Tim Vaughan's
@@ -110,7 +109,7 @@ public class SimulatedGeneTree extends Tree {
         sampleCounts = sampleCountsInput.get();
 
 		hiddenNodes = 0;
-		hiddenNodeTimes = new ArrayList();
+		hiddenNodeTimes = new ArrayList<Double>();
 		hiddenKnown = false;
 
 		for (Node n : transmissionTree.getNodesAsArray()) {
@@ -128,7 +127,7 @@ public class SimulatedGeneTree extends Tree {
 		Tree tree;
 		while (true) {
 			tree = getSimulatedGeneTree();
-			List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
+//			List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
 //			if (trueNodes.size() < 3 || (trueNodes.get(0).getHeight() != trueNodes.get(1).getHeight()
 //					&& trueNodes.get(0).getHeight() != trueNodes.get(2).getHeight()
 //					&& trueNodes.get(1).getHeight() != trueNodes.get(2).getHeight())) {

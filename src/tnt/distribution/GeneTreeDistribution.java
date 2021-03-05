@@ -27,8 +27,11 @@ public class GeneTreeDistribution extends Distribution {
 	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 			"Sampling rate per individual", Input.Validate.REQUIRED);
 
+	public Input<RealParameter> durationInput = new Input<>("bottleneckDuration",
+			"Duration of the transmission bottleneck");
+
 	public Input<RealParameter> tauInput = new Input<>("tau",
-			"Strength of the transmission bottleneck", Validate.REQUIRED);
+			"Strength of the transmission bottleneck", Input.Validate.XOR, durationInput);
 
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch population sizes.", Validate.REQUIRED);
@@ -59,10 +62,10 @@ public class GeneTreeDistribution extends Distribution {
 
 	private double ploidy;
 
-	private int transmissionNodeCount;
+//	private int transmissionNodeCount;
 
 	private double lambda;
-	private double tau;
+	private double bottleneckDuration;
 	private double psi;
 	private double mu;
 	private double c1;
@@ -93,7 +96,7 @@ public class GeneTreeDistribution extends Distribution {
 
 		ploidy = ploidyInput.get();
 		intervals = geneTreeIntervalsInput.get();
-		transmissionNodeCount = intervals.transmissionTree.getNodeCount();
+//		transmissionNodeCount = intervals.transmissionTree.getNodeCount();
 //		popSizesInput.get().setDimension(transmissionNodeCount);
 		popSizesInput.get().setDimension(2);
 	}
@@ -132,7 +135,10 @@ public class GeneTreeDistribution extends Distribution {
 		c2 = -(lambda - mu - 2 * lambda * rho - psi) / c1;
 
 		popSizes = popSizesInput.get();
-		tau = tauInput.get().getValue();
+		if (tauInput.get().getValue() != null)
+			bottleneckDuration = tauInput.get().getValue() * popSizes.getValue(1);
+		else
+			bottleneckDuration = durationInput.get().getValue();
 	}
 
 	@Override
@@ -211,7 +217,7 @@ public class GeneTreeDistribution extends Distribution {
 				case MULTIFURCATION:
 					// is multifurcation time is the end of transmission tree branch,
 					// then it is the observed transmission event
-					if (tau==0.0)
+					if (bottleneckDuration == 0.0)
 						logP = Double.NEGATIVE_INFINITY;
 					if (eventAtTransmission) {
 						logP += transmission(event, prevEvent);
@@ -280,7 +286,7 @@ public class GeneTreeDistribution extends Distribution {
 				* (end_time - prevEvent.time);
 
 		double sum = 0;
-		sum = gUp(prevEvent.lineages, prevEvent.lineages, tau, popSizes.getValue(0));//
+		sum = gUp(prevEvent.lineages, prevEvent.lineages, bottleneckDuration, popSizes.getValue(0));//
 
 		ans -= (1 - sum) * lambda//
 				* integralP_0(prevEvent.time, end_time);//
@@ -308,7 +314,7 @@ public class GeneTreeDistribution extends Distribution {
 		}
 
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
-				* gUp(prevEvent.lineages, event.lineages, tau, popSizes.getValue(0));
+				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizes.getValue(0));
 
 		if (Math.log(ans) == Double.NEGATIVE_INFINITY)
 			System.out.println();
@@ -323,7 +329,7 @@ public class GeneTreeDistribution extends Distribution {
 
 		int n_histories = event.multiCoalSize.size();
 
-		if (event.time > originInput.get().getArrayValue(0) || tau == 0.0)
+		if (event.time > originInput.get().getArrayValue(0) || bottleneckDuration == 0.0)
 			return Double.NEGATIVE_INFINITY;
 		for (int s = 0; s < n_histories; s++) {
 			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
@@ -335,7 +341,7 @@ public class GeneTreeDistribution extends Distribution {
 
 
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
-				* gUp(prevEvent.lineages, event.lineages, tau, popSizes.getValue(0))
+				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizes.getValue(0))
 					* lambda * P_0(event.time);
 
 		return Math.log(ans);
@@ -352,7 +358,7 @@ public class GeneTreeDistribution extends Distribution {
 
 		ans += 1.0 / (ploidy * popSizes.getValue(0));
 		ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))//
-				* gUp(prevEvent.lineages, event.lineages, tau, popSizes.getValue(0))//
+				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizes.getValue(0))//
 				* lambda * P_0(event.time);//
 
 		return Math.log(ans);
@@ -372,9 +378,10 @@ public class GeneTreeDistribution extends Distribution {
 		if (tau == 0.0 && i != j)
 			return 0.0;
 		for (int k = j; k <= i; k++) {
-			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j) * f_1(j, k - 1) * f_2(i, k)
-					* Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne)) /
-					(MathUtils.factorialDouble(j) * MathUtils.factorialDouble(k - j) * f_1(i, k));
+			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j) * Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne))
+					* (f_1(j, k - 1) / MathUtils.factorialDouble(k - j)) * (f_2(i, k) / MathUtils.factorialDouble(j))
+					/
+					f_1(i, k);
 		}
 
 		return ans;

@@ -171,6 +171,7 @@ public class Tools {
 		List<Double> trHeights = getTransmissionHeights(transmissionTree);
 		if (!subRoot.isLeaf()) {
 			if (!subRoot.isRoot() && subRoot.getParent().getHeight() < subRoot.getHeight()) {
+
 				throw new RuntimeException("Negative branch length!");
 			}
 

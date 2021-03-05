@@ -61,8 +61,8 @@ public class TransmissionAttachChanged extends TreeOperator {
     public double proposal() {
 
         double logHR = 0.0;
-		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
-		inverseGeneNodeAssignment = intervals.getInverseGeneTreeNodeAssignment();
+		geneNodeAssignment = new HashMap<Integer, Integer>(intervals.getGeneTreeNodeAssignment());
+		inverseGeneNodeAssignment = new HashMap<Integer, List<Integer>>(intervals.getInverseGeneTreeNodeAssignment());
 		// fill the recipient node list on
 		List<Node> recipients = new ArrayList<>();
 		Node trTreeRoot = intervals.transmissionTreeInput.get().getRoot();
@@ -224,6 +224,7 @@ public class TransmissionAttachChanged extends TreeOperator {
 			// detach from transmission
 //			System.out.println("detach at: " + chosenRecipient.getParent().getHeight());
 
+
 			fitToMove = getFitToMoveAtTransmission(trueNodes, chosenRecipient);
 			if (fitToMove.size() == 0)
 				return Double.NEGATIVE_INFINITY;
@@ -290,11 +291,11 @@ public class TransmissionAttachChanged extends TreeOperator {
 //					Node parentAssigntmentNode = intervals.transmissionTreeInput.get().getNode(parentAssignmentLabel);
 //					sibHeight = parentAssigntmentNode.getHeight();
 //				}
+
 				double L = newAttachNode.getParent().getHeight() -
 						Math.max(nodeToMove.getHeight(), sibHeight);
 				newHeight = Randomizer.nextDouble() * L +
 						Math.max(nodeToMove.getHeight(), sibHeight);
-
 				logHR -= Math.log(1.0 / L);
 			}
 
@@ -326,6 +327,7 @@ public class TransmissionAttachChanged extends TreeOperator {
 			geneNodeAssignment.putAll(intervals.geneTreeTipAssignment);
 			inverseGeneNodeAssignment.clear();
 			inverseGeneNodeAssignment.putAll(intervals.inverseGeneTreeTipAssignment);
+
 			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), tree.getRoot(),
 					geneNodeAssignment, inverseGeneNodeAssignment))
 				return Double.NEGATIVE_INFINITY; // not compatible
