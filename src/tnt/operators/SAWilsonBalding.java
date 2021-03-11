@@ -40,24 +40,40 @@ public class SAWilsonBalding extends TreeOperator {
 
         //double x0 = 10;
 
-        double oldMinAge, newMinAge, newRange, oldRange, newAge, fHastingsRatio, DimensionCoefficient;
+		double oldMinAge, newMinAge, newRange, oldRange, newAge, fHastingsRatio, DimensionCoefficient,
+				eventTimeCoefficient;
         int newDimension, oldDimension;
+        
+        // weather to choose node to detach (i) which parent (iP) coinsides with gene tree event
+        boolean detachFromGeneTreeEventTime = Randomizer.nextBoolean();
+        // weather to choose node to attach (j) which parent (jP) coinsides with gene tree event
+        boolean attachAtGeneTreeEventTime = Randomizer.nextBoolean();
 
-		// get fit nodes as lis
-        Integer[] fitNodesNrs = getTrNodeNrsNotTransmissionOnGenes(tree);
+		// get nodes that do not have parents that coincide with transmission induced
+		// events on gene trees
+		Set<Integer> nodeNrsWithParentNOTAtGeneTreeTransmission = getTrNodesWithParentNotAtGeneNodeTimes(tree);
         
         // choose a random node avoiding root and leaves that are direct ancestors
 		int nodeCount = tree.getNodeCount();
-		int nodeCountFrom = fitNodesNrs.length;
+		int nodeCountFrom;
+		if (!detachFromGeneTreeEventTime)
+			nodeCountFrom = nodeNrsWithParentNOTAtGeneTreeTransmission.size();
+		else
+			nodeCountFrom = nodeCount - nodeNrsWithParentNOTAtGeneTreeTransmission.size();
+		
 		if (nodeCountFrom == 1)
 			return Double.NEGATIVE_INFINITY;
-        Node i;
-
+        
+		
+		Node i;
         do {
-//            i = tree.getNode(Randomizer.nextInt(nodeCount));
-			int nr = fitNodesNrs[Randomizer.nextInt(nodeCountFrom)];
-			i = tree.getNode(nr);
-        } while (i.isRoot() || i.isDirectAncestor());
+            i = tree.getNode(Randomizer.nextInt(nodeCount));
+//			int nr = nodeNrsWithParentAtGeneTreeTransmission[Randomizer.nextInt(nodeCountFrom)];
+//			i = tree.getNode(nr);
+		} while (((detachFromGeneTreeEventTime && nodeNrsWithParentNOTAtGeneTreeTransmission.contains(i.getNr()))
+				|| (!detachFromGeneTreeEventTime && !nodeNrsWithParentNOTAtGeneTreeTransmission.contains(i.getNr())))
+				&& (i.isRoot() || i.isDirectAncestor()));
+
 
         Node iP = i.getParent();
         Node CiP;
@@ -71,6 +87,32 @@ public class SAWilsonBalding extends TreeOperator {
         if (iP.getParent() == null && CiP.getHeight() <= i.getHeight()) {
             return Double.NEGATIVE_INFINITY;
         }
+
+		// check for all gene trees
+		final List<GeneTreeIntervals> intervalsList = geneTreeIntervalsInput.get();
+		// ways to choose attachment time if detachFromGeneTreeEventTime
+		int oldPossibleAttachEventTimesCount = 0;
+		if (detachFromGeneTreeEventTime) {
+
+			// events, excluding sample and mock, corresponding to i, iP and CiP
+			// transmission tree nodes in all gene trees
+			List<GeneTreeEvent> oldEventsToAttach = null;
+			Set<Double> oldPossibleAttachEventTimes = new HashSet<Double>();
+			for (GeneTreeIntervals intervals : intervalsList) {
+				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
+				oldEventsToAttach = eventList.get(i.getNr());
+				oldEventsToAttach.addAll(eventList.get(iP.getNr()));
+				oldEventsToAttach.addAll(eventList.get(CiP.getNr()));
+
+//				oldEventsToAttach.removeIf(e -> e.type == GeneTreeEventType.SAMPLE || e.type == GeneTreeEventType.MOCK);
+			}
+			for (GeneTreeEvent e : oldEventsToAttach) {
+				if (oldPossibleAttachEventTimes.contains(e.time))
+					continue;
+				oldPossibleAttachEventTimes.add(e.time);
+			}
+			oldPossibleAttachEventTimesCount = oldPossibleAttachEventTimes.size();
+		}
 
         // choose another random node to insert i above or to attach i to this node if it is a leaf
         Node j;
@@ -122,7 +164,29 @@ public class SAWilsonBalding extends TreeOperator {
             return Double.NEGATIVE_INFINITY;
         }
 
+		// total transmission tree node count - number of direct ancestors - root
 		oldDimension = nodeCountFrom - tree.getDirectAncestorNodeCount() - 1;
+
+		if (attachAtGeneTreeEventTime) {
+			// events, excluding sample and mock, corresponding to i, iP and CiP
+			// transmission tree nodes in all gene trees
+			List<GeneTreeEvent> newEventsToAttach = null;
+			Set<Double> oldPossibleAttachEventTimes = new HashSet<Double>();
+			for (GeneTreeIntervals intervals : intervalsList) {
+				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
+				newEventsToAttach = eventList.get(i.getNr());
+				oldEventsToAttach.addAll(eventList.get(iP.getNr()));
+				oldEventsToAttach.addAll(eventList.get(CiP.getNr()));
+
+//				oldEventsToAttach.removeIf(e -> e.type == GeneTreeEventType.SAMPLE || e.type == GeneTreeEventType.MOCK);
+			}
+			for (GeneTreeEvent e : oldEventsToAttach) {
+				if (oldPossibleAttachEventTimes.contains(e.time))
+					continue;
+				oldPossibleAttachEventTimes.add(e.time);
+			}
+			oldPossibleAttachEventTimesCount = oldPossibleAttachEventTimes.size();
+		}
 
         //Hastings numerator calculation + newAge of iP
         if (attachingToLeaf) {
@@ -227,10 +291,21 @@ public class SAWilsonBalding extends TreeOperator {
 
     }
 
-	private Integer[] getTrNodeNrsNotTransmissionOnGenes(Tree transmissionTree) {
+	/**
+	 * Gets the Transmission Tree node numbers for nodes that have parent nodes NOT
+	 * coinciding with transmission induced events on Gene Trees.
+	 *
+	 * @param transmissionTree the transmission tree
+	 * @return the transmission node numbers with parent nodes not at transmission
+	 *         induced gene node times
+	 */
+	private Set<Integer> getTrNodesWithParentNotAtGeneNodeTimes(Tree transmissionTree) {
 		Set<Integer> fitNodeNrs = new HashSet<Integer>();
+
+		// check for all gene trees
 		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
 
+		// root does not have a parent node
 		for (Node n : transmissionTree.getNodesAsArray()) {
 			if (n.isRoot()) {
 				fitNodeNrs.add(n.getNr());
@@ -245,6 +320,8 @@ public class SAWilsonBalding extends TreeOperator {
 				List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
 				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
 
+				// fake event coinside with gene tree events, but because if sampling, not
+				// transmission
 				if (!n.getParent().isFake() && n.getParent().getHeight() == lastEvent.time) {
 					addToFit = false;
 					break;
@@ -255,17 +332,8 @@ public class SAWilsonBalding extends TreeOperator {
 				fitNodeNrs.add(recipientNr);
 				fitNodeNrs.add(n.getParent().getChild(0).getNr());
 			}
-
-//			int recipientNr = n.getParent().getChild(1).getNr();
-//			List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
-//			GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
-//
-//			if (n.getParent().isFake() || n.getParent().getHeight() != lastEvent.time) {
-//				fitNodeNrs.add(recipientNr);
-//				fitNodeNrs.add(n.getParent().getChild(0).getNr());
-//			}
 		}
-		return fitNodeNrs.toArray(new Integer[0]);
+		return fitNodeNrs;
 	}
 
 
