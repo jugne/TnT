@@ -19,10 +19,11 @@ import beast.evolution.tree.Node;
 import starbeast2.PopulationModel;
 import starbeast2.SpeciesTreeInterface;
 import tnt.distribution.GeneTreeDistribution;
+import tnt.transmissionTree.TransmissionTree;
 
 @Description("Based on the SpeciesTreeLogger class, but without node sorting")
 public class TransmissionTreeLogger extends BEASTObject implements Loggable {
-	final public Input<SpeciesTreeInterface> speciesTreeInput = new Input<>("transmissionTree",
+	final public Input<SpeciesTreeInterface> transmissionTreeInput = new Input<>("transmissionTree",
 			"The species tree to be logged.", Validate.REQUIRED);
 	final public Input<List<GeneTreeDistribution>> geneTreeInput = new Input<>("geneTree",
 			"Gene tree within the species tree.", new ArrayList<>());
@@ -33,6 +34,9 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
     final public Input<Boolean> substitutionsInput = new Input<>("substitutions", "report branch lengths as substitutions (branch length times clock rate for the branch)", false);
     final public Input<Integer> decimalPlacesInput = new Input<>("dp", "the number of decimal places to use writing branch lengths and rates, use -1 for full precision (default = full precision)", -1);
 
+	final public Input<Boolean> logOrientationInput = new Input<>("logOrientation",
+			"report if node is donor or recipient", true);
+
     boolean someMetaDataNeedsLogging;
     boolean substitutions = false;
 
@@ -40,7 +44,8 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 
     @Override
     public void initAndValidate() {
-        if (parameterInput.get().size() == 0 && clockModelInput.get() == null && populationModelInput.get() == null) {
+		if (parameterInput.get().size() == 0 && clockModelInput.get() == null && populationModelInput.get() == null
+				&& !logOrientationInput.get()) {
             someMetaDataNeedsLogging = false;
             return;
             //throw new IllegalArgumentException("At least one of the metadata and branchratemodel inputs must be defined");
@@ -64,15 +69,16 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 
     @Override
     public void init(PrintStream out) {
-        SpeciesTreeInterface speciesTree = speciesTreeInput.get();
-        speciesTree.init(out);
+		SpeciesTreeInterface transmissionTree = transmissionTreeInput.get();
+		transmissionTree.init(out);
     }
 
     @Override
     public void log(long nSample, PrintStream out) {
         // make sure we get the current version of the inputs
-        SpeciesTreeInterface speciesTree = speciesTreeInput.get();
-        SpeciesTreeInterface tree = (SpeciesTreeInterface) speciesTree.getCurrent();
+		SpeciesTreeInterface transmissionTree = transmissionTreeInput.get();
+		TransmissionTree tree = (TransmissionTree) transmissionTree.getCurrent();
+		tree.addOrientationMetadata();
         List<Function> metadata = parameterInput.get();
         for (int i = 0; i < metadata.size(); i++) {
             if (metadata.get(i) instanceof StateNode) {
@@ -116,7 +122,11 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
             }
             buf.append(")");
         } else {
-//            buf.append(node.getNr() + 1);
+			if (node.getID() == null) {
+				buf.append(node.getNr() + 1);
+			} else {
+				buf.append(node.getID());
+			}
         }
         if (someMetaDataNeedsLogging) {
             buf.append("[&");
@@ -160,15 +170,18 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 
             if (populationModel != null) {
                 populationModel.serialize(node, buf, df);
+				if (logOrientationInput.get()) {
+					buf.append(",");
+				}
+			}
+
+			if (logOrientationInput.get()) {
+				buf.append(node.metaDataString);
             }
 
             buf.append(']');
         }
-		if (node.getID() == null) {
-			buf.append(node.getNr() + 1);
-		} else {
-			buf.append(node.getID());
-		}
+
         buf.append(":");
 
         double nodeLength;
@@ -188,7 +201,7 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 
     // uses the height of the tallest species or gene tree
     private double getTreeHeight() {
-        double speciesTreeHeight = speciesTreeInput.get().getRoot().getHeight();
+		double speciesTreeHeight = transmissionTreeInput.get().getRoot().getHeight();
 
 		for (GeneTreeDistribution gt : geneTreeInput.get()) {
             speciesTreeHeight = Double.max(speciesTreeHeight, gt.getRoot().getHeight());
@@ -199,7 +212,7 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 
     @Override
     public void close(PrintStream out) {
-        SpeciesTreeInterface speciesTree = speciesTreeInput.get();
+		SpeciesTreeInterface speciesTree = transmissionTreeInput.get();
         speciesTree.close(out);
     }
 

@@ -84,8 +84,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
     
 	public Input<TraitSet> sampleCountsInput = new Input<>(
 			"sampleCounts",
-			"TraitSet defining number of  samples per node in species tree.",
-			Input.Validate.REQUIRED);
+			"TraitSet defining number of  samples per node in species tree.");
 
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch effective population sizes.");
@@ -187,7 +186,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
                     /* add the height of the species root node to all gene tree node height, to
                     ensure compatibility of the trees while preserving user-specified topologies */
                     boostGeneTreeInternalNodeHeights(gtree, rootHeight);
-				} else if (bottleneckStrengthInput.get() != null) {
+				} else if (bottleneckStrengthInput.get() != null && sampleCountsInput.get() != null) {
 					final tnt.simulator.SimulatedGeneTree geneTree = new tnt.simulator.SimulatedGeneTree();
 					geneTree.setID("gene_tree_truth");
 					geneTree.initByName("transmissionTreeInput", transmissionTree,
