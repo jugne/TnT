@@ -99,6 +99,7 @@ public class SimulatedGeneTree extends Tree {
     public void initAndValidate() {
 
 		transmissionTree = transmissionTreeInput.get();
+		orientateTreeAtFakeNodes(transmissionTree.getRoot());
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
 		bottleneckStrength = bottleneckStrengthInput.get().getArrayValue(0);
@@ -572,6 +573,26 @@ public class SimulatedGeneTree extends Tree {
 				.log(((c2 - 1) * Math.exp(-c1 * t_0) - c2 - 1) / ((c2 - 1) * Math.exp(-c1 * t_1) - c2 - 1)));
 
 		return ans;
+	}
+
+	private void orientateTreeAtFakeNodes(Node subRoot) {
+
+		if (!subRoot.isLeaf()) {
+			if (subRoot.isFake() && subRoot.getLeft().getHeight() == subRoot.getHeight()) {
+				Node left = subRoot.getRight();
+				Node right = subRoot.getLeft();
+
+				subRoot.removeAllChildren(false);
+				subRoot.addChild(left);
+				subRoot.addChild(right);
+//				left.setParent(subRoot);
+//				right.setParent(subRoot);
+			}
+			
+			orientateTreeAtFakeNodes(subRoot.getChild(0));
+			orientateTreeAtFakeNodes(subRoot.getChild(1));
+
+		}
 	}
 
 }
