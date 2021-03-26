@@ -17,15 +17,20 @@
 
 package tnt.operators;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Description;
 import beast.core.Input;
+import beast.core.Input.Validate;
 import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import pitchfork.Pitchforks;
+import tnt.distribution.GeneTreeIntervals;
+import tnt.util.Tools;
 
 @Description("Exchange operator compatible with pitchfork trees.")
 public class ExchangeOperator extends TreeOperator {
@@ -35,17 +40,40 @@ public class ExchangeOperator extends TreeOperator {
             "Whether narrow exchange is used.",
             true);
 
+	/** The gene tree intervals input. */
+	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
+			"intervals for a gene tree", Validate.REQUIRED);
+
     boolean isNarrow;
+	/** The gene tree. */
     Tree tree;
+
+	/**
+	 * The gene node assignment (gene tree node Nr -> transmission tree node Nr).
+	 */
+	HashMap<Integer, Integer> geneNodeAssignment;
+
+	/** The gene tree intervals. */
+	GeneTreeIntervals intervals;
+
+	/**
+	 * The transmission node heights on the transmission tree (bifurcating node
+	 * heights).
+	 */
+	List<Double> trHeights;
 
     @Override
     public void initAndValidate() {
         isNarrow = isNarrowInput.get();
         tree = treeInput.get();
+		intervals = geneTreeIntervalsInput.get();
     }
 
     @Override
     public double proposal() {
+
+		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
+		trHeights = Tools.getTransmissionHeights(intervals.transmissionTreeInput.get());
 
         if (isNarrow) {
             List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
@@ -66,7 +94,10 @@ public class ExchangeOperator extends TreeOperator {
             } while (srcNodeLogicalParent == null || srcNodeLogicalGrandparent == null);
             srcNodeParent = srcNode.getParent();
 
-            List<Node> possibleDestNodes = Pitchforks.getLogicalChildren(srcNodeLogicalGrandparent);
+			List<Node> possibleDestNodes = getPossibleDestNodes(srcNodeLogicalGrandparent, srcNodeLogicalParent,
+					srcNode);
+			if (possibleDestNodes.isEmpty())
+				return Double.NEGATIVE_INFINITY;
 
             do {
                 destNode = possibleDestNodes.get(Randomizer.nextInt(possibleDestNodes.size()));
@@ -93,4 +124,25 @@ public class ExchangeOperator extends TreeOperator {
 
         return 0;
     }
+
+	private List<Node> getPossibleDestNodes(Node srcNodeLogicalGrandparent, Node srcNodeLogicalParent, Node srcNode) {
+		List<Node> possibleDestNodes = Pitchforks.getLogicalChildren(srcNodeLogicalGrandparent);
+		List<Integer> possibleAssignments = new ArrayList<>();
+		int trNodeNr = geneNodeAssignment.get(srcNode.getNr());
+		possibleAssignments.add(trNodeNr);
+		possibleAssignments.addAll(Tools.getAllParentNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
+		possibleAssignments.addAll(Tools.getChildNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
+		
+		List<Node> remove = new ArrayList<Node>();
+		for (Node n : possibleDestNodes) {
+			if (!possibleAssignments.contains(geneNodeAssignment.get(n.getNr()))
+					|| n.getHeight() == srcNodeLogicalParent.getHeight())
+					remove.add(n);
+		}
+		
+		possibleDestNodes.removeAll(remove);
+		
+		return possibleDestNodes;
+
+	}
 }

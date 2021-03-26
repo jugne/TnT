@@ -6,6 +6,7 @@ import java.util.Random;
 
 import org.apache.commons.math.util.MathUtils;
 
+import bdmmprime.parameterization.Parameterization;
 import beast.core.Distribution;
 import beast.core.Function;
 import beast.core.Input;
@@ -15,151 +16,99 @@ import beast.core.parameter.RealParameter;
 import beast.evolution.tree.Node;
 import starbeast2.SpeciesTreeInterface;
 
-public class GeneTreeDistribution extends Distribution {
+public class SkyGeneTreeDistribution extends Distribution {
 
 	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
 			"intervals for a gene tree", Validate.REQUIRED);
 	public Input<Double> ploidyInput = new Input<>("ploidy",
 			"Ploidy (copy number) for this gene, typically a whole number or half (default is 1).", 1.0);
-	public Input<RealParameter> birthRateInput = new Input<RealParameter>("birthRate", "Birth rate",
+
+	public Input<Parameterization> parameterizationInput = new Input<>("parameterization",
+			"BDMM parameterization",
 			Input.Validate.REQUIRED);
-	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate", Input.Validate.REQUIRED);
-	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
-			"Sampling rate per individual", Input.Validate.REQUIRED);
 
 	public Input<RealParameter> durationInput = new Input<>("bottleneckDuration",
-			"Duration of the transmission bottleneck");
+			"Duration of the transmission bottleneck. Use either duration or strength (tau).");
 
 	public Input<RealParameter> tauInput = new Input<>("tau",
 			"Strength of the transmission bottleneck", Input.Validate.XOR, durationInput);
 
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch population sizes.", Validate.REQUIRED);
-	public Input<RealParameter> originInput = new Input<RealParameter>("origin",
-			"Start of branching process.", Validate.REQUIRED);
+
 
 	// transformed parameters:
 	public Input<RealParameter> expectedNInput = new Input<RealParameter>("expectedN",
 			"The expected-N-at-present parameterisation of T", (RealParameter) null);
-	public Input<RealParameter> diversificationRateInput = new Input<RealParameter>("diversificationRate",
-			"Net diversification rate. Birth rate - death rate", Input.Validate.XOR, birthRateInput);
-	public Input<Function> turnoverInput = new Input<Function>("turnover", "Turnover. Death rate/birth rate",
-			Input.Validate.XOR, deathRateInput);
-	public Input<RealParameter> samplingProportionInput = new Input<RealParameter>("samplingProportion",
-			"The probability of sampling prior to death. Sampling rate/(sampling rate + death rate)",
-			Input.Validate.XOR, samplingRateInput);
+	
+    public Input<Function> finalSampleOffsetInput = new Input<>("finalSampleOffset",
+            "If provided, the difference in time between the final sample and the end of the BD process.",
+            new RealParameter("0.0"));
 
-	// r parameter
-	public Input<RealParameter> removalProbability = new Input<RealParameter>("removalProbability",
-			"The probability that an individual is removed from the process after the sampling",
-			(RealParameter) null);
-
-	public Input<RealParameter> rhoProbability = new Input<RealParameter>("rho",
-			"Probability of an individual to be sampled at present", (RealParameter) null);
-
-
-
+	public Input<Boolean> popSizePerBranchInput = new Input<>("popSizePerBranch",
+			"If pop sizes are estimated for each transmission tree branch. "
+					+ "Default false: only before and after origin sizes are estimated.",
+			false);
 
 	private double ploidy;
 
-//	private int transmissionNodeCount;
-
-	private double lambda;
 	private double bottleneckDuration;
-	private double psi;
-	private double mu;
-	private double c1;
-	private double c2;
-	private double rho;
-	private double r;
-	protected boolean transform; // is true if the model is parametrised through transformed parameters
-	RealParameter popSizes;
+
+	private Parameterization parameterization;
+
+	private double rho_i;
+	private double lambda_i;
+	private double mu_i;
+	private double psi_i;
+	private double c1_i;
+	private double c2_i;
+	private double origin;
+	private Function finalSampleOffset;
+
+	private double popSizePerBranch;
+	private double popSizeOrigin;
+
+	private int popSizeDim;
+
+	SpeciesTreeInterface transmissionTree;
+
 //	private double popSizes;
 	private GeneTreeIntervals intervals;
 
 
 	@Override
 	public void initAndValidate() {
-		if (birthRateInput.get() != null && deathRateInput.get() != null && samplingRateInput.get() != null) {
-
-			transform = false;
-
-		} else if (diversificationRateInput.get() != null && turnoverInput.get() != null
-				&& samplingProportionInput.get() != null) {
-
-			transform = true;
-
-		} else {
-			throw new IllegalArgumentException(
-					"Either specify birthRate, deathRate and samplingRate OR specify diversificationRate, turnover and samplingProportion!");
-		}
 
 		ploidy = ploidyInput.get();
 		intervals = geneTreeIntervalsInput.get();
-//		transmissionNodeCount = intervals.transmissionTree.getNodeCount();
-//		popSizesInput.get().setDimension(transmissionNodeCount);
-		popSizesInput.get().setDimension(2);
+
+		transmissionTree = intervals.transmissionTreeInput.get();
+
+		popSizeDim = popSizePerBranchInput.get() ? transmissionTree.getNodeCount() + 1 : 2;
+		popSizesInput.get().setDimension(popSizeDim);
+
+		parameterization = parameterizationInput.get();
+		
+		finalSampleOffset = finalSampleOffsetInput.get();
 	}
 
-	private void transformParameters() {
-		double d = diversificationRateInput.get().getValue();
-		double r_turnover = turnoverInput.get().getArrayValue();
-		double s = samplingProportionInput.get().getValue();
-		lambda = d / (1 - r_turnover);
-		mu = r_turnover * lambda;
-		psi = mu * s / (1 - s);
-	}
 
-	protected void updateParameters() {
+	protected void updateParameters(int trNodeNr) {
+		
+		popSizePerBranch = popSizePerBranchInput.get() ? popSizesInput.get().getValue(trNodeNr)
+				: popSizesInput.get().getValue(0);
 
-		if (removalProbability.get() != null) {
-			r = removalProbability.get().getValue();
-		} else {
-			r = 0.;
-		}
-		if (rhoProbability.get() != null) {
-			rho = rhoProbability.get().getValue();
-		} else {
-			rho = 0.;
-		}
-
-		if (transform) {
-			transformParameters();
-		} else {
-			lambda = birthRateInput.get().getValue();
-			mu = deathRateInput.get().getArrayValue();
-			psi = samplingRateInput.get().getValue();
-		}
-
-		c1 = Math.sqrt((lambda - mu - psi) * (lambda - mu - psi) + 4 * lambda * psi);
-		c2 = -(lambda - mu - 2 * lambda * rho - psi) / c1;
-
-		popSizes = popSizesInput.get();
 		if (tauInput.get().getValue() != null)
-			bottleneckDuration = tauInput.get().getValue() * popSizes.getValue(0);
+			bottleneckDuration = tauInput.get().getValue() * popSizePerBranch;
 		else
 			bottleneckDuration = durationInput.get().getValue();
+		
+		popSizeOrigin = popSizesInput.get().getValue(popSizeDim-1);
 	}
+
 
 	@Override
 	public double calculateLogP() {
-//		lambda = birthRateInput.get().getValue();
-//		mu = deathRateInput.get().getArrayValue();
-//		psi = samplingRateInput.get().getValue();
-//
-//		if (rhoProbability.get() != null) {
-//			rho = rhoProbability.get().getValue();
-//		} else {
-//			rho = 0.;
-//		}
-//		c1 = Math.sqrt((lambda - mu - psi) * (lambda - mu - psi) + 4 * lambda * psi);
-//		c2 = -(lambda - mu - 2 * lambda * rho - psi) / c1;
-//		
-//		popSizes = popSizesInput.get();
-//		tau = tauInput.get().getValue();
-
-		updateParameters();
-
 
 		logP = 0;
 
@@ -168,14 +117,29 @@ public class GeneTreeDistribution extends Distribution {
 		// if gene tree and species tree are incompatible
 		if (eventList == null)
 			return Double.NEGATIVE_INFINITY;
-		SpeciesTreeInterface transmissionTree = (SpeciesTreeInterface) intervals.transmissionTreeInput.get()
-				.getCurrent();
+
+
+		origin = parameterization.originInput.get().getArrayValue(0);
 
 		
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
+			updateParameters(trNode.getNr());
+
+			int i = parameterization.getIntervalIndex(parameterization.getNodeTime(trNode, finalSampleOffset.getArrayValue()));
+			double int_end_time = Double.POSITIVE_INFINITY;
+			if (i != 0)
+				int_end_time = origin - parameterization.getIntervalEndTimes()[i - 1];
+
+			rho_i = parameterization.getRhoValues()[i][0];
+			lambda_i = parameterization.getBirthRates()[i][0];
+			mu_i = parameterization.getDeathRates()[i][0];
+			psi_i = parameterization.getSamplingRates()[i][0];
+			c1_i = c1(lambda_i, mu_i, psi_i);
+			c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
+
+
 			boolean recipient = (!trNode.isRoot()
 					&& trNode.getParent().getChild(0) != trNode && !trNode.getParent().isFake());
-//			double popSize = popSizes;// popSizes.getValue(trNode.getNr());
 
 			GeneTreeEvent prevEvent = new GeneTreeEvent();
 			prevEvent.time = trNode.getHeight();
@@ -194,9 +158,30 @@ public class GeneTreeDistribution extends Distribution {
 				boolean eventAtTransmission = !trNode.isRoot() && recipient
 						&& event.time == trNode.getParent().getHeight();
 
-				// Contribution from every interval, except the last
+				// Contribution from every interval, except the last				
 				if (prevEvent.time < event.time) {
-					logP += interval(event, prevEvent);
+					double startTime = prevEvent.time;
+					if (event.time > int_end_time) {
+						while (event.time > int_end_time && event.time < origin) {
+							logP += interval(int_end_time, startTime, prevEvent);
+							startTime = int_end_time;
+							i = parameterization.getIntervalIndex(origin - startTime - 0.00001);
+							int_end_time = Double.POSITIVE_INFINITY;
+							if (i != 0)
+								int_end_time = origin - parameterization.getIntervalEndTimes()[i - 1];
+							rho_i = parameterization.getRhoValues()[i][0];
+							lambda_i = parameterization.getBirthRates()[i][0];
+							mu_i = parameterization.getDeathRates()[i][0];
+							psi_i = parameterization.getSamplingRates()[i][0];
+							c1_i = c1(lambda_i, mu_i, psi_i);
+							c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
+						}
+						if (event.time != startTime) {
+							logP += interval(event.time, startTime, prevEvent);
+						}
+					} else {
+						logP += interval(event.time, startTime, prevEvent);
+					}
 				}
 
 				switch (event.type) {
@@ -250,7 +235,28 @@ public class GeneTreeDistribution extends Distribution {
 				GeneTreeEvent mockEvent = new GeneTreeEvent();
 				mockEvent.time = trNode.getParent().getHeight();
 				mockEvent.lineages = prevEvent.lineages;
-				logP += interval(mockEvent, prevEvent);
+				double startTime = prevEvent.time;
+				if (mockEvent.time > int_end_time) {
+					while (mockEvent.time > int_end_time) {
+						logP += interval(int_end_time, startTime, prevEvent);
+						startTime = int_end_time;
+						i = parameterization.getIntervalIndex(origin - startTime - 0.00001);
+						int_end_time = Double.POSITIVE_INFINITY;
+						if (i != 0)
+							int_end_time = origin - parameterization.getIntervalEndTimes()[i - 1];
+						rho_i = parameterization.getRhoValues()[i][0];
+						lambda_i = parameterization.getBirthRates()[i][0];
+						mu_i = parameterization.getDeathRates()[i][0];
+						psi_i = parameterization.getSamplingRates()[i][0];
+						c1_i = c1(lambda_i, mu_i, psi_i);
+						c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
+					}
+					if (mockEvent.time != startTime) {
+						logP += interval(mockEvent.time, startTime, prevEvent);
+					}
+				} else {
+					logP += interval(mockEvent.time, startTime, prevEvent);
+				}
 
 				if (recipient) {
 					logP += transmission(mockEvent, prevEvent);
@@ -261,35 +267,35 @@ public class GeneTreeDistribution extends Distribution {
 		return logP;
 	}
 
-	private double interval(GeneTreeEvent event, GeneTreeEvent prevEvent) {
+	private double interval(double endTime, double startTime, GeneTreeEvent prevEvent) {
 
 		double ans = 0.0;
 
 
 		// whole interval is after the origin, backwards in time
-		if (prevEvent.time > originInput.get().getArrayValue(0)) {
-			ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * popSizes.getValue(1)))
-					* (event.time - prevEvent.time);
+		if (startTime > origin) {
+			ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * popSizeOrigin))
+					* (endTime - startTime);
 			return ans;
 		}
 
-		double end_time = event.time;
-		if (event.time > originInput.get().getArrayValue(0)) {
-			end_time = originInput.get().getArrayValue();
+		double end_time = endTime;
+		if (endTime > origin) {
+			end_time = origin;
 //			contribution after origin
-			ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * popSizes.getValue(1)))
-					* (event.time - end_time);
+			ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * popSizeOrigin))
+					* (endTime - end_time);
 		}
 
 //		contribution before origin
-		ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * popSizes.getValue(0)))
+		ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * popSizePerBranch))
 				* (end_time - prevEvent.time);
 
 		double sum = 0;
-		sum = gUp(prevEvent.lineages, prevEvent.lineages, bottleneckDuration, popSizes.getValue(0));//
+		sum = gUp(prevEvent.lineages, prevEvent.lineages, bottleneckDuration, popSizePerBranch);//
 
-		ans -= (1 - sum) * lambda//
-				* integralP_0(prevEvent.time, end_time);//
+		ans -= (1 - sum) * lambda_i//
+				* integralP_0(startTime, end_time);//
 
 		return ans;
 	}
@@ -298,7 +304,7 @@ public class GeneTreeDistribution extends Distribution {
 		double ans;
 		double mult = 1.0;
 
-		if (event.time > originInput.get().getArrayValue(0))
+		if (event.time > origin)
 			return Double.NEGATIVE_INFINITY;
 
 		int sum = event.multiCoalSize.stream().mapToInt(Integer::intValue)
@@ -314,7 +320,7 @@ public class GeneTreeDistribution extends Distribution {
 		}
 
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
-				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizes.getValue(0));
+				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch);
 
 //		if (Math.log(ans) == Double.NEGATIVE_INFINITY)
 //			System.out.println();
@@ -329,7 +335,7 @@ public class GeneTreeDistribution extends Distribution {
 
 		int n_histories = event.multiCoalSize.size();
 
-		if (event.time > originInput.get().getArrayValue(0) || bottleneckDuration == 0.0)
+		if (event.time > origin || bottleneckDuration == 0.0)
 			return Double.NEGATIVE_INFINITY;
 		for (int s = 0; s < n_histories; s++) {
 			mult *= waysToCoal(event.multiCoalSize.get(s), 1);
@@ -341,8 +347,8 @@ public class GeneTreeDistribution extends Distribution {
 
 
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
-				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizes.getValue(0))
-					* lambda * P_0(event.time);
+				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch)
+				* lambda_i * P_0(event.time);
 
 		return Math.log(ans);
 	}
@@ -351,15 +357,15 @@ public class GeneTreeDistribution extends Distribution {
 		double ans = 0.0;
 
 		// event is after origin backwards in time
-		if (event.time > originInput.get().getArrayValue(0)) {
-			ans += 1.0 / (ploidy * popSizes.getValue(1));
+		if (event.time > origin) {
+			ans += 1.0 / (ploidy * popSizeOrigin);
 			return Math.log(ans);
 		}
 
-		ans += 1.0 / (ploidy * popSizes.getValue(0));
+		ans += 1.0 / (ploidy * popSizePerBranch);
 		ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))//
-				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizes.getValue(0))//
-				* lambda * P_0(event.time);//
+				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch)//
+				* lambda_i * P_0(event.time);//
 
 		return Math.log(ans);
 	}
@@ -370,16 +376,15 @@ public class GeneTreeDistribution extends Distribution {
 	}
 
 
-	private double gUp(int i, int j, double bottleneckDuration, double Ne) {
+	private double gUp(int i, int j, double tau, double Ne) {
 		double ans = 0.0;
 
-		if (bottleneckDuration == 0.0 && i == j)
+		if (tau == 0.0 && i == j)
 			return 1.0;
-		if (bottleneckDuration == 0.0 && i != j)
+		if (tau == 0.0 && i != j)
 			return 0.0;
 		for (int k = j; k <= i; k++) {
-			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j)
-					* Math.exp(-(k * (k - 1) * bottleneckDuration * 0.5) / (ploidy * Ne))
+			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j) * Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne))
 					* (f_1(j, k - 1) / MathUtils.factorialDouble(k - j)) * (f_2(i, k) / MathUtils.factorialDouble(j))
 					/
 					f_1(i, k);
@@ -408,18 +413,19 @@ public class GeneTreeDistribution extends Distribution {
 
 	private double P_0(double t) {
 
-		double p0 = (lambda + mu + psi
-				+ c1 * ((Math.exp(-c1 * t) * (1 - c2) - (1 + c2))
-						/ (Math.exp(-c1 * t) * (1 - c2) + (1 + c2))))
-				/ (2.0 * lambda);
+		double p0 = (lambda_i + mu_i + psi_i
+				+ c1_i * ((Math.exp(-c1_i * t) * (1 - c2_i) - (1 + c2_i))
+						/ (Math.exp(-c1_i * t) * (1 - c2_i) + (1 + c2_i))))
+				/ (2.0 * lambda_i);
 
 		return p0;
 	}
 
 	private double integralP_0(double t_0, double t_1) {
 
-		double ans = (1.0 / (2.0 * lambda)) * ((t_1 - t_0) * (mu + psi + lambda - c1) + 2.0 * Math
-				.log(((c2 - 1) * Math.exp(-c1 * t_0) - c2 - 1) / ((c2 - 1) * Math.exp(-c1 * t_1) - c2 - 1)));
+		double ans = (1.0 / (2.0 * lambda_i)) * ((t_1 - t_0) * (mu_i + psi_i + lambda_i - c1_i) + 2.0 * Math
+				.log(((c2_i - 1) * Math.exp(-c1_i * t_0) - c2_i - 1)
+						/ ((c2_i - 1) * Math.exp(-c1_i * t_1) - c2_i - 1)));
 
 		return ans;
 	}
@@ -452,6 +458,14 @@ public class GeneTreeDistribution extends Distribution {
 		for (int i = 1; i <= k; i++)
 			binom = binom * (n + 1 - i) / i;
 		return binom;
+	}
+
+	private double c1(double lambda, double mu, double psi) {
+		return Math.sqrt((lambda - mu - psi) * (lambda - mu - psi) + 4 * lambda * psi);
+	}
+
+	private double c2(double lambda, double mu, double psi, double rho, double c1) {
+		return -(lambda - mu - 2 * lambda * rho - psi) / c1;
 	}
 
 	@Override

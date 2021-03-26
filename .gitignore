@@ -5,6 +5,10 @@
 # Log file
 *.log
 
+# Text files
+*.pdf
+*.txt
+
 # BlueJ files
 *.ctxt
 

@@ -16,16 +16,16 @@ import beast.core.StateNode;
 import beast.core.parameter.Parameter;
 import beast.evolution.branchratemodel.BranchRateModel;
 import beast.evolution.tree.Node;
+import beast.evolution.tree.Tree;
 import starbeast2.PopulationModel;
 import starbeast2.SpeciesTreeInterface;
-import tnt.distribution.GeneTreeDistribution;
 import tnt.transmissionTree.TransmissionTree;
 
 @Description("Based on the SpeciesTreeLogger class, but without node sorting")
 public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 	final public Input<SpeciesTreeInterface> transmissionTreeInput = new Input<>("transmissionTree",
 			"The species tree to be logged.", Validate.REQUIRED);
-	final public Input<List<GeneTreeDistribution>> geneTreeInput = new Input<>("geneTree",
+	final public Input<List<Tree>> geneTreeInput = new Input<>("geneTree",
 			"Gene tree within the species tree.", new ArrayList<>());
     final public Input<PopulationModel> populationModelInput = new Input<>("populationmodel", "population sizes to be logged with branches of the tree");
     // TODO: make this input a list of valuables
@@ -125,10 +125,15 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 			if (node.getID() == null) {
 				buf.append(node.getNr() + 1);
 			} else {
+				buf.append(node.getNr() + 1);
+				buf.append("_");
 				buf.append(node.getID());
 			}
         }
         if (someMetaDataNeedsLogging) {
+			if (node.getID() == null) {
+				buf.append(node.getNr() + 1);
+			}
             buf.append("[&");
             if (metadataList.size() > 0) {
                 for (Function metadata : metadataList) {
@@ -203,7 +208,7 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
     private double getTreeHeight() {
 		double speciesTreeHeight = transmissionTreeInput.get().getRoot().getHeight();
 
-		for (GeneTreeDistribution gt : geneTreeInput.get()) {
+		for (Tree gt : geneTreeInput.get()) {
             speciesTreeHeight = Double.max(speciesTreeHeight, gt.getRoot().getHeight());
         }
 

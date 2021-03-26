@@ -25,16 +25,6 @@ import beast.evolution.alignment.Taxon;
 import beast.evolution.alignment.TaxonSet;
 import beast.evolution.branchratemodel.StrictClockModel;
 import beast.evolution.likelihood.TreeLikelihood;
-import beast.evolution.operators.Exchange;
-import beast.evolution.operators.LeafToSampledAncestorJump;
-import beast.evolution.operators.SAExchange;
-import beast.evolution.operators.SAScaleOperator;
-import beast.evolution.operators.SAUniform;
-import beast.evolution.operators.SAWilsonBalding;
-import beast.evolution.operators.ScaleOperator;
-import beast.evolution.operators.SubtreeSlide;
-import beast.evolution.operators.UpDownOperator;
-import beast.evolution.operators.WilsonBalding;
 import beast.evolution.sitemodel.SiteModel;
 import beast.evolution.speciation.SABirthDeathModel;
 import beast.evolution.substitutionmodel.JukesCantor;
@@ -45,12 +35,23 @@ import beast.math.distributions.Prior;
 import beast.math.distributions.Uniform;
 import beast.util.Randomizer;
 import junit.framework.Assert;
-import starbeast2.CoordinatedExponential;
-import starbeast2.CoordinatedUniform;
-import starbeast2.NodeReheight2;
+//import starbeast2.NodeReheight2;
 import starbeast2.SpeciesTreeInterface;
 import starbeast2.StarBeastTaxonSet;
 import tnt.distribution.GeneTreeDistribution;
+import tnt.operators.CoordinatedExponential;
+import tnt.operators.CoordinatedUniform;
+import tnt.operators.CreateMergersOrReheight;
+import tnt.operators.ExchangeOperator;
+import tnt.operators.ExpandCollapseOperator;
+//import beast.evolution.operators.Exchange;
+import tnt.operators.LeafToSampledAncestorJump;
+import tnt.operators.SAUniform;
+import tnt.operators.SAWilsonBalding;
+//import beast.evolution.operators.SAExchange;
+//import beast.evolution.operators.SAScaleOperator;
+import tnt.operators.SPROperatorChanged;
+import tnt.operators.TransmissionAttachChanged;
 
 public class OrientationTest{
 	
@@ -96,7 +97,7 @@ public class OrientationTest{
 		taxonSet3.initByName("taxon", taxonSet31);
 
 		StarBeastTaxonSet starTaxonSet = new StarBeastTaxonSet();
-		starbeast2.SpeciesTree speciesTree = new starbeast2.SpeciesTree();
+		tnt.transmissionTree.TransmissionTree transmissionTree = new tnt.transmissionTree.TransmissionTree();
 
 		starTaxonSet.initByName("taxon", taxonSet1, "taxon", taxonSet2, "taxon", taxonSet3);
 		starTaxonSet.setID("taxonsuperset");
@@ -105,8 +106,8 @@ public class OrientationTest{
 		trait.initByName("traitname", "date-backward", "value", "1=2,2=1,3=0", "taxa", starTaxonSet);
 		trait.setID("dateTrait.t:Species");
 
-		speciesTree.initByName("trait", trait, "taxonset", starTaxonSet);
-		speciesTree.setID("Tree.t:Species");
+		transmissionTree.initByName("trait", trait, "taxonset", starTaxonSet);
+		transmissionTree.setID("Tree.t:Species");
 
 		TaxonSet taxonSet = new TaxonSet();
 		taxonSet.initByName("alignment", alignment);
@@ -115,43 +116,31 @@ public class OrientationTest{
 		geneTree.setID("Tree.t:Gene");
 		geneTree.initByName("taxonset", taxonSet);
 
-		RealParameter origin = new RealParameter("10.0");
+		RealParameter origin = new RealParameter("3.0");
 		origin.initByName("lower", "0.0", "upper", "Infinity");
 		origin.setID("originFBD.t:Species");
 
 		// Set up state:
 		State state = new State();
-		state.initByName("stateNode", speciesTree, "stateNode", geneTree, "stateNode", origin);
+		state.initByName("stateNode", transmissionTree, "stateNode", geneTree, "stateNode", origin);
 		state.setID("state");
 
-		// Set up init:
+		// Set up population size and bottleneck:
 		RealParameter popSize = new RealParameter("0.5");
 		popSize.initByName("lower", 0.0, "upper", 2.0, "estimate", false);
 		popSize.setID("constPopSizes.Species");
 
-		starbeast2.ConstantPopulations constantPop = new starbeast2.ConstantPopulations();
-		constantPop.initByName("populationSizes", popSize, "speciesTree", speciesTree);
-		constantPop.setID("constPopModel.Species");
+		RealParameter tau = new RealParameter("0.5");
+		popSize.initByName("lower", 0.1, "upper", 1.0, "estimate", false);
+		popSize.setID("constPopSizes.Species");
 
-		starbeast2.PassthroughModel passthrough = new starbeast2.PassthroughModel();
-		passthrough.initByName("childModel", constantPop);
-		passthrough.setID("popModelBridge.Species");
-
-		starbeast2.StarBeastInitializer initializer = new starbeast2.StarBeastInitializer();
-		initializer.initByName("estimate", false, "speciesTree", speciesTree, "geneTree", geneTree, "populationModel",
-				passthrough, "newick", initNewick);
-		initializer.setID("SBI");
+		
+		tnt.distribution.GeneTreeIntervals intervals = new tnt.distribution.GeneTreeIntervals();
+		intervals.initByName("geneTree", geneTree, "transmissionTree", transmissionTree);
 
 		// Set up distributions:
-		// dist 1
-		starbeast2.GeneTree geneTreeDist = new starbeast2.GeneTree();
-		geneTreeDist.initByName("populationModel", passthrough, "speciesTree", speciesTree, "tree", geneTree);
-		List<Distribution> dist11 = new ArrayList<Distribution>();
-		dist11.add(geneTreeDist);
-		starbeast2.MultispeciesCoalescent speciescoalescent = new starbeast2.MultispeciesCoalescent();
-		speciescoalescent.initByName("distribution", dist11);
 
-		// dist 2
+		// dist 1
 		CompoundDistribution prior = new CompoundDistribution();
 		SABirthDeathModel FBDModel = new SABirthDeathModel();
 		Prior priorDist = new Prior();
@@ -168,8 +157,13 @@ public class OrientationTest{
 		samplingRate.initByName("estimate", false, "lower", "0.0", "upper", "1.0");
 		removalProbability.initByName("lower", "0.0", "upper", "1.0");
 
+		starbeast2.StarBeastInitializer initializer = new starbeast2.StarBeastInitializer();
+		initializer.initByName("estimate", false, "birthRate", birthRate, "speciesTree", transmissionTree, "geneTree",
+				geneTree, "newick", initNewick);
+		initializer.setID("SBI");
 
-		FBDModel.initByName("origin", origin, "tree", speciesTree, "birthRate", birthRate, "deathRate", deathRate,
+
+		FBDModel.initByName("origin", origin, "tree", transmissionTree, "birthRate", birthRate, "deathRate", deathRate,
 				"samplingRate", samplingRate, "removalProbability", removalProbability);
 		uniform3.initByName("upper", "1000.0");
 		priorDist.initByName("x", origin, "distr", uniform3);
@@ -179,6 +173,18 @@ public class OrientationTest{
 		dist21.add(priorDist);
 		prior.initByName("distribution", dist21);
 		prior.setID("prior");
+
+		// dist 2
+		tnt.distribution.GeneTreeDistribution geneTreeDist = new tnt.distribution.GeneTreeDistribution();
+		geneTreeDist.initByName("populationSizes", popSize, "origin", origin, "tau", tau,
+				"birthRate", birthRate, "deathRate", deathRate, "samplingRate", samplingRate, "removalProbability",
+				removalProbability,
+				"geneTreeIntervals", intervals);
+		List<Distribution> dist11 = new ArrayList<Distribution>();
+		dist11.add(geneTreeDist);
+		CompoundDistribution multiCoalescent = new CompoundDistribution();
+		multiCoalescent.initByName("distribution", dist11);
+		multiCoalescent.setID("multiCoalescent");
 
 		// dist 3
 		CompoundDistribution likelihood = new CompoundDistribution();
@@ -211,98 +217,129 @@ public class OrientationTest{
 
 		CompoundDistribution posterior = new CompoundDistribution();
 		List<Distribution> distributions = new ArrayList<Distribution>();
-		distributions.add(speciescoalescent);
+		distributions.add(multiCoalescent);
 		distributions.add(prior);
 		distributions.add(likelihood);
 		posterior.initByName("distribution", distributions);
 
 		// Set up operators:
 		// NodeReheight2
-		NodeReheight2 nodeReheight2 = new NodeReheight2();
-		nodeReheight2.initByName("tree", speciesTree, "geneTree", geneTreeDist, "taxonset", starTaxonSet, "weight",
-				"75.0");
+//		NodeReheight2 nodeReheight2 = new NodeReheight2();
+//		nodeReheight2.initByName("tree", speciesTree, "geneTree", geneTreeDist, "taxonset", starTaxonSet, "weight",
+//				"75.0");
 
 		// CoordinatedUniform
 		CoordinatedUniform coordinatedUniform = new CoordinatedUniform();
-		coordinatedUniform.initByName("speciesTree", speciesTree, "geneTree", geneTree, "weight", "15.0");
+		coordinatedUniform.initByName("speciesTree", transmissionTree, "geneTree", geneTree, "weight", "30.0");
 
 		// CoordinatedExponential
 		CoordinatedExponential coordinatedExponential = new CoordinatedExponential();
-		coordinatedExponential.initByName("speciesTree", speciesTree, "geneTree", geneTree, "weight", "15.0");
-
-		// UpDownOperator_Species
-		UpDownOperator upDownOperatorSpecies = new UpDownOperator();
-		upDownOperatorSpecies.initByName("scaleFactor", "0.75", "weight", "6.0", "down", speciesTree, "down", geneTree);
-		
-		// UpDownOperator_Species SA
-		UpDownOperator saUpDownOperatorSpecies = new UpDownOperator();
-		saUpDownOperatorSpecies.initByName("scaleFactor", "0.75", "weight", "6.0", "down", speciesTree);
-
-		// UpDownOperator_Gene
-		UpDownOperator upDownOperatorGene = new UpDownOperator();
-		upDownOperatorGene.initByName("scaleFactor", "0.95", "weight", "3.0","down", geneTree);
-
-		// ScaleOperator_GeneTree
-		ScaleOperator scaleOperatorGene = new ScaleOperator();
-		scaleOperatorGene.initByName("scaleFactor", "0.95", "weight", "3.0","tree", geneTree);
-		
-		// ScaleOperator_GeneRoot
-		ScaleOperator scaleOperatorRoot = new ScaleOperator();
-		scaleOperatorRoot.initByName("rootOnly", true, "scaleFactor", "0.7", "weight", "3.0","tree", geneTree);
-
-		// Uniform
-		beast.evolution.operators.Uniform uniform = new beast.evolution.operators.Uniform();
-		uniform.initByName("weight", "15.0","tree", geneTree);
-
-		// SubtreeSlide
-		SubtreeSlide subtreeSlide = new SubtreeSlide();
-		subtreeSlide.initByName("size", "0.002", "tree", geneTree, "weight", "15.0");
-
-		// Exchange_Narrow
-		Exchange exchangeNarrow = new Exchange();
-		exchangeNarrow.initByName("tree", geneTree, "weight", "15.0");
-		
-		// Exchange_Wide
-		Exchange exchangeWide = new Exchange();
-		exchangeWide.initByName("isNarrow", false, "tree", geneTree, "weight", "15.0");
-
-		// WilsonBalding
-		WilsonBalding wilsonBalding = new WilsonBalding();
-		wilsonBalding.initByName("tree", geneTree, "weight", "15.0");
-
-		// ScaleOperator_Origin
-		ScaleOperator originScaler = new ScaleOperator();
-		originScaler.initByName("parameter", origin, "scaleFactor", "0.75", "weight", "3.0");
+		coordinatedExponential.initByName("speciesTree", transmissionTree, "geneTreeIntervals", intervals, "geneTree",
+				geneTree, "weight", "30.0");
 
 		// LeafToSampledAncestorJump
 		LeafToSampledAncestorJump leafToSampleJump = new LeafToSampledAncestorJump();
-		leafToSampleJump.initByName("tree", speciesTree, "weight", "10.0");
+		leafToSampleJump.initByName("tree", transmissionTree, "geneTreeIntervals", intervals,
+				"weight", "75.0");
 
 		// SAWilsonBalding
 		SAWilsonBalding saWilsonBalding = new SAWilsonBalding();
-		saWilsonBalding.initByName("tree", speciesTree, "weight", "10.0");
-
-		// SAExchange_Wide
-		SAExchange saExchangeWide = new SAExchange();
-		saExchangeWide.initByName("isNarrow", false, "tree", speciesTree, "weight", "10.0");
-
-		// SAExchange_Narrow
-		SAExchange saExchangeNarrow = new SAExchange();
-		saExchangeNarrow.initByName("tree", speciesTree, "weight", "10.0");
+		saWilsonBalding.initByName("tree", transmissionTree, "geneTreeIntervals", intervals,
+				"weight", "50.0");
 
 		// SAUniform
 		SAUniform saUniform = new SAUniform();
-		saUniform.initByName("tree", speciesTree, "weight", "20.0");
+		saUniform.initByName("tree", transmissionTree, "geneTree", geneTree, "geneTreeIntervals", intervals,
+				"weight", "75.0");
 
-		// SAScaleOperator_Root
-		SAScaleOperator saScaleOperatorRoot = new SAScaleOperator();
-		saScaleOperatorRoot.initByName("rootOnly", true, "scaleFactor", "0.95", "tree", speciesTree, "weight", "1.0");
+//		// UpDownOperator_Species
+//		UpDownOperator upDownOperatorSpecies = new UpDownOperator();
+//		upDownOperatorSpecies.initByName("scaleFactor", "0.75", "weight", "6.0", "down", speciesTree, "down", geneTree);
+		
+//		// UpDownOperator_Species SA
+//		UpDownOperator saUpDownOperatorSpecies = new UpDownOperator();
+//		saUpDownOperatorSpecies.initByName("scaleFactor", "0.75", "weight", "6.0", "down", speciesTree);
 
-		// SAScaleOperator_Root
-		SAScaleOperator saScaleOperatorTree = new SAScaleOperator();
-		saScaleOperatorTree.initByName("scaleFactor", "0.95", "tree", speciesTree, "weight", "3.0");
+//		// UpDownOperator_Gene
+//		UpDownOperator upDownOperatorGene = new UpDownOperator();
+//		upDownOperatorGene.initByName("scaleFactor", "0.95", "weight", "3.0","down", geneTree);
 
-		Integer bunin = 10000;
+//		// ScaleOperator_GeneTree
+//		ScaleOperator scaleOperatorGene = new ScaleOperator();
+//		scaleOperatorGene.initByName("scaleFactor", "0.95", "weight", "3.0","tree", geneTree);
+		
+//		// ScaleOperator_GeneRoot
+//		ScaleOperator scaleOperatorRoot = new ScaleOperator();
+//		scaleOperatorRoot.initByName("rootOnly", true, "scaleFactor", "0.7", "weight", "3.0","tree", geneTree);
+
+//		// Uniform
+//		beast.evolution.operators.Uniform uniform = new beast.evolution.operators.Uniform();
+//		uniform.initByName("weight", "15.0","tree", geneTree);
+
+//		// SubtreeSlide
+//		SubtreeSlide subtreeSlide = new SubtreeSlide();
+//		subtreeSlide.initByName("size", "0.002", "tree", geneTree, "weight", "15.0");
+//
+//		// Exchange_Narrow
+//		Exchange exchangeNarrow = new Exchange();
+//		exchangeNarrow.initByName("tree", geneTree, "weight", "15.0");
+//		
+//		// Exchange_Wide
+//		Exchange exchangeWide = new Exchange();
+//		exchangeWide.initByName("isNarrow", false, "tree", geneTree, "weight", "15.0");
+
+//		// WilsonBalding
+//		WilsonBalding wilsonBalding = new WilsonBalding();
+//		wilsonBalding.initByName("tree", geneTree, "weight", "15.0");
+
+		// SPR
+		SPROperatorChanged spr = new SPROperatorChanged();
+		spr.initByName("tree", geneTree, "transmissionTree", transmissionTree, "geneTreeIntervals", intervals,
+				"probBottleneck", "0.5", "rootAttachLambda", "0.5", "weight", "75.0");
+
+		// Transmission_Attach
+		TransmissionAttachChanged trAttach = new TransmissionAttachChanged();
+		trAttach.initByName("tree", geneTree, "geneTreeIntervals", intervals,
+				"rootAttachLambda", "0.5", "weight", "60.0");
+
+		// Create_Mergers_Or_Reheight
+		CreateMergersOrReheight cmor = new CreateMergersOrReheight();
+		cmor.initByName("tree", geneTree, "mergerProb", "0.1", "transmissionTree", transmissionTree,
+				"weight", "30.0");
+
+		// Expand_Collapse
+		ExpandCollapseOperator ec = new ExpandCollapseOperator();
+		ec.initByName("tree", geneTree, "geneTreeIntervals", intervals,
+				"weight", "30.0");
+
+		// GeneExchange
+		ExchangeOperator exchange = new ExchangeOperator();
+		exchange.initByName("tree", geneTree, "geneTreeIntervals", intervals, "weight", "50.0");
+
+
+
+
+//		// SAExchange_Wide
+//		SAExchange saExchangeWide = new SAExchange();
+//		saExchangeWide.initByName("isNarrow", false, "tree", speciesTree, "weight", "10.0");
+
+//		// SAExchange_Narrow
+//		SAExchange saExchangeNarrow = new SAExchange();
+//		saExchangeNarrow.initByName("tree", speciesTree, "weight", "10.0");
+
+//		// SAUniform
+//		SAUniform saUniform = new SAUniform();
+//		saUniform.initByName("tree", transmissionTree, "weight", "20.0");
+
+//		// SAScaleOperator_Root
+//		SAScaleOperator saScaleOperatorRoot = new SAScaleOperator();
+//		saScaleOperatorRoot.initByName("rootOnly", true, "scaleFactor", "0.95", "tree", speciesTree, "weight", "1.0");
+//
+//		// SAScaleOperator_Root
+//		SAScaleOperator saScaleOperatorTree = new SAScaleOperator();
+//		saScaleOperatorTree.initByName("scaleFactor", "0.95", "tree", speciesTree, "weight", "3.0");
+
+		Integer bunin = 1000;
 		Integer chainLength = 50000000;
 		Integer logEvery = 100;
 		Integer statesLogged = (chainLength - bunin) / logEvery;
@@ -311,13 +348,13 @@ public class OrientationTest{
 		OrientedTreeLogger treeReport = new OrientedTreeLogger();
 		treeReport.initByName("logEvery", logEvery.toString(),
 				"burnin", bunin.toString(),
-				"speciesTree", speciesTree,
+				"speciesTree", transmissionTree,
 //				"geneTree", geneTreeDist,
-				"log", speciesTree,
+				"log", transmissionTree,
 				"silent", true);
 
 		TransmissionTreeLogger tntLogger = new TransmissionTreeLogger();
-		tntLogger.initByName("transmissionTree", speciesTree);
+		tntLogger.initByName("transmissionTree", transmissionTree);
 
 		// Set up MCMC:
 		MCMC mcmc = new MCMC();
@@ -325,25 +362,31 @@ public class OrientationTest{
 						"state", state, 
 				"init", initializer,
 						"distribution", posterior, 
-				"operator", nodeReheight2,
+//				"operator", nodeReheight2,
 				"operator", coordinatedUniform,
 				"operator", coordinatedExponential,
-				"operator", upDownOperatorSpecies,
-				"operator", upDownOperatorGene,
-				"operator", scaleOperatorGene,
-				"operator", scaleOperatorRoot,
-				"operator", uniform,
-				"operator", subtreeSlide,
-				"operator", exchangeNarrow,
-				"operator", exchangeWide,
-				"operator", originScaler,
+//				"operator", upDownOperatorSpecies,
+//				"operator", upDownOperatorGene,
+//				"operator", scaleOperatorGene,
+//				"operator", scaleOperatorRoot,
+//				"operator", uniform,
+//				"operator", subtreeSlide,
+//				"operator", exchangeNarrow,
+//				"operator", exchangeWide,
+//				"operator", originScaler,
 				"operator", leafToSampleJump,
 				"operator", saWilsonBalding,
-				"operator", saExchangeWide,
-				"operator", saExchangeNarrow,
+//				"operator", saExchangeWide,
+//				"operator", saExchangeNarrow,
 				"operator", saUniform,
-				"operator", saScaleOperatorRoot,
-				"operator", saScaleOperatorTree,
+//				"operator", saScaleOperatorRoot,
+//				"operator", saScaleOperatorTree,
+				"operator", spr,
+				"operator", trAttach,
+				"operator", cmor,
+				"operator", cmor,
+				"operator", ec,
+				"operator", exchange,
 				"logger", treeReport);
 
 		// Run MCMC:
@@ -362,14 +405,18 @@ public class OrientationTest{
 		double[] probs = new double[] { 0.778327, 0.043189, 0.043189, 0.078642, 0.006930, 0.006930, 0.038657,
 				0.004135, };
 
-		double tolerance = 0.005;
-		double toleranceOriented = 0.015;
+		double tolerance = 0.025;
+		double toleranceOriented = 0.025;
 		double orientedFrequency = 0.25;
 
 		for (int nonOrientedTopologyNr = 0; nonOrientedTopologyNr < 8; nonOrientedTopologyNr++) {
 			int sumTopology = Arrays.stream(frequencies[nonOrientedTopologyNr]).sum();
 			double probTopology = (double) sumTopology / (double) statesLogged;
-			Assert.assertEquals(probTopology, probs[nonOrientedTopologyNr], tolerance);
+			System.out.println("_____________________");
+			System.out.println(probs[nonOrientedTopologyNr]);
+			System.out.println("_____________________");
+			System.out.println(probTopology);
+			Assert.assertEquals(probs[nonOrientedTopologyNr], probTopology, tolerance);
 
 			// For each non-oriented topology, there are four possible orientations
 			// outputed.
@@ -381,6 +428,7 @@ public class OrientationTest{
 			if (nonOrientedTopologyNr == 0 || nonOrientedTopologyNr == 1 || nonOrientedTopologyNr == 2) {
 				for (int j = 0; j < 4; j++) {
 					double frequency = (double) frequencies[nonOrientedTopologyNr][j] / (double) sumTopology;
+					System.out.println(frequency);
 					Assert.assertEquals(frequency, orientedFrequency, toleranceOriented);
 
 				}
@@ -389,6 +437,7 @@ public class OrientationTest{
 				for (int j = 0; j < 2; j++) {
 					double frequency = (double) (frequencies[nonOrientedTopologyNr][j]
 							+ frequencies[nonOrientedTopologyNr][j + 2]) / (double) sumTopology;
+					System.out.println(frequency);
 					Assert.assertEquals(frequency, 0.50, toleranceOriented);
 
 				}
@@ -398,6 +447,7 @@ public class OrientationTest{
 				for (int j = 0; j < 4; j += 2) {
 					double frequency = (double) (frequencies[nonOrientedTopologyNr][j]
 							+ frequencies[nonOrientedTopologyNr][j + 1]) / (double) sumTopology;
+					System.out.println(frequency);
 					Assert.assertEquals(frequency, 0.50, toleranceOriented);
 
 				}

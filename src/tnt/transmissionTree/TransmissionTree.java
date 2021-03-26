@@ -74,18 +74,20 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 	 * @param subtreeRootNr the none number
 	 */
 	private void orientateNodeChildren(int subtreeRootNr) {
-		if (!this.getNode(subtreeRootNr).isLeaf()
-				&& !this.getNode(subtreeRootNr).getLeft().metaDataString.equals("orientation=donor")) {
-			Node left = this.getNode(subtreeRootNr).getRight();
-			Node right = this.getNode(subtreeRootNr).getLeft();
+		Node subTreeRoot = this.getNode(subtreeRootNr);
+		if (!subTreeRoot.isLeaf()) {
+			if (!subTreeRoot.getLeft().metaDataString.equals("orientation=donor")) {
+				Node left = subTreeRoot.getRight();
+				Node right = subTreeRoot.getLeft();
 
-			this.getNode(subtreeRootNr).removeAllChildren(false);
+				subTreeRoot.removeAllChildren(false);
 
-			this.getNode(subtreeRootNr).addChild(left);
-			this.getNode(subtreeRootNr).addChild(right);
+				subTreeRoot.addChild(left);
+				subTreeRoot.addChild(right);
+			}
 
-			orientateNodeChildren(this.getNode(subtreeRootNr).getLeft().getNr());
-			orientateNodeChildren(this.getNode(subtreeRootNr).getRight().getNr());
+			orientateNodeChildren(subTreeRoot.getLeft().getNr());
+			orientateNodeChildren(subTreeRoot.getRight().getNr());
 		}
 
 	}

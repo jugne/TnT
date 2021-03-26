@@ -13,8 +13,11 @@ import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
+import pitchfork.Pitchforks;
 import tnt.distribution.GeneTreeEvent;
 import tnt.distribution.GeneTreeIntervals;
+import tnt.transmissionTree.TransmissionTree;
+import tnt.util.Tools;
 
 /**
  *@author Alexandra Gavryushkina
@@ -46,9 +49,12 @@ public class SAWilsonBalding extends TreeOperator {
 		// get fit nodes as lis
         Integer[] fitNodesNrs = getTrNodeNrsNotTransmissionOnGenes(tree);
         
+//		Integer[] fitNodesNrs2 = getTrNodeNrsNotTransmissionOnGenesAfter(tree);
+
         // choose a random node avoiding root and leaves that are direct ancestors
 		int nodeCount = tree.getNodeCount();
 		int nodeCountFrom = fitNodesNrs.length;
+//		int nodeCountFrom2 = fitNodesNrs2.length;
 		if (nodeCountFrom == 1)
 			return Double.NEGATIVE_INFINITY;
         Node i;
@@ -57,7 +63,10 @@ public class SAWilsonBalding extends TreeOperator {
 //            i = tree.getNode(Randomizer.nextInt(nodeCount));
 			int nr = fitNodesNrs[Randomizer.nextInt(nodeCountFrom)];
 			i = tree.getNode(nr);
-        } while (i.isRoot() || i.isDirectAncestor());
+		} while (i.isRoot() || i.isDirectAncestor());
+
+//		if (i.isDirectAncestor())
+//			throw new RuntimeException("Direct ancestor node selected in wilson balding");
 
         Node iP = i.getParent();
         Node CiP;
@@ -122,6 +131,8 @@ public class SAWilsonBalding extends TreeOperator {
             return Double.NEGATIVE_INFINITY;
         }
 
+//		if (nodeCountFrom2 != nodeCountFrom)
+//			System.out.println();
 		oldDimension = nodeCountFrom - tree.getDirectAncestorNodeCount() - 1;
 
         //Hastings numerator calculation + newAge of iP
@@ -218,11 +229,16 @@ public class SAWilsonBalding extends TreeOperator {
             return Double.NEGATIVE_INFINITY;
         }
 
+//		newDimension = nodeCountFrom - tree.getDirectAncestorNodeCount() - 1;
+//		if (nodeCountFrom != getTrNodeNrsNotTransmissionOnGenesAfter(tree).length)
+//			System.out.println();
 		newDimension = nodeCountFrom - tree.getDirectAncestorNodeCount() - 1;
         DimensionCoefficient = (double) oldDimension / newDimension;
 
         fHastingsRatio = Math.abs(DimensionCoefficient * newRange / oldRange);
 
+//		System.out.println(PiP.getNr());
+//		System.out.println(i.getNr());
         return Math.log(fHastingsRatio);
 
     }
@@ -255,16 +271,35 @@ public class SAWilsonBalding extends TreeOperator {
 				fitNodeNrs.add(recipientNr);
 				fitNodeNrs.add(n.getParent().getChild(0).getNr());
 			}
-
-//			int recipientNr = n.getParent().getChild(1).getNr();
-//			List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
-//			GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
-//
-//			if (n.getParent().isFake() || n.getParent().getHeight() != lastEvent.time) {
-//				fitNodeNrs.add(recipientNr);
-//				fitNodeNrs.add(n.getParent().getChild(0).getNr());
-//			}
 		}
+
+		return fitNodeNrs.toArray(new Integer[0]);
+	}
+
+	private Integer[] getTrNodeNrsNotTransmissionOnGenesAfter(Tree transmissionTree) {
+		Set<Double> unfitHeights = new HashSet<Double>();
+		final List<Double> trHeights = Tools.getTransmissionHeights((TransmissionTree) transmissionTree);
+		Double trRootHeight = transmissionTree.getRoot().getHeight();
+		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
+
+		for (GeneTreeIntervals intervals : intervalsLis) {
+			List<Node> nodes = Pitchforks.getTrueInternalNodes(intervals.geneTreeInput.get());
+			for (Node n : nodes) {
+				if (!n.isLeaf() && trHeights.contains(n.getHeight())) {
+					unfitHeights.add(n.getHeight());
+				}
+			}
+		}
+
+//		unfitHeights.remove(trRootHeight);
+		Set<Integer> fitNodeNrs = new HashSet<Integer>();
+		for (Node trNode : transmissionTree.getNodesAsArray()) {
+			if (trNode.isRoot())
+				fitNodeNrs.add(trNode.getNr());
+			else if (trNode.getParent().isFake() || !unfitHeights.contains(trNode.getParent().getHeight()))
+				fitNodeNrs.add(trNode.getNr());
+		}
+
 		return fitNodeNrs.toArray(new Integer[0]);
 	}
 

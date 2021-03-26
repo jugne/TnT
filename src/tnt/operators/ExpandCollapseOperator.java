@@ -18,37 +18,79 @@
 package tnt.operators;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Input;
+import beast.core.Input.Validate;
 import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import pitchfork.Pitchforks;
+import tnt.distribution.GeneTreeIntervals;
 import tnt.util.Tools;
 
+// TODO: Auto-generated Javadoc
+/**
+ * The Class ExpandCollapseOperator.
+ * 
+ * 
+ */
 public class ExpandCollapseOperator extends TreeOperator {
 
+	/** The root attach lambda input. */
     public Input<Double> rootAttachLambdaInput = new Input<>("rootAttachLambda",
             "Mean of exponential (relative to tree height) from which " +
                     "expanded node height is drawn if expanded from a " +
                     "root polytomy.",
             0.1);
 
+	/** The gene tree intervals input. */
+	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
+			"intervals for a gene tree", Validate.REQUIRED);
+
+	/** The gene tree. */
     Tree tree;
+
+	/** The lambda for root attachment. */
     double lambda;
 
+	/**
+	 * The gene node assignment (gene tree node Nr -> transmission tree node Nr).
+	 */
+	HashMap<Integer, Integer> geneNodeAssignment;
+
+	/** The gene tree intervals. */
+	GeneTreeIntervals intervals;
+
+	/**
+	 * The transmission node heights on the transmission tree (bifurcating node
+	 * heights).
+	 */
+	List<Double> trHeights;
+
+	/**
+	 * Initialize the operator
+	 */
     @Override
     public void initAndValidate() {
         tree = treeInput.get();
         lambda = rootAttachLambdaInput.get();
+		intervals = geneTreeIntervalsInput.get();
     }
 
+	/**
+	 * Generate a proposal by this operator.
+	 *
+	 * @return log of Hastings ratio
+	 */
     @Override
     public double proposal() {
 
         double logHR = 0.0;
+		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
+		trHeights = Tools.getTransmissionHeights(intervals.transmissionTreeInput.get());
 
         if (Randomizer.nextBoolean()) {
             // Collapse
@@ -148,19 +190,37 @@ public class ExpandCollapseOperator extends TreeOperator {
         return logHR;
     }
 
+	/**
+	 * Gets the collapsable edges.
+	 *
+	 * @param tree the gene tree
+	 * @return the collapsable edges of this gene tree.
+	 * 
+	 *         Edge is "collapsable" if: 1. parent node is NOT at transmission event
+	 *         (technically difficult to manage such move) 2.
+	 */
     private List<Node> getCollapsableEdges(Tree tree) {
 
         List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
         List<Node> collapsableEdges = new ArrayList<>();
+		List<Node> noTrParentNodes = Tools.getGeneNodesWithParentNotAtTransmission(trueNodes, trHeights);
 
 
-        for (Node node : trueNodes) {
+		for (Node node : noTrParentNodes) {
+			int trNodeNr = geneNodeAssignment.get(node.getNr());
+			List<Integer> possibleAssignments = new ArrayList<>();
+			possibleAssignments.add(trNodeNr);
+			possibleAssignments.addAll(Tools.getAllParentNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
+			possibleAssignments.addAll(Tools.getChildNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
+
 			if (node.isRoot() || Pitchforks.isPolytomy(node.getParent())
 					|| Tools.isMultiMerger(trueNodes, node.getParent()))
                     continue;
 
             Node sister = getOtherChild(node.getParent(), node);
-			if (sister.getHeight() <= node.getHeight() || sister.isLeaf())
+			int trNodeSisterNr = geneNodeAssignment.get(sister.getNr());
+			if (sister.getHeight() <= node.getHeight() || sister.isLeaf()
+					|| !possibleAssignments.contains(trNodeSisterNr))
                 continue;
 
             collapsableEdges.add(node);
@@ -169,6 +229,12 @@ public class ExpandCollapseOperator extends TreeOperator {
         return collapsableEdges;
     }
 
+	/**
+	 * Gets the expandable edges.
+	 *
+	 * @param tree the tree
+	 * @return the expandable edges
+	 */
     private List<Node> getExpandableEdges(Tree tree) {
 
         List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
