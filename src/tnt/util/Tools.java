@@ -166,9 +166,9 @@ public class Tools {
 	 */
 	public static Boolean fillAssignmentAndCheck(SpeciesTreeInterface transmissionTree, Node subRoot,
 			HashMap<Integer, Integer> geneTreeNodeAssignment,
-			HashMap<Integer, List<Integer>> inverseGeneTreeNodeAssignment) {
+			HashMap<Integer, List<Integer>> inverseGeneTreeNodeAssignment, double[] trNodeOccupancy) {
 
-		List<Double> trHeights = getTransmissionHeights(transmissionTree);
+
 		if (!subRoot.isLeaf()) {
 			if (!subRoot.isRoot() && subRoot.getParent().getHeight() < subRoot.getHeight()) {
 
@@ -176,7 +176,7 @@ public class Tools {
 			}
 
 			if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(0), geneTreeNodeAssignment,
-					inverseGeneTreeNodeAssignment))
+					inverseGeneTreeNodeAssignment, trNodeOccupancy))
 				return false;
 			Node tr1 = transmissionTree
 					.getNode(geneTreeNodeAssignment.get(subRoot.getChild(0).getNr()));
@@ -189,7 +189,7 @@ public class Tools {
 
 			if (subRoot.getChildCount() > 1) {
 				if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(1), geneTreeNodeAssignment,
-						inverseGeneTreeNodeAssignment))
+						inverseGeneTreeNodeAssignment, trNodeOccupancy))
 					return false;
 				Node tr2 = transmissionTree
 						.getNode(geneTreeNodeAssignment.get(subRoot.getChild(1).getNr()));
@@ -210,6 +210,42 @@ public class Tools {
 				return false;
 			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
 
+
+			// put geneTree lineage lengths per transmission tree
+			if (!subRoot.isRoot()) {
+				double parentHeight = subRoot.getParent().getHeight();
+				
+				if (!tr1.isRoot()) {
+					if (parentHeight >= tr1.getParent().getHeight()) {
+						trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount() + tr1.getNr()] += tr1
+								.getParent().getHeight() - subRoot.getHeight();
+						Node child = tr1.getParent();
+						Node parent = child.getParent();
+						while (parentHeight >= child.getHeight()) {
+							if (!child.isRoot() && parentHeight >= parent.getHeight())
+								trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+										+ child.getNr()] = parent.getHeight() - child.getHeight();
+							else
+								trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+										+ child.getNr()] = parentHeight - child.getHeight();
+
+							if (child.isRoot())
+								break;
+							child = child.getParent();
+							parent = child.getParent();
+						}
+					} else {
+						trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+								+ tr1.getNr()] = parentHeight - subRoot.getHeight();
+					}
+				} else {
+					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+							+ tr1.getNr()] = parentHeight - subRoot.getHeight();
+				}
+
+			}
+				
+
 			List<Integer> tmp = new ArrayList<>();
 			if (inverseGeneTreeNodeAssignment != null) {
 				if (inverseGeneTreeNodeAssignment.containsKey(tr1.getNr())) {
@@ -218,8 +254,42 @@ public class Tools {
 				tmp.add(subRoot.getNr());
 				inverseGeneTreeNodeAssignment.put(tr1.getNr(), tmp);
 			}
+		} else {
+
+			double parentHeight = subRoot.getParent().getHeight();
+			Node trLeaf = transmissionTree.getNode(geneTreeNodeAssignment.get(subRoot.getNr()));
+			if (!trLeaf.isRoot()) {
+				if (parentHeight >= trLeaf.getParent().getHeight()) {
+					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount() + trLeaf.getNr()] += trLeaf
+							.getParent().getHeight() - subRoot.getHeight();
+					Node child = trLeaf.getParent();
+					Node parent = child.getParent();
+					while (parentHeight >= child.getHeight()) {
+						if (!child.isRoot() && parentHeight >= parent.getHeight())
+							trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+									+ child.getNr()] = parent.getHeight() - child.getHeight();
+						else
+							trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+									+ child.getNr()] = parentHeight - child.getHeight();
+
+						if (child.isRoot())
+							break;
+						child = child.getParent();
+						parent = child.getParent();
+					}
+				} else {
+					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+							+ trLeaf.getNr()] = parentHeight - subRoot.getHeight();
+				}
+			} else {
+				trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+						+ trLeaf.getNr()] = parentHeight - subRoot.getHeight();
+			}
+
 		}
+
 		try {
+			List<Double> trHeights = getTransmissionHeights(transmissionTree);
 			if (trHeights.contains(subRoot.getHeight()) &&
 				subRoot.getHeight() != transmissionTree.getNode(geneTreeNodeAssignment.get(subRoot.getNr())).getParent()
 						.getHeight())

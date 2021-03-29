@@ -59,8 +59,10 @@ public class GeneTreeIntervals extends CalculationNode {
 	public HashMap<Integer, Integer> geneTreeTipAssignment;
 	public HashMap<Integer, List<Integer>> inverseGeneTreeTipAssignment;
 	public boolean eventListDirty = true;
-
-	List<Double> trHeights, storedTrHeights;
+	double[] trNodeOccupancy, storedTrNodeOccupancy;
+	double[] trHeights, storedTrHeights;
+	int nGeneNodes;
+	int nTrNodes;
 
 
 	@Override
@@ -100,7 +102,13 @@ public class GeneTreeIntervals extends CalculationNode {
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
 		storedEventsPerTransmissionTreeNode = new HashMap<>();
-		storedTrHeights = new ArrayList<>();
+		storedTrHeights = new double[transmissionTree.getNodeCount()];
+
+		nGeneNodes = geneTree.getNodeCount();
+		nTrNodes = transmissionTree.getNodeCount();
+
+		trNodeOccupancy = new double[nGeneNodes * nTrNodes];
+		storedTrNodeOccupancy = new double[nGeneNodes * nTrNodes];
 
 	}
 
@@ -131,13 +139,15 @@ public class GeneTreeIntervals extends CalculationNode {
 						tipNumberMap.get(geneTreeLeafName));
 		}
 
+		trNodeOccupancy = new double[nGeneNodes * nTrNodes];
+
 		HashMap<Integer, List<Integer>> fakeBifurcations = new HashMap<>();
 		HashMap<Double, List<Integer>> nodeTime = new HashMap<>();
 		geneTreeEventList = new ArrayList<GeneTreeEvent>();
 		activeLineagesPerTransmissionTreeNode = new HashMap<>();
 		eventsPerTransmissionTreeNode = new HashMap<>();
 		logicalGeneNodesPerTransmissionNode = new HashMap<>();
-		trHeights = new ArrayList<Double>();
+		trHeights = new double[transmissionTree.getNodeCount()];
 
 		geneTreeNodeAssignment = new HashMap<>();
 		geneTreeNodeAssignment.putAll(geneTreeTipAssignment);
@@ -162,18 +172,20 @@ public class GeneTreeIntervals extends CalculationNode {
 				}
 			}
 		}
-			
+
 		if (!Tools.fillAssignmentAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment,
-				inverseGeneTreeNodeAssignment)) {
+				inverseGeneTreeNodeAssignment, trNodeOccupancy)) {
 			eventsPerTransmissionTreeNode = null;
 			return;
 		}
-		for (Node n : geneTree.getNodesAsArray()) {
-			if (!n.isRoot() && n.getHeight() > n.getParent().getHeight()) {
-				eventsPerTransmissionTreeNode = null;
-				return;
-			}
-		}
+
+		// DEBUG
+		// Uncomment bellow for debbugging
+
+		double treeLength = getLength(geneTree);
+		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
+		if (Math.abs(treeLength - treeLength2) > 10e-12)
+			throw new RuntimeException("lengths don't match!");
 
 		nodeTime = new HashMap<Double, List<Integer>>();
 		for (Node node : geneTree.getNodesAsArray()) {
@@ -335,7 +347,7 @@ public class GeneTreeIntervals extends CalculationNode {
 					// It is a mock event, used only to correctly store the number of incoming gene
 					// lineages from child transmission tree branches to parent branch.
 				}
-				trHeights.add(trNode.getHeight());
+				trHeights[trNode.getNr()] = trNode.getHeight();
 			}
 
 		eventListDirty = false;
@@ -412,15 +424,15 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	@Override
 	protected void restore() {
-		List<GeneTreeEvent> tmp = geneTreeEventList;
-		geneTreeEventList = storedGeneTreeEventList;
+		List<GeneTreeEvent> tmp = new ArrayList<GeneTreeEvent>(geneTreeEventList);
+		geneTreeEventList = new ArrayList<GeneTreeEvent>(storedGeneTreeEventList);
 		storedGeneTreeEventList = tmp;
 
 		HashMap<Integer, List<GeneTreeEvent>> tmp2 = eventsPerTransmissionTreeNode;
 		eventsPerTransmissionTreeNode = storedEventsPerTransmissionTreeNode;
 		storedEventsPerTransmissionTreeNode = tmp2;
 
-		List<Double> tmp3 = trHeights;
+		double[] tmp3 = trHeights;
 		trHeights = storedTrHeights;
 		storedTrHeights = tmp3;
 
@@ -431,6 +443,10 @@ public class GeneTreeIntervals extends CalculationNode {
 		HashMap<Integer, List<Integer>> tmp5 = inverseGeneTreeNodeAssignment;
 		inverseGeneTreeNodeAssignment = storedInverseGeneTreeNodeAssignment;
 		storedInverseGeneTreeNodeAssignment = tmp5;
+
+		double[] tmp6 = trNodeOccupancy.clone();
+		trNodeOccupancy = storedTrNodeOccupancy.clone();
+		storedTrNodeOccupancy = tmp6;
 
 		super.restore();
 	}
@@ -448,11 +464,13 @@ public class GeneTreeIntervals extends CalculationNode {
 					eventsPerTransmissionTreeNode);
 		else
 			storedEventsPerTransmissionTreeNode = null;
-		storedTrHeights = new ArrayList<Double>(trHeights);
+
+
+		System.arraycopy(trHeights, 0, storedTrHeights, 0, trHeights.length);
+		System.arraycopy(trNodeOccupancy, 0, storedTrNodeOccupancy, 0, trNodeOccupancy.length);
 		super.store();
 	}
 
-	// DO NOT use the following without testing before!!!!
 	public HashMap<Integer, Integer> getGeneTreeNodeAssignment() {
 		update();
 		if (eventsPerTransmissionTreeNode == null)
@@ -465,6 +483,26 @@ public class GeneTreeIntervals extends CalculationNode {
 		if (eventsPerTransmissionTreeNode == null)
 			return null;
 		return inverseGeneTreeNodeAssignment;
+	}
+
+	public double[] getTrHeights() {
+		update();
+		return trHeights;
+	}
+
+	public double[] getTrNodeOccupancy() {
+		update();
+		return trNodeOccupancy;
+	}
+
+	private double getLength(Tree tree) {
+		double length = 0;
+		for (Node node : tree.getNodesAsArray()) {
+			if (!node.isRoot()) {
+				length += node.getLength();
+			}
+		}
+		return length;
 	}
 
 

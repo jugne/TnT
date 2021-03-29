@@ -15,14 +15,18 @@ import org.apache.commons.math3.analysis.solvers.BrentSolver;
 import org.apache.commons.math3.exception.DimensionMismatchException;
 import org.apache.commons.math3.exception.NoBracketingException;
 
+import com.google.common.collect.Multimap;
+
 import beast.core.Function;
 import beast.core.Input;
 import beast.core.Input.Validate;
 import beast.core.parameter.RealParameter;
+import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
+import tnt.transmissionTree.TransmissionTree;
 
 /**
  * @author Ugne Stolz. Created on 22 Oct 2019 Adapted from Tim Vaughan's
@@ -30,9 +34,9 @@ import beast.util.Randomizer;
  *         StarBeast2: https://doi.org/10.1093/molbev/msx126
  */
 
-public class SimulatedGeneTree extends Tree {
+public class SimulatedGeneTreeInit extends Tree {
 
-	public Input<Tree> transmissionTreeInput = new Input<>("transmissionTreeInput",
+	public Input<TransmissionTree> transmissionTreeInput = new Input<>("transmissionTreeInput",
 			"Fully labeled transmission tree on which to simulate gene trees",
             Input.Validate.REQUIRED);
 
@@ -70,7 +74,7 @@ public class SimulatedGeneTree extends Tree {
 			"Simulate hidden bottlenecks", false);
 
 
-	public Tree transmissionTree;
+	public TransmissionTree transmissionTree;
     public TraitSet sampleCounts;
 	private int transmissionNodeCount;
 
@@ -86,6 +90,10 @@ public class SimulatedGeneTree extends Tree {
 
 	private double samplingExtantRate;
 
+	TaxonSet taxonSupperSet;
+
+	Multimap<Integer, String> numberTipMap;
+
 //	@Override
 //	public void init(PrintStream out) {
 //	}
@@ -99,6 +107,7 @@ public class SimulatedGeneTree extends Tree {
     public void initAndValidate() {
 
 		transmissionTree = transmissionTreeInput.get();
+		taxonSupperSet = transmissionTree.getTaxonset();
 		orientateTreeAtFakeNodes(transmissionTree.getRoot());
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
@@ -125,8 +134,8 @@ public class SimulatedGeneTree extends Tree {
 			}
 		}
 
-		Tree tree;
-		while (true) {
+		Tree tree = new Tree();
+//		while (true) {
 			tree = getSimulatedGeneTree();
 //			List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
 //			if (trueNodes.size() < 3 || (trueNodes.get(0).getHeight() != trueNodes.get(1).getHeight()
@@ -137,8 +146,11 @@ public class SimulatedGeneTree extends Tree {
 //				if (trueNodes.get(0).getHeight() == trueNodes.get(1).getHeight()
 //						&& Pitchforks.getLogicalChildren(trueNodes.get(0)).size() == 2
 //						&& Pitchforks.getLogicalChildren(trueNodes.get(1)).size() == 3) {
+		System.out.println(transmissionTree.getRoot().toNewick());
+			System.out.println(tree.getRoot().toNewick());
+
 					assignFromWithoutID(tree);
-					break;
+//					break;
 //				}
 //			}
 
@@ -189,7 +201,7 @@ public class SimulatedGeneTree extends Tree {
 
 //			tree = new Tree();
 
-		}
+//		}
 
 		// Write simulated network to file if requested
 		if (fileNameInput.get() != null) {
@@ -224,6 +236,7 @@ public class SimulatedGeneTree extends Tree {
     public Tree getSimulatedGeneTree() {
 
 		geneTreeSampleAssignment = new HashMap<>();
+		numberTipMap = transmissionTree.getNumberTipMap();
 
 		List<Node> sortedTransmissionTreeNodes = new ArrayList<>(Arrays.asList(transmissionTree.getNodesAsArray()));
 		sortedTransmissionTreeNodes.sort(Comparator.comparingDouble(Node::getHeight));
@@ -355,9 +368,9 @@ public class SimulatedGeneTree extends Tree {
 				    // Sample
 
 					int count = (int) Math.round(sampleCounts.getValue(transmissionNode.getID()));
-
+					Object[] geneSamples = numberTipMap.get(transmissionNode.getNr()).toArray();
                     for (int i=0; i<count; i++) {
-						Node geneTreeSampleNode = new Node(transmissionNode.getID() + (i + 1));
+						Node geneTreeSampleNode = new Node(geneSamples[i].toString());
                         geneTreeSampleNode.setNr(nextLeafNodeNr++);
 						geneTreeSampleNode.setHeight(transmissionNode.getHeight());
 						activeLineages.get(transmissionNode).add(geneTreeSampleNode);

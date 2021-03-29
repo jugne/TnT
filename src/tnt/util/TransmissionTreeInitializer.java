@@ -187,7 +187,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
                     ensure compatibility of the trees while preserving user-specified topologies */
                     boostGeneTreeInternalNodeHeights(gtree, rootHeight);
 				} else if (bottleneckStrengthInput.get() != null && sampleCountsInput.get() != null) {
-					final tnt.simulator.SimulatedGeneTree geneTree = new tnt.simulator.SimulatedGeneTree();
+					final tnt.simulator.SimulatedGeneTreeInit geneTree = new tnt.simulator.SimulatedGeneTreeInit();
 					geneTree.setID("gene_tree_truth");
 					geneTree.initByName("transmissionTreeInput", transmissionTree,
 							"sampleCounts", sampleCountsInput.get(),
@@ -525,6 +525,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 			// find the corresponding node from the source tree
 			if (nodeNumber < leafNodeCount) { // if this is a leaf node
 				final String speciesName = dstNode.getID();
+				System.out.println(speciesName);
 				final int srcTipNumber = srcTipNumbers.get(speciesName);
 
 				srcNode = srcNodes[srcTipNumber];

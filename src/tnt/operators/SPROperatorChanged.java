@@ -135,6 +135,7 @@ public class SPROperatorChanged extends TreeOperator {
 			srcNodeGrandparent = srcNodeParent.getParent();
 			srcNodeGrandparent.removeChild(srcNodeParent);
 			srcNodeGrandparent.addChild(srcNodeSister);
+			srcNodeGrandparent.makeDirty(Tree.IS_FILTHY);
 		}
 
 		srcNodeParent.setParent(null);
@@ -303,6 +304,7 @@ public class SPROperatorChanged extends TreeOperator {
 		// Reconnect subtree
 
 		srcNodeParent.setHeight(newHeight);
+		srcNodeParent.makeDirty(Tree.IS_FILTHY);
 
 		if (newAttachNode.isRoot()) {
 			srcNodeParent.addChild(newAttachNode);
@@ -311,6 +313,7 @@ public class SPROperatorChanged extends TreeOperator {
 			oldParent.removeChild(newAttachNode);
 			oldParent.addChild(srcNodeParent);
 			srcNodeParent.addChild(newAttachNode);
+			oldParent.makeAllDirty(Tree.IS_FILTHY);
 		}
 
 		// Ensure correct root if set if this has been modified:
@@ -338,6 +341,7 @@ public class SPROperatorChanged extends TreeOperator {
 
 		logHR -= Math.log(1.0 / nEdges);
 		logHR += Math.log(1.0 / nEdgesAfter);
+
 
 
 		return logHR;

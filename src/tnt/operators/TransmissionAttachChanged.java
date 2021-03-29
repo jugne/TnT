@@ -18,6 +18,7 @@
 package tnt.operators;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -42,18 +43,27 @@ public class TransmissionAttachChanged extends TreeOperator {
 					"used to position attachments above the root.",
 			2.0);
 
-    Tree tree;
+	Tree geneTree;
 	GeneTreeIntervals intervals;
 	HashMap<Integer, Integer> geneNodeAssignment;
 	HashMap<Integer, List<Integer>> inverseGeneNodeAssignment;
+	double[] trNodeOccupancy;
 	Double rootAttachLambda;
-	List<Double> trHeights;
+	double[] trHeights;
+
+	int nGeneNodes;
+	int nTrNodes;
 
     @Override
     public void initAndValidate() {
-        tree = treeInput.get();
+		geneTree = treeInput.get();
 		intervals = geneTreeIntervalsInput.get();
 		rootAttachLambda = rootAttachLambdaInput.get();
+
+		nGeneNodes = geneTree.getNodeCount();
+		nTrNodes = intervals.transmissionTreeInput.get().getNodeCount();
+
+		trNodeOccupancy = new double[nGeneNodes * nTrNodes];
 
     }
 
@@ -63,6 +73,7 @@ public class TransmissionAttachChanged extends TreeOperator {
         double logHR = 0.0;
 		geneNodeAssignment = new HashMap<Integer, Integer>(intervals.getGeneTreeNodeAssignment());
 		inverseGeneNodeAssignment = new HashMap<Integer, List<Integer>>(intervals.getInverseGeneTreeNodeAssignment());
+		trNodeOccupancy = new double[nGeneNodes * nTrNodes];
 		// fill the recipient node list on
 		List<Node> recipients = new ArrayList<>();
 		Node trTreeRoot = intervals.transmissionTreeInput.get().getRoot();
@@ -83,8 +94,8 @@ public class TransmissionAttachChanged extends TreeOperator {
 		possibleAssignments.addAll(getAllParentNrs(chosenRecipient));
 		possibleAssignments.addAll(recipientGroupNr);
 
-		List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
-		trHeights = Tools.getTransmissionHeights(intervals.transmissionTreeInput.get());
+		List<Node> trueNodes = Pitchforks.getTrueNodes(geneTree);
+		trHeights = intervals.getTrHeights();
 //		List<Node> trueNodesWithParentsNotAtTransmission = Tools.getGeneNodesWithParentNotAtTransmission(trueNodes,
 //				trHeights);
 		List<Node> fitToMove = new ArrayList<>();
@@ -150,6 +161,7 @@ public class TransmissionAttachChanged extends TreeOperator {
 			} else {
 				srcNodeGrandparent.removeChild(srcNodeParent);
 				srcNodeGrandparent.addChild(srcNodeSibling);
+				srcNodeGrandparent.makeDirty(Tree.IS_FILTHY);
 			}
 
 			srcNodeParent.setParent(null);
@@ -159,7 +171,7 @@ public class TransmissionAttachChanged extends TreeOperator {
 			if (srcNodeSibling.isRoot())
 				remainingSubtreeRoot = srcNodeSibling;
 			else
-				remainingSubtreeRoot = tree.getRoot();
+				remainingSubtreeRoot = geneTree.getRoot();
 
 			// Get all nodes, which:
 			// 1. are assigned to a transmission node, which is in a subtree rooted at
@@ -201,21 +213,22 @@ public class TransmissionAttachChanged extends TreeOperator {
 
 			// Ensure correct root if this has been modified:
 			if (srcNodeSibling.isRoot())
-				tree.setRoot(srcNodeSibling);
+				geneTree.setRoot(srcNodeSibling);
 			else if (srcNodeParent.isRoot())
-				tree.setRoot(srcNodeParent);
+				geneTree.setRoot(srcNodeParent);
 
 			geneNodeAssignment.clear();
 			geneNodeAssignment.putAll(intervals.geneTreeTipAssignment);
 			inverseGeneNodeAssignment.clear();
 			inverseGeneNodeAssignment.putAll(intervals.inverseGeneTreeTipAssignment);
+			trNodeOccupancy = new double[nGeneNodes * nTrNodes];
 
-			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), tree.getRoot(),
-					geneNodeAssignment, inverseGeneNodeAssignment))
+			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), geneTree.getRoot(),
+					geneNodeAssignment, inverseGeneNodeAssignment, trNodeOccupancy))
 				return Double.NEGATIVE_INFINITY; // not compatible
 
 			// store the nodes that can be moved in backward move
-			List<Node> trueNodesAfter = Pitchforks.getTrueNodes(tree);
+			List<Node> trueNodesAfter = Pitchforks.getTrueNodes(geneTree);
 			fitToMoveAfter = getFitToMoveAtTransmission(trueNodesAfter, chosenRecipient);
 			if (fitToMoveAfter.size() == 0)
 				return Double.NEGATIVE_INFINITY;
@@ -251,7 +264,7 @@ public class TransmissionAttachChanged extends TreeOperator {
 			if (sibling.isRoot())
 				remainingSubtreeRoot = sibling;
 			else
-				remainingSubtreeRoot = tree.getRoot();
+				remainingSubtreeRoot = geneTree.getRoot();
 
 //			int trNodeNr = geneNodeAssignment.get(nodeToMove.getNr());
 //			List<Integer> possibleAssignments = new ArrayList<>();
@@ -319,20 +332,21 @@ public class TransmissionAttachChanged extends TreeOperator {
 
 			// Ensure correct root if set if this has been modified:
 			if (sibling.isRoot())
-				tree.setRoot(sibling);
+				geneTree.setRoot(sibling);
 			else if (nodeToMoveParent.isRoot())
-				tree.setRoot(nodeToMoveParent);
+				geneTree.setRoot(nodeToMoveParent);
 
 			geneNodeAssignment.clear();
 			geneNodeAssignment.putAll(intervals.geneTreeTipAssignment);
 			inverseGeneNodeAssignment.clear();
 			inverseGeneNodeAssignment.putAll(intervals.inverseGeneTreeTipAssignment);
+			trNodeOccupancy = new double[nGeneNodes * nTrNodes];
 
-			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), tree.getRoot(),
-					geneNodeAssignment, inverseGeneNodeAssignment))
+			if (!Tools.fillAssignmentAndCheck(intervals.transmissionTreeInput.get(), geneTree.getRoot(),
+					geneNodeAssignment, inverseGeneNodeAssignment, trNodeOccupancy))
 				return Double.NEGATIVE_INFINITY; // not compatible
 
-			List<Node> trueNodesAfter = Pitchforks.getTrueNodes(tree);
+			List<Node> trueNodesAfter = Pitchforks.getTrueNodes(geneTree);
 //			List<Node> trueNodesWithParentsNotAtTransmissionAfter = Tools.getGeneNodesWithParentNotAtTransmission(
 //					trueNodesAfter,
 //					trHeights);
@@ -390,7 +404,8 @@ public class TransmissionAttachChanged extends TreeOperator {
 					possibleSubRoots.add(n);
 			if (!n.isRoot()
 					&& !Pitchforks.isPolytomy(n.getParent()) && !Tools.isMultiMerger(trueNodes, n.getParent())
-						&& !trHeights.contains(n.getParent().getHeight())// != trNode.getParent().getHeight()
+						&& !Arrays.stream(trHeights).anyMatch(x -> x == n.getParent().getHeight())// !=
+																									// trNode.getParent().getHeight()
 						&& n.getHeight() < trNode.getParent().getHeight()) {
 				fitToMove.add(n);
 			}
@@ -524,9 +539,9 @@ public class TransmissionAttachChanged extends TreeOperator {
 
 		if (assignedNodeNrs != null) {
 			for (int geneNodeNr : assignedNodeNrs) {
-				if (Pitchforks.isLogicalNode(tree.getNode(geneNodeNr))
-						&& tree.getNode(geneNodeNr).getHeight() > maxHeight) {
-					maxHeightNode = tree.getNode(geneNodeNr);
+				if (Pitchforks.isLogicalNode(geneTree.getNode(geneNodeNr))
+						&& geneTree.getNode(geneNodeNr).getHeight() > maxHeight) {
+					maxHeightNode = geneTree.getNode(geneNodeNr);
 					maxHeight = maxHeightNode.getHeight();
 				}
 			}

@@ -168,7 +168,7 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
             if (branchRateModel != null) {
                 buf.append("rate=");
                 appendDouble(buf, branchRateModel.getRateForBranch(node));
-                if (populationModel != null) {
+				if (populationModel != null || logOrientationInput.get()) {
                     buf.append(",");
                 }
             }
