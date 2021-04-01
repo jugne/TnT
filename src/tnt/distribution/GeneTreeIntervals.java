@@ -182,10 +182,10 @@ public class GeneTreeIntervals extends CalculationNode {
 		// DEBUG
 		// Uncomment bellow for debbugging
 
-		double treeLength = getLength(geneTree);
-		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
-		if (Math.abs(treeLength - treeLength2) > 10e-12)
-			throw new RuntimeException("lengths don't match!");
+//		double treeLength = getLength(geneTree);
+//		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
+//		if (Math.abs(treeLength - treeLength2) > 10e-12)
+//			throw new RuntimeException("lengths don't match!");
 
 		nodeTime = new HashMap<Double, List<Integer>>();
 		for (Node node : geneTree.getNodesAsArray()) {
