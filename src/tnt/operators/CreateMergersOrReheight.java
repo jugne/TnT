@@ -187,6 +187,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 					return Double.NEGATIVE_INFINITY;
 
 				logHR = -Math.log(f);
+				logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
 //				logHR += Math.log(1.0 / nTrueInnerNodes);
 			} else {
 				Node parent = srcNode.getParent();

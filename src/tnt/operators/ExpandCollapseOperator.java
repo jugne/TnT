@@ -18,7 +18,6 @@
 package tnt.operators;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Input;
@@ -59,7 +58,7 @@ public class ExpandCollapseOperator extends TreeOperator {
 	/**
 	 * The gene node assignment (gene tree node Nr -> transmission tree node Nr).
 	 */
-	HashMap<Integer, Integer> geneNodeAssignment;
+	Integer[] geneNodeAssignment;
 
 	/** The gene tree intervals. */
 	GeneTreeIntervals intervals;
@@ -158,6 +157,7 @@ public class ExpandCollapseOperator extends TreeOperator {
             }
             nodeToMove.setParent(null);
 
+
             if (nodeToMove == logicalParent)
                 logicalParent = sisterNode;
 
@@ -178,8 +178,8 @@ public class ExpandCollapseOperator extends TreeOperator {
                 }
             }
 
-            // Set new node height
-            nodeToMove.setHeight(newHeight);
+			// Set new node height
+			nodeToMove.setHeight(newHeight);
 
             // Complete HR calculation
 
@@ -207,7 +207,7 @@ public class ExpandCollapseOperator extends TreeOperator {
 
 
 		for (Node node : noTrParentNodes) {
-			int trNodeNr = geneNodeAssignment.get(node.getNr());
+			int trNodeNr = geneNodeAssignment[node.getNr()];
 			List<Integer> possibleAssignments = new ArrayList<>();
 			possibleAssignments.add(trNodeNr);
 			possibleAssignments.addAll(Tools.getAllParentNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
@@ -218,7 +218,7 @@ public class ExpandCollapseOperator extends TreeOperator {
                     continue;
 
             Node sister = getOtherChild(node.getParent(), node);
-			int trNodeSisterNr = geneNodeAssignment.get(sister.getNr());
+			int trNodeSisterNr = geneNodeAssignment[sister.getNr()];
 			if (sister.getHeight() <= node.getHeight() || sister.isLeaf()
 					|| !possibleAssignments.contains(trNodeSisterNr))
                 continue;

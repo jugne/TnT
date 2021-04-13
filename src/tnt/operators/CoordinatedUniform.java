@@ -93,6 +93,7 @@ public class CoordinatedUniform extends CoordinatedOperator {
         final double uniformShift = (Randomizer.nextDouble() * (twf + rwf)) - twf;
 
         speciesTreeNode.setHeight(speciesTreeNode.getHeight() + uniformShift);
+		speciesTreeNode.makeDirty(Tree.IS_FILTHY);
 		Set<Node> group = new HashSet<>();
 		Set<Node> logical = new HashSet<>();
 		for (Node geneTreeNode : connectingNodes.values()) {
@@ -104,7 +105,6 @@ public class CoordinatedUniform extends CoordinatedOperator {
 
 			for (Node n : group) {
 				n.setHeight(n.getHeight() + uniformShift);
-
 			}
 
 		for (Node geneTreeNode : connectingNodes.values()) {
@@ -116,6 +116,7 @@ public class CoordinatedUniform extends CoordinatedOperator {
 //					skip.addAll(group);
 
 				geneTreeNode.setHeight(geneTreeNode.getHeight() + uniformShift);
+				geneTreeNode.makeDirty(Tree.IS_FILTHY);
 			}
 		}
 

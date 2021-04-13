@@ -51,18 +51,20 @@ public class GeneTreeIntervals extends CalculationNode {
 	HashMap<Integer, List<Integer>> logicalGeneNodesPerTransmissionNode;
 
 	// key: gene tree node nr, value: transmission tree node nr
-	HashMap<Integer, Integer> geneTreeNodeAssignment, storedGeneTreeNodeAssignment;
 
-	// key: transmission tree node nr, value: list of assigned geneTreeNode nrs
-	HashMap<Integer, List<Integer>> inverseGeneTreeNodeAssignment, storedInverseGeneTreeNodeAssignment;
-//	List<Node> multifurcationParents;
-	public HashMap<Integer, Integer> geneTreeTipAssignment;
+	Integer[] geneTreeNodeAssignment, storedGeneTreeNodeAssignment;
+
+
+	public Integer[] geneTreeTipAssignment;
+
 	public HashMap<Integer, List<Integer>> inverseGeneTreeTipAssignment;
 	public boolean eventListDirty = true;
 	double[] trNodeOccupancy, storedTrNodeOccupancy;
 	double[] trHeights, storedTrHeights;
 	int nGeneNodes;
 	int nTrNodes;
+
+	boolean firstRun;
 
 
 	@Override
@@ -74,28 +76,19 @@ public class GeneTreeIntervals extends CalculationNode {
 
 			// generate map of species tree tip node names to node numbers
 			final Map<String, Integer> tipNumberMap = transmissionTree.getTipNumberMap();
-			geneTreeTipAssignment = new HashMap<>();
+			geneTreeTipAssignment = new Integer[geneTree.getLeafNodeCount()];
 			for (int i = 0; i < geneTree.getLeafNodeCount(); i++) {
 				final Node geneTreeLeafNode = geneTree.getNode(i);
 				final String geneTreeLeafName = geneTreeLeafNode.getID();
 				final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
 
-				if (tipNumberMap.containsKey(geneTreeLeafName)) // not in BEAUTi
-					geneTreeTipAssignment.put(geneTreeLeafNumber,
-							tipNumberMap.get(geneTreeLeafName));
+				if (tipNumberMap.containsKey(geneTreeLeafName)) {
+					geneTreeTipAssignment[geneTreeLeafNumber] = tipNumberMap.get(geneTreeLeafName);
+				}
+
 			}
 		}
 		
-		inverseGeneTreeTipAssignment = new HashMap<>();
-		for (int geneNodeNr : geneTreeTipAssignment.keySet()) {
-			int trNodeNr = geneTreeTipAssignment.get(geneNodeNr);
-			List<Integer> tmp = new ArrayList<>();
-			if (inverseGeneTreeTipAssignment.containsKey(trNodeNr)) {
-				tmp = inverseGeneTreeTipAssignment.get(trNodeNr);
-			}
-			tmp.add(geneNodeNr);
-			inverseGeneTreeTipAssignment.put(trNodeNr, tmp);
-		}
 		
 
 		storedGeneTreeEventList = new ArrayList<>();
@@ -103,12 +96,15 @@ public class GeneTreeIntervals extends CalculationNode {
 		eventsPerTransmissionTreeNode = new HashMap<>();
 		storedEventsPerTransmissionTreeNode = new HashMap<>();
 		storedTrHeights = new double[transmissionTree.getNodeCount()];
+		storedGeneTreeNodeAssignment = new Integer[geneTree.getNodeCount()];
 
 		nGeneNodes = geneTree.getNodeCount();
 		nTrNodes = transmissionTree.getNodeCount();
 
 		trNodeOccupancy = new double[nGeneNodes * nTrNodes];
 		storedTrNodeOccupancy = new double[nGeneNodes * nTrNodes];
+
+		firstRun = true;
 
 	}
 
@@ -127,19 +123,23 @@ public class GeneTreeIntervals extends CalculationNode {
 			return;
 
 		// generate map of species tree tip node names to node numbers
-		final Map<String, Integer> tipNumberMap = transmissionTree.getTipNumberMap();
-		geneTreeTipAssignment = new HashMap<>();
-		for (int i = 0; i < geneTree.getLeafNodeCount(); i++) {
-			final Node geneTreeLeafNode = geneTree.getNode(i);
-			final String geneTreeLeafName = geneTreeLeafNode.getID();
-			final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
+		if (firstRun) {
+			final Map<String, Integer> tipNumberMap = transmissionTree.getTipNumberMap();
+			geneTreeTipAssignment = new Integer[geneTree.getLeafNodeCount()];
+			geneTreeNodeAssignment = new Integer[geneTree.getNodeCount()];
+			for (int i = 0; i < geneTree.getLeafNodeCount(); i++) {
+				final Node geneTreeLeafNode = geneTree.getNode(i);
+				final String geneTreeLeafName = geneTreeLeafNode.getID();
+				final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
 
-			if (tipNumberMap.containsKey(geneTreeLeafName)) // not in BEAUTi
-				geneTreeTipAssignment.put(geneTreeLeafNumber,
-						tipNumberMap.get(geneTreeLeafName));
+				if (tipNumberMap.containsKey(geneTreeLeafName)) {
+					geneTreeTipAssignment[geneTreeLeafNumber] = tipNumberMap.get(geneTreeLeafName);
+					geneTreeNodeAssignment[geneTreeLeafNumber] = tipNumberMap.get(geneTreeLeafName);
+				}
+			}
+			trNodeOccupancy = new double[nGeneNodes * nTrNodes];
 		}
 
-		trNodeOccupancy = new double[nGeneNodes * nTrNodes];
 
 		HashMap<Integer, List<Integer>> fakeBifurcations = new HashMap<>();
 		HashMap<Double, List<Integer>> nodeTime = new HashMap<>();
@@ -149,11 +149,9 @@ public class GeneTreeIntervals extends CalculationNode {
 		logicalGeneNodesPerTransmissionNode = new HashMap<>();
 		trHeights = new double[transmissionTree.getNodeCount()];
 
-		geneTreeNodeAssignment = new HashMap<>();
-		geneTreeNodeAssignment.putAll(geneTreeTipAssignment);
 
-		inverseGeneTreeNodeAssignment = new HashMap<>();
-		inverseGeneTreeNodeAssignment.putAll(inverseGeneTreeTipAssignment);
+
+
 
 		List<Node> sortedNodes = Arrays.asList(geneTree.getNodesAsArray())
 				.stream()
@@ -172,20 +170,29 @@ public class GeneTreeIntervals extends CalculationNode {
 				}
 			}
 		}
-
-		if (!Tools.fillAssignmentAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment,
-				inverseGeneTreeNodeAssignment, trNodeOccupancy)) {
-			eventsPerTransmissionTreeNode = null;
-			return;
+		if (firstRun) {
+			if (!Tools.fillAssignmentAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment,
+					trNodeOccupancy)) {
+				eventsPerTransmissionTreeNode = null;
+				return;
+			}
+		} else {
+			if (!Tools.fillAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment,
+					trNodeOccupancy)) {
+				eventsPerTransmissionTreeNode = null;
+				return;
+			}
 		}
+
+		firstRun = false;
 
 		// DEBUG
 		// Uncomment bellow for debbugging
 
-//		double treeLength = getLength(geneTree);
-//		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
-//		if (Math.abs(treeLength - treeLength2) > 10e-12)
-//			throw new RuntimeException("lengths don't match!");
+		double treeLength = getLength(geneTree);
+		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
+		if (Math.abs(treeLength - treeLength2) > 10e-12)
+			throw new RuntimeException("lengths don't match!");
 
 		nodeTime = new HashMap<Double, List<Integer>>();
 		for (Node node : geneTree.getNodesAsArray()) {
@@ -206,9 +213,9 @@ public class GeneTreeIntervals extends CalculationNode {
 
 			// check that no multiple mergers were created in different transmission
 			// branches
-			int trNr = geneTreeNodeAssignment.get(first.getNr());
+			int trNr = geneTreeNodeAssignment[first.getNr()];
 			for (int nr : nodeTime.get(time)) {
-				if (geneTreeNodeAssignment.get(nr) != trNr && (!first.isLeaf() && !geneTree.getNode(nr).isLeaf())) {
+				if (geneTreeNodeAssignment[nr] != trNr && (!first.isLeaf() && !geneTree.getNode(nr).isLeaf())) {
 					eventsPerTransmissionTreeNode = null;
 					return;
 				}
@@ -235,8 +242,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 				for (Integer other : nodeTime.get(time)) {
 					if (first.getNr() != other &&
-								geneTreeNodeAssignment.get(first.getNr()) == geneTreeNodeAssignment
-									.get(other)) {
+							geneTreeNodeAssignment[first.getNr()] == geneTreeNodeAssignment[other]) {
 						if (fakeBifurcations.containsKey(other)) {
 							event.fakeBifCount += fakeBifurcations.get(other).size();
 							event.multiCoalSize.add(fakeBifurcations.get(other).size() + 2);
@@ -245,8 +251,7 @@ public class GeneTreeIntervals extends CalculationNode {
 							}
 							event.multiCoalCount += 1;
 						event.type = GeneTreeEvent.GeneTreeEventType.MULTIFURCATION;
-					} else if (geneTreeNodeAssignment.get(first.getNr()) != geneTreeNodeAssignment
-							.get(other)) {
+					} else if (geneTreeNodeAssignment[first.getNr()] != geneTreeNodeAssignment[other]) {
 						eventsPerTransmissionTreeNode = null;
 						return;
 					}
@@ -279,7 +284,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
         for (GeneTreeEvent event : geneTreeEventList) {
 
-			Node trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment.get(event.node.getNr()));
+			Node trNode = transmissionTreeInput.get().getNode(geneTreeNodeAssignment[event.node.getNr()]);
 			int nrLineage = activeLineagesPerTransmissionTreeNode.get(trNode.getNr()) == null ? 0
 					: activeLineagesPerTransmissionTreeNode.get(trNode.getNr());
 			if (!trNode.isLeaf() && nrLineage == 0) {
@@ -436,16 +441,14 @@ public class GeneTreeIntervals extends CalculationNode {
 		trHeights = storedTrHeights;
 		storedTrHeights = tmp3;
 
-		HashMap<Integer, Integer> tmp4 = geneTreeNodeAssignment;
+		Integer[] tmp4 = geneTreeNodeAssignment;
 		geneTreeNodeAssignment = storedGeneTreeNodeAssignment;
 		storedGeneTreeNodeAssignment = tmp4;
 
-		HashMap<Integer, List<Integer>> tmp5 = inverseGeneTreeNodeAssignment;
-		inverseGeneTreeNodeAssignment = storedInverseGeneTreeNodeAssignment;
-		storedInverseGeneTreeNodeAssignment = tmp5;
 
-		double[] tmp6 = trNodeOccupancy.clone();
-		trNodeOccupancy = storedTrNodeOccupancy.clone();
+
+		double[] tmp6 = trNodeOccupancy;
+		trNodeOccupancy = storedTrNodeOccupancy;
 		storedTrNodeOccupancy = tmp6;
 
 		super.restore();
@@ -453,8 +456,8 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	@Override
 	protected void store() {
-		storedGeneTreeNodeAssignment = new HashMap<Integer, Integer>(geneTreeNodeAssignment);
-		storedInverseGeneTreeNodeAssignment = new HashMap<Integer, List<Integer>>(inverseGeneTreeNodeAssignment);
+		System.arraycopy(geneTreeNodeAssignment, 0, storedGeneTreeNodeAssignment, 0, geneTreeNodeAssignment.length);
+
 
 		storedGeneTreeEventList.clear();
 		storedGeneTreeEventList.addAll(geneTreeEventList);
@@ -471,19 +474,13 @@ public class GeneTreeIntervals extends CalculationNode {
 		super.store();
 	}
 
-	public HashMap<Integer, Integer> getGeneTreeNodeAssignment() {
+	public Integer[] getGeneTreeNodeAssignment() {
 		update();
 		if (eventsPerTransmissionTreeNode == null)
 			return null;
 		return geneTreeNodeAssignment;
 	}
 
-	public HashMap<Integer, List<Integer>> getInverseGeneTreeNodeAssignment() {
-		update();
-		if (eventsPerTransmissionTreeNode == null)
-			return null;
-		return inverseGeneTreeNodeAssignment;
-	}
 
 	public double[] getTrHeights() {
 		update();

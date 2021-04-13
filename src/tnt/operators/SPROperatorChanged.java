@@ -21,7 +21,6 @@ import static pitchfork.Pitchforks.getTrueNodes;
 import static pitchfork.Pitchforks.isPolytomy;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Description;
@@ -59,7 +58,7 @@ public class SPROperatorChanged extends TreeOperator {
 
     Tree tree;
 	Double rootAttachLambda, probBottleneck;
-	HashMap<Integer, Integer> geneNodeAssignment;
+	Integer[] geneNodeAssignment;
 	GeneTreeIntervals intervals;
 	SpeciesTreeInterface transmissionTree;
 
@@ -107,7 +106,7 @@ public class SPROperatorChanged extends TreeOperator {
 		// TransmissionAttach
 																							// operator for that.
 
-		int trNodeNr = geneNodeAssignment.get(srcNode.getNr());
+		int trNodeNr = geneNodeAssignment[srcNode.getNr()];
 		List<Integer> possibleAssignments = new ArrayList<>();
 		possibleAssignments.add(trNodeNr);
 		possibleAssignments.addAll(Tools.getAllParentNrs(transmissionTree.getNode(trNodeNr)));
@@ -135,7 +134,6 @@ public class SPROperatorChanged extends TreeOperator {
 			srcNodeGrandparent = srcNodeParent.getParent();
 			srcNodeGrandparent.removeChild(srcNodeParent);
 			srcNodeGrandparent.addChild(srcNodeSister);
-			srcNodeGrandparent.makeDirty(Tree.IS_FILTHY);
 		}
 
 		srcNodeParent.setParent(null);
@@ -304,7 +302,6 @@ public class SPROperatorChanged extends TreeOperator {
 		// Reconnect subtree
 
 		srcNodeParent.setHeight(newHeight);
-		srcNodeParent.makeDirty(Tree.IS_FILTHY);
 
 		if (newAttachNode.isRoot()) {
 			srcNodeParent.addChild(newAttachNode);
@@ -313,7 +310,6 @@ public class SPROperatorChanged extends TreeOperator {
 			oldParent.removeChild(newAttachNode);
 			oldParent.addChild(srcNodeParent);
 			srcNodeParent.addChild(newAttachNode);
-			oldParent.makeAllDirty(Tree.IS_FILTHY);
 		}
 
 		// Ensure correct root if set if this has been modified:
@@ -358,7 +354,7 @@ public class SPROperatorChanged extends TreeOperator {
 		List<Node> nodeList = new ArrayList<>();
 
 		if (subtreeRoot.isRoot() || (subtreeRoot.getParent().getHeight() > subtreeRoot.getHeight())
-				&& possibleAssignments.contains(geneNodeAssignment.get(subtreeRoot.getParent().getNr())))
+				&& possibleAssignments.contains(geneNodeAssignment[subtreeRoot.getParent().getNr()]))
 			nodeList.add(subtreeRoot);
 
 		if (subtreeRoot.getHeight() > minAge) {

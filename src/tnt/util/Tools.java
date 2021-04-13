@@ -1,11 +1,12 @@
 package tnt.util;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 import beast.evolution.tree.Node;
+import beast.evolution.tree.Tree;
 import pitchfork.Pitchforks;
 import starbeast2.SpeciesTreeInterface;
 
@@ -140,8 +141,8 @@ public class Tools {
 	}
 
 	public static double findMinHeight(Node geneNode, List<Integer> possibleNodeAssignments,
-			HashMap<Integer, Integer> geneNodeAssignment, SpeciesTreeInterface transmissionTree) {
-		int parentAssignmentLabel = geneNodeAssignment.get(geneNode.getNr());
+			Integer[] geneNodeAssignment, SpeciesTreeInterface transmissionTree) {
+		int parentAssignmentLabel = geneNodeAssignment[geneNode.getNr()];
 		if (possibleNodeAssignments.contains(parentAssignmentLabel))
 			return geneNode.getHeight();
 		Node trNode = transmissionTree.getNode(parentAssignmentLabel);
@@ -151,6 +152,30 @@ public class Tools {
 			trNode = trNode.getParent();
 
 		}
+	}
+
+	public static Boolean fillAndCheck(SpeciesTreeInterface transmissionTree, Node subRoot,
+			Integer[] geneTreeNodeAssignment,
+			double[] trNodeOccupancy) {
+
+		if (subRoot.isDirty() == Tree.IS_CLEAN
+				&& transmissionTree.getNode(geneTreeNodeAssignment[subRoot.getNr()]).isDirty() == Tree.IS_CLEAN) {
+			if (!subRoot.isLeaf()) {
+				if (!fillAndCheck(transmissionTree, subRoot.getChild(0), geneTreeNodeAssignment,
+						trNodeOccupancy))
+					return false;
+				if (subRoot.getChildCount() > 1
+						&& !fillAndCheck(transmissionTree, subRoot.getChild(1), geneTreeNodeAssignment,
+								trNodeOccupancy))
+					return false;
+			}
+		} else if (!fillAssignmentAndCheck(transmissionTree, subRoot, geneTreeNodeAssignment,
+					trNodeOccupancy))
+				return false;
+
+
+		return true;
+
 	}
 
 	/**
@@ -165,8 +190,9 @@ public class Tools {
 	 *         tree. Fill geneTreeNodeAssignment.
 	 */
 	public static Boolean fillAssignmentAndCheck(SpeciesTreeInterface transmissionTree, Node subRoot,
-			HashMap<Integer, Integer> geneTreeNodeAssignment,
-			HashMap<Integer, List<Integer>> inverseGeneTreeNodeAssignment, double[] trNodeOccupancy) {
+			Integer[] geneTreeNodeAssignment,
+			double[] trNodeOccupancy) {
+
 
 
 		if (!subRoot.isLeaf()) {
@@ -176,10 +202,10 @@ public class Tools {
 			}
 
 			if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(0), geneTreeNodeAssignment,
-					inverseGeneTreeNodeAssignment, trNodeOccupancy))
+					trNodeOccupancy))
 				return false;
 			Node tr1 = transmissionTree
-					.getNode(geneTreeNodeAssignment.get(subRoot.getChild(0).getNr()));
+					.getNode(geneTreeNodeAssignment[subRoot.getChild(0).getNr()]);
 			while (!tr1.isRoot()) {
 				Node tr1ParentNode = tr1.getParent();
 				if (tr1ParentNode.getHeight() >= subRoot.getHeight())
@@ -189,10 +215,10 @@ public class Tools {
 
 			if (subRoot.getChildCount() > 1) {
 				if (!fillAssignmentAndCheck(transmissionTree, subRoot.getChild(1), geneTreeNodeAssignment,
-						inverseGeneTreeNodeAssignment, trNodeOccupancy))
+						trNodeOccupancy))
 					return false;
 				Node tr2 = transmissionTree
-						.getNode(geneTreeNodeAssignment.get(subRoot.getChild(1).getNr()));
+						.getNode(geneTreeNodeAssignment[subRoot.getChild(1).getNr()]);
 				while (!tr2.isRoot()) {
 					Node tr2ParentNode = tr2.getParent();
 					if (tr2ParentNode.getHeight() >= subRoot.getHeight())
@@ -208,11 +234,14 @@ public class Tools {
 			boolean recipient = isRecipient(tr1);
 			if (!tr1.isRoot() && !recipient && !subRoot.isLeaf() && tr1.getParent().getHeight() == subRoot.getHeight())
 				return false;
-			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
+			geneTreeNodeAssignment[subRoot.getNr()] = tr1.getNr();
 
 
 			// put geneTree lineage lengths per transmission tree
 			if (!subRoot.isRoot()) {
+				Arrays.fill(trNodeOccupancy, subRoot.getNr() * transmissionTree.getNodeCount(),
+						subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount() - 1, 0);
+
 				double parentHeight = subRoot.getParent().getHeight();
 				
 				if (!tr1.isRoot()) {
@@ -246,18 +275,13 @@ public class Tools {
 			}
 				
 
-			List<Integer> tmp = new ArrayList<>();
-			if (inverseGeneTreeNodeAssignment != null) {
-				if (inverseGeneTreeNodeAssignment.containsKey(tr1.getNr())) {
-					tmp = inverseGeneTreeNodeAssignment.get(tr1.getNr());
-				}
-				tmp.add(subRoot.getNr());
-				inverseGeneTreeNodeAssignment.put(tr1.getNr(), tmp);
-			}
 		} else {
 
 			double parentHeight = subRoot.getParent().getHeight();
-			Node trLeaf = transmissionTree.getNode(geneTreeNodeAssignment.get(subRoot.getNr()));
+			Node trLeaf = transmissionTree.getNode(geneTreeNodeAssignment[subRoot.getNr()]);
+
+			Arrays.fill(trNodeOccupancy, subRoot.getNr() * transmissionTree.getNodeCount(),
+					subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount() - 1, 0);
 			if (!trLeaf.isRoot()) {
 				if (parentHeight >= trLeaf.getParent().getHeight()) {
 					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount() + trLeaf.getNr()] += trLeaf
@@ -291,7 +315,7 @@ public class Tools {
 		try {
 			List<Double> trHeights = getTransmissionHeights(transmissionTree);
 			if (trHeights.contains(subRoot.getHeight()) &&
-				subRoot.getHeight() != transmissionTree.getNode(geneTreeNodeAssignment.get(subRoot.getNr())).getParent()
+					subRoot.getHeight() != transmissionTree.getNode(geneTreeNodeAssignment[subRoot.getNr()]).getParent()
 						.getHeight())
 			return false;
 		} catch (Exception e) {
