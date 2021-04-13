@@ -174,6 +174,7 @@ public class Tools {
 				return false;
 
 
+
 		return true;
 
 	}
@@ -240,7 +241,7 @@ public class Tools {
 			// put geneTree lineage lengths per transmission tree
 			if (!subRoot.isRoot()) {
 				Arrays.fill(trNodeOccupancy, subRoot.getNr() * transmissionTree.getNodeCount(),
-						subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount() - 1, 0);
+						subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount(), 0);
 
 				double parentHeight = subRoot.getParent().getHeight();
 				
@@ -281,7 +282,7 @@ public class Tools {
 			Node trLeaf = transmissionTree.getNode(geneTreeNodeAssignment[subRoot.getNr()]);
 
 			Arrays.fill(trNodeOccupancy, subRoot.getNr() * transmissionTree.getNodeCount(),
-					subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount() - 1, 0);
+					subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount(), 0);
 			if (!trLeaf.isRoot()) {
 				if (parentHeight >= trLeaf.getParent().getHeight()) {
 					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount() + trLeaf.getNr()] += trLeaf
