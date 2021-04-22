@@ -1,7 +1,6 @@
 package tnt.operators;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Description;
@@ -76,7 +75,7 @@ public class NodeReheight2 extends Operator {
         leafPositionArrays = new RelativePosition[geneTreeCount][];
         for (int i = 0; i < geneTreeCount; i++) {
 //            leafNodeMaps[i] = geneTrees.get(i).getTipNumberMap();
-			leafPositionArrays[i] = new RelativePosition[intervals.get(i).geneTreeTipAssignment.keySet().size()];
+//			leafPositionArrays[i] = new RelativePosition[intervals.get(i).geneTreeTipAssignment.keySet().size()];
         }
     }
 
@@ -210,23 +209,23 @@ public class NodeReheight2 extends Operator {
 //        final List<GeneTree> geneTrees = geneTreesInput.get();
 		final List<GeneTreeIntervals> intervals = geneTreeIntervalsInput.get();
         for (int i = 0; i < geneTreeCount; i++) {
-        	final HashMap<Integer, Integer> geneTreeTipMap = intervals.get(i).geneTreeTipAssignment;
-//            final int[] leafNodeMap = leafNodeMaps[i];
-            final RelativePosition[] leafPositions = leafPositionArrays[i];
-			int j = 0;
-			for (Integer key : geneTreeTipMap.keySet()) {
-				final int speciesNodeNumber = geneTreeTipMap.get(key);
-                final int speciesIndex = canonicalMap[speciesNodeNumber];
-                if (speciesIndex < centerIndex) {
-                    leafPositions[j] = RelativePosition.LEFT;
-                } else {
-                    leafPositions[j] = RelativePosition.RIGHT;
-                }
-				j += 1;
-            }
+//        	final HashMap<Integer, Integer> geneTreeTipMap = intervals.get(i).geneTreeTipAssignment;
+////            final int[] leafNodeMap = leafNodeMaps[i];
+//            final RelativePosition[] leafPositions = leafPositionArrays[i];
+//			int j = 0;
+//			for (Integer key : geneTreeTipMap.keySet()) {
+//				final int speciesNodeNumber = geneTreeTipMap.get(key);
+//                final int speciesIndex = canonicalMap[speciesNodeNumber];
+//                if (speciesIndex < centerIndex) {
+//                    leafPositions[j] = RelativePosition.LEFT;
+//                } else {
+//                    leafPositions[j] = RelativePosition.RIGHT;
+//                }
+//				j += 1;
+//            }
 
 			final Node geneTreeRoot = intervals.get(i).geneTreeInput.get().getRoot();// geneTrees.get(i).getRoot();
-            recurseMaxHeight(geneTreeRoot, leafPositions);
+//            recurseMaxHeight(geneTreeRoot, leafPositions);
         }
     }
 

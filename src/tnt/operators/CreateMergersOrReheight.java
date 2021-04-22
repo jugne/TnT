@@ -40,7 +40,7 @@ public class CreateMergersOrReheight extends TreeOperator {
     public Input<Boolean> scaleRootInput = new Input<>(
             "scaleRoot",
             "Whether to scale the age of the root node.",
-            true);
+			false);
 
 
     public Input<Double> scaleFactorInput = new Input<>(
@@ -186,7 +186,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 				if (newHeight < minHeight)
 					return Double.NEGATIVE_INFINITY;
 
-				logHR = -Math.log(f);
+				logHR -= Math.log(f);
 //				logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
 //				logHR += Math.log(1.0 / nTrueInnerNodes);
 			} else {

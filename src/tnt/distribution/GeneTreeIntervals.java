@@ -55,7 +55,7 @@ public class GeneTreeIntervals extends CalculationNode {
 	Integer[] geneTreeNodeAssignment, storedGeneTreeNodeAssignment;
 
 
-	public Integer[] geneTreeTipAssignment;
+	private Integer[] geneTreeTipAssignment;
 
 	public HashMap<Integer, List<Integer>> inverseGeneTreeTipAssignment;
 	public boolean eventListDirty = true;
@@ -73,7 +73,6 @@ public class GeneTreeIntervals extends CalculationNode {
 		geneTree = simulatedGeneTreeInput.get();
 		if (geneTree == null) {
 			geneTree = geneTreeInput.get();
-
 			// generate map of species tree tip node names to node numbers
 			final Map<String, Integer> tipNumberMap = transmissionTree.getTipNumberMap();
 			geneTreeTipAssignment = new Integer[geneTree.getLeafNodeCount()];
@@ -121,20 +120,20 @@ public class GeneTreeIntervals extends CalculationNode {
 	private void update() {
 		if (!eventListDirty)
 			return;
-
 		// generate map of species tree tip node names to node numbers
 		if (firstRun) {
 			final Map<String, Integer> tipNumberMap = transmissionTree.getTipNumberMap();
 			geneTreeTipAssignment = new Integer[geneTree.getLeafNodeCount()];
 			geneTreeNodeAssignment = new Integer[geneTree.getNodeCount()];
+
 			for (int i = 0; i < geneTree.getLeafNodeCount(); i++) {
 				final Node geneTreeLeafNode = geneTree.getNode(i);
 				final String geneTreeLeafName = geneTreeLeafNode.getID();
-				final int geneTreeLeafNumber = geneTreeLeafNode.getNr();
+
 
 				if (tipNumberMap.containsKey(geneTreeLeafName)) {
-					geneTreeTipAssignment[geneTreeLeafNumber] = tipNumberMap.get(geneTreeLeafName);
-					geneTreeNodeAssignment[geneTreeLeafNumber] = tipNumberMap.get(geneTreeLeafName);
+					geneTreeTipAssignment[i] = tipNumberMap.get(geneTreeLeafName);
+					geneTreeNodeAssignment[i] = tipNumberMap.get(geneTreeLeafName);
 				}
 			}
 			trNodeOccupancy = new double[nGeneNodes * nTrNodes];
@@ -170,7 +169,10 @@ public class GeneTreeIntervals extends CalculationNode {
 				}
 			}
 		}
-		if (firstRun) {
+
+		Boolean trTreeDirty = transmissionTree.somethingIsDirty();
+
+		if (firstRun || trTreeDirty) {
 			if (!Tools.fillAssignmentAndCheck(transmissionTree, geneTree.getRoot(), geneTreeNodeAssignment,
 					trNodeOccupancy)) {
 				eventsPerTransmissionTreeNode = null;
@@ -187,12 +189,12 @@ public class GeneTreeIntervals extends CalculationNode {
 		firstRun = false;
 
 		// DEBUG
-		// Uncomment bellow for debbugging
+		// Uncomment bellow for debugging
 
-//		double treeLength = getLength(geneTree);
-//		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
-//		if (Math.abs(treeLength - treeLength2) > 10e-12)
-//			throw new RuntimeException("lengths don't match!");
+		double treeLength = getLength(geneTree);
+		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
+		if (Math.abs(treeLength - treeLength2) > 10e-12)
+			throw new RuntimeException("lengths don't match!");
 
 		nodeTime = new HashMap<Double, List<Integer>>();
 		for (Node node : geneTree.getNodesAsArray()) {
