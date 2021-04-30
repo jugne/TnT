@@ -18,7 +18,7 @@ public class SamplingThroughTimeDistribution extends Distribution {
 	public Input<TransmissionTree> trTreeInput = new Input<>("transmissionTree",
 			"transmission tree", Validate.REQUIRED);
 	public Input<List<TaxonSet>> taxonsetsInput = new Input<>("taxonsets",
-			"a separate list of taxa for samples collected from the same patient");
+			"a separate list of taxa for samples collected from the same patient", new ArrayList<>());
 
 
 
@@ -41,13 +41,23 @@ public class SamplingThroughTimeDistribution extends Distribution {
 		for (int i = 0; i < nSamples; i++)
 			sampleTaxonsetAssignment[i] = -1;
 
+		for (int i = 0; i < nSets; i++)
+			taxonsets.add(new ArrayList<Node>());
+
 		for (int idx = 0; idx < nSamples; idx++) {
 			Node leaf = trTree.getNode(idx);
 			int i = 0;
 			for (TaxonSet t : taxonsetsInput.get()) {
 				List<String> tmp = t.asStringList();
 				if (tmp.contains(leaf.getID())) {
-					taxonsets.get(i).add(leaf);
+//					if (i >= taxonsets.size()) {
+//						List<Node> newList = new ArrayList<Node>();
+//						newList.add(leaf);
+//						taxonsets.add(newList);
+//					} else {
+						taxonsets.get(i).add(leaf);
+//					}
+
 					sampleTaxonsetAssignment[leaf.getNr()] = i;
 					break;
 				} else {
@@ -66,34 +76,32 @@ public class SamplingThroughTimeDistribution extends Distribution {
 
 	@Override
 	public double calculateLogP() {
-		for (int j = 0; j < nSamples; j++) {
-			Node startLeaf = trTree.getNode(j);
-			int leafNodeAssignment = sampleTaxonsetAssignment[startLeaf.getNr()];
-
-			if (leafNodeAssignment != -1) {
-				List<Node> tmp = taxonsets.get(leafNodeAssignment);
-				tmp.remove(startLeaf);
-				Node child = startLeaf;
-				Node parent = startLeaf.getParent();
-				while (parent != null) {
-					if (parent.isFake()) {
-						if (tmp.get(0).getNr() == parent.getChild(1).getNr()) {
-							if (!tmp.remove(parent))
-								System.out.println("SamplingThroughTime distribution error");
-						} else {
-							return Double.NEGATIVE_INFINITY;
-						}
-					} else if (parent.getChild(0) != child) {
+		for (int j = 0; j < nSets; j++) {
+			List<Node> tmp = new ArrayList<Node>(taxonsets.get(j));
+			Node startLeaf = tmp.get(0);
+			tmp.remove(startLeaf);
+			Node child = startLeaf;
+			Node parent = startLeaf.getParent();
+			while (parent != null) {
+				if (parent.isFake()) {
+					if (tmp.get(0).getNr() == parent.getChild(1).getNr()) {
+						if (!tmp.remove(tmp.get(0)))
+							System.out.println("SamplingThroughTime distribution error");
+						if (tmp.isEmpty())
+							break;
+					} else {
 						return Double.NEGATIVE_INFINITY;
 					}
-					child = parent;
-					parent = child.getParent();
-				}
-
-				if (!tmp.isEmpty())
+				} else if (parent.getChild(0) != child) {
 					return Double.NEGATIVE_INFINITY;
+				}
+				child = parent;
+				parent = child.getParent();
 			}
+			if (!tmp.isEmpty())
+				return Double.NEGATIVE_INFINITY;
 		}
+
 
 		return 0;
 	}
