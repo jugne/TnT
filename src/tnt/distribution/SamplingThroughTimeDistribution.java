@@ -25,7 +25,6 @@ public class SamplingThroughTimeDistribution extends Distribution {
 
 	private TransmissionTree trTree;
 	private List<List<Node>> taxonsets;
-	private Integer[] sampleTaxonsetAssignment;
 	private int nSets;
 	private int nSamples;
 
@@ -36,10 +35,8 @@ public class SamplingThroughTimeDistribution extends Distribution {
 		nSets = taxonsetsInput.get().size();
 		nSamples = trTree.getLeafNodeCount();
 		taxonsets = new ArrayList<List<Node>>(nSets);
-		sampleTaxonsetAssignment = new Integer[nSamples];
 
-		for (int i = 0; i < nSamples; i++)
-			sampleTaxonsetAssignment[i] = -1;
+
 
 		for (int i = 0; i < nSets; i++)
 			taxonsets.add(new ArrayList<Node>());
@@ -50,15 +47,7 @@ public class SamplingThroughTimeDistribution extends Distribution {
 			for (TaxonSet t : taxonsetsInput.get()) {
 				List<String> tmp = t.asStringList();
 				if (tmp.contains(leaf.getID())) {
-//					if (i >= taxonsets.size()) {
-//						List<Node> newList = new ArrayList<Node>();
-//						newList.add(leaf);
-//						taxonsets.add(newList);
-//					} else {
-						taxonsets.get(i).add(leaf);
-//					}
-
-					sampleTaxonsetAssignment[leaf.getNr()] = i;
+					taxonsets.get(i).add(leaf);
 					break;
 				} else {
 					i += 1;
@@ -76,12 +65,15 @@ public class SamplingThroughTimeDistribution extends Distribution {
 
 	@Override
 	public double calculateLogP() {
+		logP = 0;
+		trTree = trTreeInput.get();
+//		System.out.println(trTree.getRoot().toNewick());
 		for (int j = 0; j < nSets; j++) {
 			List<Node> tmp = new ArrayList<Node>(taxonsets.get(j));
 			Node startLeaf = tmp.get(0);
 			tmp.remove(startLeaf);
-			Node child = startLeaf;
-			Node parent = startLeaf.getParent();
+			Node child = trTree.getNode(startLeaf.getNr());
+			Node parent = child.getParent();
 			while (parent != null) {
 				if (parent.isFake()) {
 					if (tmp.get(0).getNr() == parent.getChild(1).getNr()) {
@@ -90,20 +82,28 @@ public class SamplingThroughTimeDistribution extends Distribution {
 						if (tmp.isEmpty())
 							break;
 					} else {
-						return Double.NEGATIVE_INFINITY;
+						logP = Double.NEGATIVE_INFINITY;
+						return logP;
 					}
-				} else if (parent.getChild(0) != child) {
-					return Double.NEGATIVE_INFINITY;
+				} else if (!parent.isRoot() && parent.getChild(0).getNr() != child.getNr()) {// startLeaf.getNr() !=
+																								// child.getNr() &&
+																			// parent.getChild(0).getNr() !=
+																			// child.getNr()) {
+					logP = Double.NEGATIVE_INFINITY;
+					return logP;
 				}
 				child = parent;
 				parent = child.getParent();
 			}
-			if (!tmp.isEmpty())
-				return Double.NEGATIVE_INFINITY;
+			if (!tmp.isEmpty()) {
+				logP = Double.NEGATIVE_INFINITY;
+				return logP;
+			}
+
 		}
 
 
-		return 0;
+		return 0.0;
 	}
 
 
