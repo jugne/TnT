@@ -27,11 +27,14 @@ public class GeneTreeDistribution extends Distribution {
 	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 			"Sampling rate per individual", Input.Validate.REQUIRED);
 
+	public Input<RealParameter> pairwiseProbBottleneckInput = new Input<>("pairwiseProbBottleneck",
+			"Pairwise coalescent probability in the bottleneck");
+
 	public Input<RealParameter> durationInput = new Input<>("bottleneckDuration",
 			"Duration of the transmission bottleneck");
 
 	public Input<RealParameter> tauInput = new Input<>("tau",
-			"Strength of the transmission bottleneck", Input.Validate.XOR, durationInput);
+			"Strength of the transmission bottleneck");
 
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch population sizes.", Validate.REQUIRED);
@@ -135,10 +138,21 @@ public class GeneTreeDistribution extends Distribution {
 		c2 = -(lambda - mu - 2 * lambda * rho - psi) / c1;
 
 		popSizes = popSizesInput.get();
-		if (tauInput.get().getValue() != null)
+		if (tauInput.get() != null)
 			bottleneckDuration = tauInput.get().getValue() * popSizes.getValue(0);
-		else
+		else if (durationInput.get() != null)
 			bottleneckDuration = durationInput.get().getValue();
+		else if (pairwiseProbBottleneckInput.get() != null) {
+			if (pairwiseProbBottleneckInput.get().getValue() == 1)
+				bottleneckDuration = Double.MAX_VALUE;
+			else if (pairwiseProbBottleneckInput.get().getValue() > 1.0
+					|| pairwiseProbBottleneckInput.get().getValue() < 0)
+				throw new Error("pairwiseProbBottleneck must be between 0 and 1.0");
+			else {
+				bottleneckDuration = -Math.log(1 - pairwiseProbBottleneckInput.get().getValue()) * popSizes.getValue(0);
+			}
+		} else
+			throw new Error("Either durationInput, tauInput or pairwiseProbBottleneckInput must be specified!");
 	}
 
 	@Override

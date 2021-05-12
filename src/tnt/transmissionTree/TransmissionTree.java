@@ -76,7 +76,8 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 	private void orientateNodeChildren(int subtreeRootNr) {
 		Node subTreeRoot = this.getNode(subtreeRootNr);
 		if (!subTreeRoot.isLeaf()) {
-			if (!subTreeRoot.getLeft().metaDataString.equals("orientation=donor")) {
+			if (!subTreeRoot.getLeft().metaDataString.equals("orientation=donor")
+					|| (subTreeRoot.isFake() && subTreeRoot.getRight().getHeight() != subTreeRoot.getHeight())) {
 				Node left = subTreeRoot.getRight();
 				Node right = subTreeRoot.getLeft();
 

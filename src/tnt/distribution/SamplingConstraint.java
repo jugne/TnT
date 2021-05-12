@@ -13,7 +13,7 @@ import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
 import tnt.transmissionTree.TransmissionTree;
 
-public class SamplingThroughTimeDistribution extends Distribution {
+public class SamplingConstraint extends Distribution {
 
 	public Input<TransmissionTree> trTreeInput = new Input<>("transmissionTree",
 			"transmission tree", Validate.REQUIRED);

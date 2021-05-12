@@ -27,11 +27,14 @@ public class SkyGeneTreeDistribution extends Distribution {
 			"BDMM parameterization",
 			Input.Validate.REQUIRED);
 
+	public Input<RealParameter> pairwiseProbBottleneckInput = new Input<>("pairwiseProbBottleneck",
+			"Pairwise coalescent probability in the bottleneck");
+
 	public Input<RealParameter> durationInput = new Input<>("bottleneckDuration",
 			"Duration of the transmission bottleneck. Use either duration or strength (tau).");
 
 	public Input<RealParameter> tauInput = new Input<>("tau",
-			"Strength of the transmission bottleneck", Input.Validate.XOR, durationInput);
+			"Strength of the transmission bottleneck");
 
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch population sizes.", Validate.REQUIRED);
@@ -98,11 +101,23 @@ public class SkyGeneTreeDistribution extends Distribution {
 		popSizePerBranch = popSizePerBranchInput.get() ? popSizesInput.get().getValue(trNodeNr)
 				: popSizesInput.get().getValue(0);
 
-		if (tauInput.get().getValue() != null)
-			bottleneckDuration = tauInput.get().getValue() * popSizePerBranch;
-		else
+		if (tauInput.get() != null)
+			bottleneckDuration = tauInput.get().getValue() * ploidy * popSizePerBranch;
+		else if (durationInput.get() != null)
 			bottleneckDuration = durationInput.get().getValue();
-		
+		else if (pairwiseProbBottleneckInput.get() != null) {
+			if (pairwiseProbBottleneckInput.get().getValue() == 0)
+				bottleneckDuration = 0;
+			else if (pairwiseProbBottleneckInput.get().getValue() > 1.0
+					|| pairwiseProbBottleneckInput.get().getValue() < 0)
+				throw new Error("pairwiseProbBottleneck must be between 0 and 1.0");
+			else {
+				bottleneckDuration = -Math.log(1 - pairwiseProbBottleneckInput.get().getValue()) * ploidy
+						* popSizePerBranch;
+			}
+		} else
+			throw new Error("Either bottleneckDuration, tau or pairwiseProbBottleneck must be specified!");
+
 		popSizeOrigin = popSizesInput.get().getValue(popSizeDim-1);
 	}
 
