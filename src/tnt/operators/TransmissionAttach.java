@@ -32,7 +32,7 @@ import pitchfork.Pitchforks;
 import tnt.distribution.GeneTreeIntervals;
 import tnt.util.Tools;
 
-public class TransmissionAttachChanged extends TreeOperator {
+public class TransmissionAttach extends TreeOperator {
 
 	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
 			"intervals for a gene tree", Validate.REQUIRED);

@@ -37,7 +37,7 @@ import tnt.util.Tools;
 
 @Description("SPR operator for trees with polytomies and multiple mergers.")
 // In this version we will assume that all three variants of attachement have equal probability
-public class SPROperatorChanged extends TreeOperator {
+public class SPROperator extends TreeOperator {
 
 	public Input<Double> rootAttachLambdaInput = new Input<>(
 			"rootAttachLambda",
