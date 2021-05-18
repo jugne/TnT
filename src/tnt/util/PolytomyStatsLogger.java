@@ -71,12 +71,12 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
     public void init(PrintStream out) {
         String prefix = getID() == null ? "" : getID() + ".";
 
-        out.print(prefix + "PolytomyCount\t");
+		out.print(prefix + "PolytomyCount_" + tree.getID() + "\t");
 
         if (!polytomyCountOnly) {
             for (int i = 2; i <= maxOrder; i++)
-                out.print(prefix + "NodesOrder" + i + "\t");
-			out.print(prefix + "MultiMergerCount\t");
+				out.print(prefix + "NodesOrder_" + tree.getID() + "_" + i + "\t");
+			out.print(prefix + "MultiMergerCount_" + tree.getID() + "\t");
         }
 
     }

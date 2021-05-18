@@ -138,6 +138,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
+			if (eventList.get(trNode.getNr()) != null) {
 			updateParameters(trNode.getNr());
 
 			int i = parameterization.getIntervalIndex(parameterization.getNodeTime(trNode, finalSampleOffset.getArrayValue()));
@@ -158,6 +159,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 			GeneTreeEvent prevEvent = new GeneTreeEvent();
 			prevEvent.time = trNode.getHeight();
+
 
 			for (GeneTreeEvent event : eventList.get(trNode.getNr())) {
 
@@ -237,6 +239,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 				prevEvent = event;
 			}
 
+
 			// if after going through all the events, there is still an interval left
 			// between last event
 			// on a gene tree and transmission tree branch, we have to calculate
@@ -277,6 +280,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 					logP += transmission(mockEvent, prevEvent);
 				}
 			}
+		}
 		}
 
 		return logP;

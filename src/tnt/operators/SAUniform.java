@@ -68,7 +68,7 @@ public class SAUniform extends TreeOperator {
 		int i = 0;
 		for (GeneTreeIntervals intervals : intervalsList) {
 			intervals.eventListDirty = true;
-			Tree geneTree = geneTrees.get(i);
+			Tree geneTree = intervals.geneTreeInput.get();
 			i += 1;
 			HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
 			List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientChild.getNr());

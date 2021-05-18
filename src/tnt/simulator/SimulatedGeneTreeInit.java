@@ -40,6 +40,10 @@ public class SimulatedGeneTreeInit extends Tree {
 			"Fully labeled transmission tree on which to simulate gene trees",
             Input.Validate.REQUIRED);
 
+	public Input<TaxonSet> taxonSetInput = new Input<>(
+			"taxonSet",
+			"TaxonSet of the gene tree.");
+
     public Input<TraitSet> sampleCountsInput = new Input<>(
             "sampleCounts",
             "TraitSet defining number of  samples per node in species tree.",
@@ -90,7 +94,7 @@ public class SimulatedGeneTreeInit extends Tree {
 
 	private double samplingExtantRate;
 
-	TaxonSet taxonSupperSet;
+	List<String> taxonSet;
 
 	Multimap<Integer, String> numberTipMap;
 
@@ -107,7 +111,7 @@ public class SimulatedGeneTreeInit extends Tree {
     public void initAndValidate() {
 
 		transmissionTree = transmissionTreeInput.get();
-		taxonSupperSet = transmissionTree.getTaxonset();
+		taxonSet = taxonSetInput.get().asStringList();
 		orientateTreeAtFakeNodes(transmissionTree.getRoot());
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
@@ -368,9 +372,8 @@ public class SimulatedGeneTreeInit extends Tree {
 				    // Sample
 
 					int count = (int) Math.round(sampleCounts.getValue(transmissionNode.getID()));
-					Object[] geneSamples = numberTipMap.get(transmissionNode.getNr()).toArray();
                     for (int i=0; i<count; i++) {
-						Node geneTreeSampleNode = new Node(geneSamples[i].toString());
+						Node geneTreeSampleNode = new Node(taxonSet.get(nextLeafNodeNr));
                         geneTreeSampleNode.setNr(nextLeafNodeNr++);
 						geneTreeSampleNode.setHeight(transmissionNode.getHeight());
 						activeLineages.get(transmissionNode).add(geneTreeSampleNode);
