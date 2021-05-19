@@ -309,7 +309,8 @@ public class GeneTreeIntervals extends CalculationNode {
 				activeLineagesPerTransmissionTreeNode.put(trNode.getNr(), nrLineage);
 				break;
         	}}
-			catch(Exception e) {
+			catch (Throwable e) {
+				System.out.println(e.getMessage());
 				System.exit(-1);
 
 			}
@@ -362,7 +363,9 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	int getLineagesRecurse(Node trNode) {
 		int nLineages = 0;
-		try {
+
+		if (trNode.isLeaf() && activeLineagesPerTransmissionTreeNode.get(trNode.getNr()) == null)
+			return nLineages;
 		if (activeLineagesPerTransmissionTreeNode.get(trNode.getChild(0).getNr()) == null)
 			nLineages += getLineagesRecurse(trNode.getChild(0));
 		else
@@ -371,9 +374,7 @@ public class GeneTreeIntervals extends CalculationNode {
 			nLineages += getLineagesRecurse(trNode.getChild(1));
 		else if (trNode.getChildCount() > 1)
 			nLineages += activeLineagesPerTransmissionTreeNode.get(trNode.getChild(1).getNr());
-		} catch (Exception e) {
-			System.exit(-1);
-		}
+
 
 		return nLineages;
 	}
