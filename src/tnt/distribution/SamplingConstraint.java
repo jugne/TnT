@@ -67,7 +67,6 @@ public class SamplingConstraint extends Distribution {
 	public double calculateLogP() {
 		logP = 0;
 		trTree = trTreeInput.get();
-//		System.out.println(trTree.getRoot().toNewick());
 		for (int j = 0; j < nSets; j++) {
 			List<Node> tmp = new ArrayList<Node>(taxonsets.get(j));
 			Node startLeaf = tmp.get(0);
@@ -85,10 +84,7 @@ public class SamplingConstraint extends Distribution {
 						logP = Double.NEGATIVE_INFINITY;
 						return logP;
 					}
-				} else if (!parent.isRoot() && parent.getChild(0).getNr() != child.getNr()) {// startLeaf.getNr() !=
-																								// child.getNr() &&
-																			// parent.getChild(0).getNr() !=
-																			// child.getNr()) {
+				} else if (!parent.isRoot() && parent.getChild(0).getNr() != child.getNr()) {
 					logP = Double.NEGATIVE_INFINITY;
 					return logP;
 				}

@@ -76,7 +76,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 		Node subTreeRoot = tree.getNode(nodeNr);
 		if (!subTreeRoot.isLeaf()) {
 			if (!subTreeRoot.getLeft().metaDataString.contains("orientation=donor")
-					|| (subTreeRoot.isFake() && subTreeRoot.getRight().getHeight() != subTreeRoot.getHeight())) {
+					|| (subTreeRoot.isFake() && subTreeRoot.getRight().getHeight() == subTreeRoot.getHeight())) {
 				Node left = subTreeRoot.getRight();
 				Node right = subTreeRoot.getLeft();
 
