@@ -101,6 +101,9 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 			"Sampling rate per individual");
 
+	public Input<RealParameter> rhoInput = new Input<RealParameter>("rho",
+			"Sampling extant probability");
+
 	public Input<RealParameter> bottleneckStrengthInput = new Input<RealParameter>("bottleneckStrength",
 			"Strength of the bottleneck in scaled time");
 
@@ -217,6 +220,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 							"birthRate", birthRate.get(),
 							"deathRate", deathRateInput.get(),
 							"samplingRate", samplingRateInput.get(),
+							"samplingExtantRate", rhoInput.get(),
 							"origin", originInput.get());
 
 //					final TreeParser parser = new TreeParser(geneTree.getSimulatedGeneTree().getRoot().toNewick());

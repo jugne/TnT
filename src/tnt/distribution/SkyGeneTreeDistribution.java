@@ -63,8 +63,14 @@ public class SkyGeneTreeDistribution extends Distribution {
 	private double lambda_i;
 	private double mu_i;
 	private double psi_i;
-	private double c1_i;
-	private double c2_i;
+	private double t_i;
+
+	private double[] A;
+	private double[] B;
+	private double A_i;
+	private double B_i;
+//	private double c1_i;
+//	private double c2_i;
 	private double origin;
 	private Function finalSampleOffset;
 
@@ -93,6 +99,9 @@ public class SkyGeneTreeDistribution extends Distribution {
 		parameterization = parameterizationInput.get();
 		
 		finalSampleOffset = finalSampleOffsetInput.get();
+
+		A = new double[parameterization.getTotalIntervalCount()];
+		B = new double[parameterization.getTotalIntervalCount()];
 	}
 
 
@@ -121,6 +130,32 @@ public class SkyGeneTreeDistribution extends Distribution {
 		popSizeOrigin = popSizesInput.get().getValue(popSizeDim-1);
 	}
 
+	private void computeConstants(double[] A, double[] B) {
+
+		for (int i = parameterization.getTotalIntervalCount() - 1; i >= 0; i--) {
+
+			double p_i_prev;
+			if (i + 1 < parameterization.getTotalIntervalCount()) {
+				p_i_prev = get_p_i(parameterization.getBirthRates()[i + 1][0],
+						parameterization.getDeathRates()[i + 1][0],
+						parameterization.getSamplingRates()[i + 1][0],
+						A[i + 1], B[i + 1],
+						parameterization.getIntervalEndTimes()[i + 1],
+						parameterization.getIntervalEndTimes()[i]);
+			} else {
+				p_i_prev = 1.0;
+			}
+
+			double rho_i = parameterization.getRhoValues()[i][0];
+			double lambda_i = parameterization.getBirthRates()[i][0];
+			double mu_i = parameterization.getDeathRates()[i][0];
+			double psi_i = parameterization.getSamplingRates()[i][0];
+
+			A[i] = Math.sqrt((lambda_i - mu_i - psi_i) * (lambda_i - mu_i - psi_i) + 4 * lambda_i * psi_i);
+			B[i] = ((1 - 2 * (1 - rho_i) * p_i_prev) * lambda_i + mu_i + psi_i) / A[i];
+		}
+	}
+
 
 	@Override
 	public double calculateLogP() {
@@ -136,6 +171,8 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		origin = parameterization.originInput.get().getArrayValue(0);
 
+		computeConstants(A, B);
+
 		
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
 			if (eventList.get(trNode.getNr()) != null) {
@@ -150,8 +187,11 @@ public class SkyGeneTreeDistribution extends Distribution {
 			lambda_i = parameterization.getBirthRates()[i][0];
 			mu_i = parameterization.getDeathRates()[i][0];
 			psi_i = parameterization.getSamplingRates()[i][0];
-			c1_i = c1(lambda_i, mu_i, psi_i);
-			c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
+				t_i = parameterization.getIntervalEndTimes()[i];
+				A_i = A[i];
+				B_i = B[i];
+//			c1_i = c1(lambda_i, mu_i, psi_i);
+//			c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
 
 
 			boolean recipient = (!trNode.isRoot()
@@ -190,8 +230,11 @@ public class SkyGeneTreeDistribution extends Distribution {
 							lambda_i = parameterization.getBirthRates()[i][0];
 							mu_i = parameterization.getDeathRates()[i][0];
 							psi_i = parameterization.getSamplingRates()[i][0];
-							c1_i = c1(lambda_i, mu_i, psi_i);
-							c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
+								t_i = parameterization.getIntervalEndTimes()[i];
+								A_i = A[i];
+								B_i = B[i];
+//							c1_i = c1(lambda_i, mu_i, psi_i);
+//							c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
 						}
 						if (event.time != startTime) {
 							logP += interval(event.time, startTime, prevEvent);
@@ -266,8 +309,11 @@ public class SkyGeneTreeDistribution extends Distribution {
 						lambda_i = parameterization.getBirthRates()[i][0];
 						mu_i = parameterization.getDeathRates()[i][0];
 						psi_i = parameterization.getSamplingRates()[i][0];
-						c1_i = c1(lambda_i, mu_i, psi_i);
-						c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
+							t_i = parameterization.getIntervalEndTimes()[i];
+							A_i = A[i];
+							B_i = B[i];
+//						c1_i = c1(lambda_i, mu_i, psi_i);
+//						c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
 					}
 					if (mockEvent.time != startTime) {
 						logP += interval(mockEvent.time, startTime, prevEvent);
@@ -314,7 +360,8 @@ public class SkyGeneTreeDistribution extends Distribution {
 		sum = gUp(prevEvent.lineages, prevEvent.lineages, bottleneckDuration, popSizePerBranch);//
 
 		ans -= (1 - sum) * lambda_i//
-				* integralP_0(startTime, end_time);//
+				* integral_p_i(parameterization.getAge(startTime, finalSampleOffset.getArrayValue()),
+						parameterization.getAge(end_time, finalSampleOffset.getArrayValue()));//
 
 		return ans;
 	}
@@ -367,7 +414,8 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
 				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch)
-				* lambda_i * P_0(event.time);
+				* lambda_i * get_p_i(lambda_i, mu_i, psi_i, A_i, B_i, t_i,
+						parameterization.getAge(event.time, finalSampleOffset.getArrayValue()));
 
 		return Math.log(ans);
 	}
@@ -384,7 +432,8 @@ public class SkyGeneTreeDistribution extends Distribution {
 		ans += 1.0 / (ploidy * popSizePerBranch);
 		ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))//
 				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch)//
-				* lambda_i * P_0(event.time);//
+				* lambda_i * get_p_i(lambda_i, mu_i, psi_i, A_i, B_i, t_i,
+						parameterization.getAge(event.time, finalSampleOffset.getArrayValue()));//
 
 		return Math.log(ans);
 	}
@@ -430,24 +479,47 @@ public class SkyGeneTreeDistribution extends Distribution {
 		return ans;
 	}
 
-	private double P_0(double t) {
+//	private double P_0(double t) {
+//
+//		double p0 = (lambda_i + mu_i + psi_i
+//				+ c1_i * ((Math.exp(-c1_i * t) * (1 - c2_i) - (1 + c2_i))
+//						/ (Math.exp(-c1_i * t) * (1 - c2_i) + (1 + c2_i))))
+//				/ (2.0 * lambda_i);
+//
+//		return p0;
+//	}
+	
+	private double get_p_i(double lambda, double mu, double psi, double A, double B, double t_i, double t) {
 
-		double p0 = (lambda_i + mu_i + psi_i
-				+ c1_i * ((Math.exp(-c1_i * t) * (1 - c2_i) - (1 + c2_i))
-						/ (Math.exp(-c1_i * t) * (1 - c2_i) + (1 + c2_i))))
-				/ (2.0 * lambda_i);
+		if (lambda > 0.0) {
+			double v = Math.exp(A * (t_i - t)) * (1 + B);
+			double ans = (lambda + mu + psi - A * (v - (1 - B)) / (v + (1 - B)))
+					/ (2 * lambda);
+			return ans;
+        } else {
+            // The limit of p_i as lambda -> 0
+            return 0.5;
+        }
+    }
 
-		return p0;
-	}
-
-	private double integralP_0(double t_0, double t_1) {
-
-		double ans = (1.0 / (2.0 * lambda_i)) * ((t_1 - t_0) * (mu_i + psi_i + lambda_i - c1_i) + 2.0 * Math
-				.log(((c2_i - 1) * Math.exp(-c1_i * t_0) - c2_i - 1)
-						/ ((c2_i - 1) * Math.exp(-c1_i * t_1) - c2_i - 1)));
+	private double integral_p_i(double t_0, double t_1) {
+		double t0 = t_i - t_0;
+		double t1 = t_i - t_1;
+		double ans = (1.0 / (2.0 * lambda_i)) * ((t1 - t0) * (mu_i + psi_i + lambda_i + A_i) + 2.0 * Math
+				.log(((-B_i - 1) * Math.exp(A_i * t0) + B_i - 1)
+						/ ((-B_i - 1) * Math.exp(A_i * t1) + B_i - 1)));
 
 		return ans;
 	}
+
+//	private double integralP_0(double t_0, double t_1) {
+//
+//		double ans = (1.0 / (2.0 * lambda_i)) * ((t_1 - t_0) * (mu_i + psi_i + lambda_i - c1_i) + 2.0 * Math
+//				.log(((c2_i - 1) * Math.exp(-c1_i * t_0) - c2_i - 1)
+//						/ ((c2_i - 1) * Math.exp(-c1_i * t_1) - c2_i - 1)));
+//
+//		return ans;
+//	}
 
 	/**
 	 * @param i number of lineages before coalescent events, time increasing in the
