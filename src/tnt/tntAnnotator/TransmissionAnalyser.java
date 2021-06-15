@@ -27,7 +27,6 @@ import javax.swing.WindowConstants;
 
 import beast.app.treeannotator.TreeAnnotator;
 import beast.core.util.Log;
-import beast.evolution.tree.CladeSet;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.evolution.tree.TreeUtils;
@@ -83,111 +82,35 @@ public class TransmissionAnalyser extends TreeAnnotator {
 		TreeSet trTreeSet = new MemoryFriendlyTreeSet(options.inTransmissionTreeFile.toString(), 0);// new
 																									// FastTreeSet(options.inTransmissionTreeFile.toString(),
 																									// 0);
-		Set<String> leafNodes = new HashSet<String>(options.leafIds);
+//		Set<String> leafNodes = new HashSet<String>(options.leafIds);
 
 		PrintStream ps = new PrintStream(options.outFile);
-		ps.print("mrca_height");
-		for (int i=0; i<options.leafIds.size(); i++) {
-			ps.print("_"+options.leafIds.get(i));
-		}
-		ps.print("\t");
+		boolean first = true;
 
-		ps.print("within_interval" + "\t");
-
-		ps.print("before_lower_bound" + "\t");
-
-		for (int i=0; i<options.leafIds.size(); i++) {
-			ps.print(options.leafIds.get(i) + "_recipient_mrca" + "\t");
-		}
-
-		for (int i = 0; i < options.leafIds.size(); i++) {
-			ps.print(options.leafIds.get(i) + "_recipient" + "\t");
-		}
-		
-		for (int i = 0; i < options.leafIds.size(); i++) {
-			ps.print(options.leafIds.get(i) + "_n_intermediate_transmissions" + "\t");
-		}
-
-		for (int i = 0; i < options.leafIds.size(); i++) {
-			ps.print(options.leafIds.get(i) + "_taxa_intermediate_transmissions" + "\t");
-		}
-
-		ps.print("other_nodes_in_clade");
-		
-		ps.print("\n");
-		
 
 		trTreeSet.reset();
 		while (trTreeSet.hasNext()) {
 			Tree tree = trTreeSet.next();
-			Node mrca = TreeUtils.getCommonAncestorNode(tree, leafNodes);
-			CladeSet clades = new CladeSet(tree);
-			int idx = Integer.MIN_VALUE;
-//			int i = 0;
-			for (int i = 0; i < clades.getCladeCount(); i++) {
-				if (mrca.getHeight() == clades.getMeanNodeHeight(i)) {
-					idx = i;
-					break;
+			HashMap<String, Integer> idLeafNrMap = new HashMap<String, Integer>();
+			Set<String> hosts = new HashSet<String>();
+			if (first) {
+				for (int i=0; i<tree.getLeafNodeCount(); i++) {
+					hosts.add(tree.getNode(i).getID().split("_")[0]);
 				}
-			}
-			BitSet clade = clades.get(idx);
-			Boolean above_lower = mrca.getHeight() >= options.minHeight;
-			Boolean inInterval = above_lower && mrca.getHeight() <= options.maxHeight;
-			int inIntervalInt = inInterval ? 1 : 0;
-			int aboveLowerBound = above_lower ? 1 : 0;
-			ps.print(mrca.getHeight() + "\t" +
-					inIntervalInt + "\t" +
-					aboveLowerBound + "\t");
-
-
-			Integer[] isRecipient_mrca = new Integer[options.leafIds.size()];
-			Node leftChild = mrca.getChild(0).metaDataString.contains("orientation=donor") ? mrca.getChild(0)
-					: mrca.getChild(1);
-			for (int j = 0; j < options.leafIds.size(); j++) {
-				Set<String> leftDescendants = TreeUtils.getDescendantLeaves(tree, leftChild);
-				isRecipient_mrca[j] = leftDescendants.contains(options.leafIds.get(j)) ? 0 : 1;
-			}
-
-			for (int i = 0; i < isRecipient_mrca.length; i++) {
-				ps.print(isRecipient_mrca[i] + "\t");
-			}
-
-
-			String other_nodes = "";
-			Integer[] isRecipient = new Integer[options.leafIds.size()];
-			HashMap<Integer, List<String>> separatingBifurcations = new HashMap<>();
-			HashMap<Integer, Integer> separatingBifurcationsSize = new HashMap<>();
-			List<String> otherNodes_ = new ArrayList<String>();
-			for (int n = 0; n < tree.getLeafNodeCount(); n++) {
-				for (int j=0; j< options.leafIds.size(); j++) {
-					if (tree.getNode(n).getID().equalsIgnoreCase(options.leafIds.get(j))) {
-						SeparatingBifurcations s = GetSeparatingBifurcations(tree, mrca, tree.getNode(n));
-						separatingBifurcations.put(j, s.taxaList);
-						separatingBifurcationsSize.put(j, s.n_transmissions);
-						isRecipient[j] = tree.getNode(n).metaDataString.contains("orientation=recipient") ? 1 : 0;
+				List<String> hostsList = new ArrayList<>(hosts);
+				for (int i = 0; i < hostsList.size(); i++) {
+					for (int j = 0; j < hostsList.size(); j++) {
+						if (i != j)
+							ps.print(hostsList.get(i) + "_" + hostsList.get(j) + "\t");
 					}
-
 				}
-				if (clade.get(n) && !options.leafIds.contains(tree.getNode(n).getID())) {
-					otherNodes_.add(tree.getNode(n).getID());
-				}
-			}
-
-			for (int i = 0; i < isRecipient.length; i++) {
-				ps.print(isRecipient[i] + "\t");
+				ps.print("\n");
 			}
 			
-			for (int i = 0; i < options.leafIds.size(); i++) {
-				ps.print(separatingBifurcationsSize.get(i) + "\t");
-			}
+			Node root = tree.getRoot();
 			
-			for (int i = 0; i < options.leafIds.size(); i++) {
-				ps.print(separatingBifurcations.get(i) + "\t");
-			}
 
-			other_nodes = String.join(",", otherNodes_);
-			ps.print(other_nodes);
-			ps.print("\n");
+
 
 
         }
@@ -195,6 +118,40 @@ public class TransmissionAnalyser extends TreeAnnotator {
  
 
         }
+
+
+	private void fittBitSet(Node subroot, BitSet transmissions, int leafCount, HashMap<String, Integer> idLeafNrMap) {
+
+		if (!subroot.isFake()) {
+			Node donor = subroot.getChild(0).metaDataString.contains("orientation=donor") ? subroot.getChild(0)
+					: subroot.getChild(1);
+			if (!donor.isLeaf()) {
+				fittBitSet(donor, transmissions, leafCount, idLeafNrMap);
+			}
+			subroot.setID(donor.getID());
+			Node recipient = donor.getNr() == subroot.getChild(0).getNr() ? subroot.getChild(0) : subroot.getChild(1);
+			if (recipient.isLeaf()) {
+				int idx = idLeafNrMap.get(subroot.getID());
+				idx = idx * leafCount + recipient.getNr();
+				transmissions.set(idx);
+			} else {
+				for (Node n : recipient.getAllLeafNodes()) {
+					int idx = idLeafNrMap.get(subroot.getID());
+					idx = idx * leafCount + n.getNr();
+					transmissions.set(idx);
+				}
+				fittBitSet(recipient, transmissions, leafCount, idLeafNrMap);
+			}
+		} else {
+			if (subroot.getChild(0).getHeight() == subroot.getHeight()) {
+				subroot.setID(subroot.getChild(0).getID());
+				fittBitSet(subroot.getChild(1), transmissions, leafCount, idLeafNrMap);
+			} else {
+				subroot.setID(subroot.getChild(1).getID());
+				fittBitSet(subroot.getChild(0), transmissions, leafCount, idLeafNrMap);
+			}
+		}
+	}
 
 	private SeparatingBifurcations GetSeparatingBifurcations(Tree tree, Node subtreeRoot, Node leaf) {
 
