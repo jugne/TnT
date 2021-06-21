@@ -14,6 +14,7 @@ import beast.core.State;
 import beast.core.parameter.RealParameter;
 import beast.evolution.tree.Node;
 import starbeast2.SpeciesTreeInterface;
+import tnt.util.Tools;
 
 public class GeneTreeDistribution extends Distribution {
 
@@ -157,20 +158,6 @@ public class GeneTreeDistribution extends Distribution {
 
 	@Override
 	public double calculateLogP() {
-//		lambda = birthRateInput.get().getValue();
-//		mu = deathRateInput.get().getArrayValue();
-//		psi = samplingRateInput.get().getValue();
-//
-//		if (rhoProbability.get() != null) {
-//			rho = rhoProbability.get().getValue();
-//		} else {
-//			rho = 0.;
-//		}
-//		c1 = Math.sqrt((lambda - mu - psi) * (lambda - mu - psi) + 4 * lambda * psi);
-//		c2 = -(lambda - mu - 2 * lambda * rho - psi) / c1;
-//		
-//		popSizes = popSizesInput.get();
-//		tau = tauInput.get().getValue();
 
 		updateParameters();
 
@@ -206,7 +193,7 @@ public class GeneTreeDistribution extends Distribution {
 
 				// Check if the event is at transmission time and on recipient side
 				boolean eventAtTransmission = !trNode.isRoot() && recipient
-						&& event.time == trNode.getParent().getHeight();
+						&& Tools.equalWithPrecisionDouble(event.time, trNode.getParent().getHeight());
 
 				// Contribution from every interval, except the last
 				if (prevEvent.time < event.time) {

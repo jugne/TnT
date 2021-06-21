@@ -15,6 +15,7 @@ import beast.core.State;
 import beast.core.parameter.RealParameter;
 import beast.evolution.tree.Node;
 import starbeast2.SpeciesTreeInterface;
+import tnt.util.Tools;
 
 public class SkyGeneTreeDistribution extends Distribution {
 
@@ -69,8 +70,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 	private double[] B;
 	private double A_i;
 	private double B_i;
-//	private double c1_i;
-//	private double c2_i;
 	private double origin;
 	private Function finalSampleOffset;
 
@@ -81,7 +80,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 	SpeciesTreeInterface transmissionTree;
 
-//	private double popSizes;
 	private GeneTreeIntervals intervals;
 
 
@@ -190,8 +188,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 				t_i = parameterization.getIntervalEndTimes()[i];
 				A_i = A[i];
 				B_i = B[i];
-//			c1_i = c1(lambda_i, mu_i, psi_i);
-//			c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
 
 
 			boolean recipient = (!trNode.isRoot()
@@ -213,7 +209,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 				// Check if the event is at transmission time and on recipient side
 				boolean eventAtTransmission = !trNode.isRoot() && recipient
-						&& event.time == trNode.getParent().getHeight();
+							&& Tools.equalWithPrecisionDouble(event.time, trNode.getParent().getHeight());
 
 				// Contribution from every interval, except the last				
 				if (prevEvent.time < event.time) {
@@ -233,8 +229,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 								t_i = parameterization.getIntervalEndTimes()[i];
 								A_i = A[i];
 								B_i = B[i];
-//							c1_i = c1(lambda_i, mu_i, psi_i);
-//							c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
 						}
 						if (event.time != startTime) {
 							logP += interval(event.time, startTime, prevEvent);
@@ -312,8 +306,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 							t_i = parameterization.getIntervalEndTimes()[i];
 							A_i = A[i];
 							B_i = B[i];
-//						c1_i = c1(lambda_i, mu_i, psi_i);
-//						c2_i = c2(lambda_i, mu_i, psi_i, rho_i, c1_i);
 					}
 					if (mockEvent.time != startTime) {
 						logP += interval(mockEvent.time, startTime, prevEvent);
@@ -478,16 +470,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		return ans;
 	}
-
-//	private double P_0(double t) {
-//
-//		double p0 = (lambda_i + mu_i + psi_i
-//				+ c1_i * ((Math.exp(-c1_i * t) * (1 - c2_i) - (1 + c2_i))
-//						/ (Math.exp(-c1_i * t) * (1 - c2_i) + (1 + c2_i))))
-//				/ (2.0 * lambda_i);
-//
-//		return p0;
-//	}
 	
 	private double get_p_i(double lambda, double mu, double psi, double A, double B, double t_i, double t) {
 
@@ -512,14 +494,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 		return ans;
 	}
 
-//	private double integralP_0(double t_0, double t_1) {
-//
-//		double ans = (1.0 / (2.0 * lambda_i)) * ((t_1 - t_0) * (mu_i + psi_i + lambda_i - c1_i) + 2.0 * Math
-//				.log(((c2_i - 1) * Math.exp(-c1_i * t_0) - c2_i - 1)
-//						/ ((c2_i - 1) * Math.exp(-c1_i * t_1) - c2_i - 1)));
-//
-//		return ans;
-//	}
 
 	/**
 	 * @param i number of lineages before coalescent events, time increasing in the
@@ -549,14 +523,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 		for (int i = 1; i <= k; i++)
 			binom = binom * (n + 1 - i) / i;
 		return binom;
-	}
-
-	private double c1(double lambda, double mu, double psi) {
-		return Math.sqrt((lambda - mu - psi) * (lambda - mu - psi) + 4 * lambda * psi);
-	}
-
-	private double c2(double lambda, double mu, double psi, double rho, double c1) {
-		return -(lambda - mu - 2 * lambda * rho - psi) / c1;
 	}
 
 	@Override

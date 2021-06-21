@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,7 +34,6 @@ public class TransmissionAnalyser extends TreeAnnotator {
 
 	private static class TntAnalyserOptions extends TreeAnnotator {
 		File inTransmissionTreeFile;
-		List<String> leafIds;
 		Double minHeight;
 		Double maxHeight;
 		File outFile;
@@ -44,20 +42,7 @@ public class TransmissionAnalyser extends TreeAnnotator {
 		public String toString() {
 			return "Active options:\n" +
 					"Input transmission tree file: " + inTransmissionTreeFile + "\n" +
-					"Output file: " + outFile + "\n" +
-					"Input sample IDs: " + leafIds + "\n" +
-					"Minimum transmission height: " + minHeight + "\n" +
-					"Maximum transmission height: " + maxHeight + "\n";
-
-		}
-
-		private String outputFileName() {
-			String name = "";
-			for (String s : leafIds) {
-				name = name + s + "_";
-			}
-
-			return name + "tntAnalysis.log";
+					"Output file: " + outFile + "\n";
 		}
 	}
 
@@ -86,69 +71,150 @@ public class TransmissionAnalyser extends TreeAnnotator {
 
 		PrintStream ps = new PrintStream(options.outFile);
 		boolean first = true;
+		List<String> hostsList = null;
 
 
 		trTreeSet.reset();
 		while (trTreeSet.hasNext()) {
 			Tree tree = trTreeSet.next();
-			HashMap<String, Integer> idLeafNrMap = new HashMap<String, Integer>();
 			Set<String> hosts = new HashSet<String>();
 			if (first) {
 				for (int i=0; i<tree.getLeafNodeCount(); i++) {
 					hosts.add(tree.getNode(i).getID().split("_")[0]);
 				}
-				List<String> hostsList = new ArrayList<>(hosts);
+				hostsList = new ArrayList<>(hosts);
 				for (int i = 0; i < hostsList.size(); i++) {
 					for (int j = 0; j < hostsList.size(); j++) {
-						if (i != j)
+						if (i == hostsList.size() - 1 && j == hostsList.size() - 1)
+							ps.print(hostsList.get(i) + "_" + hostsList.get(j));
+						else
 							ps.print(hostsList.get(i) + "_" + hostsList.get(j) + "\t");
 					}
 				}
 				ps.print("\n");
 			}
-			
-			Node root = tree.getRoot();
-			
+			first = false;
+			BitSet transmissions = new BitSet(hostsList.size() * hostsList.size());
+			HashMap<String, List<Double>> transmissionTimes = new HashMap<String, List<Double>>();
+			fillBitSet(tree.getRoot(), transmissions, transmissionTimes, hostsList);
 
 
+			for (int i = 0; i < hostsList.size() * hostsList.size(); i++) {
+				if (i == hostsList.size() * hostsList.size() - 1) {
+					ps.print(transmissions.get(i) ? 1 : 0);
+				} else {
+					ps.print(transmissions.get(i) ? 1 + "\t" : 0 + "\t");
+				}
 
-
+			}
+			ps.print("\n");
         }
 		System.out.println("\nDone!");
  
 
         }
 
+	private void fillBitSet(Node subroot, BitSet transmissions, HashMap<String, List<Double>> transmissionTimes,
+			List<String> hostsList) {
+		if (!subroot.isFake()) {
+			Node donor = subroot.getChild(0).metaDataString.contains("orientation=donor") ? subroot.getChild(0)
+					: subroot.getChild(1);
+			Node recipient = donor.getNr() == subroot.getChild(0).getNr() ? subroot.getChild(1) : subroot.getChild(0);
+			List<Node> donorList = new ArrayList<Node>();
+			List<Node> recipientList = new ArrayList<Node>();
 
-	private void fittBitSet(Node subroot, BitSet transmissions, int leafCount, HashMap<String, Integer> idLeafNrMap) {
+			if (!donor.isLeaf()) {
+				fillBitSet(donor, transmissions, transmissionTimes, hostsList);
+				donorList.addAll(donor.getAllLeafNodes());
+			} else {
+				donorList.add(donor);
+			}
+
+			if (!recipient.isLeaf()) {
+				fillBitSet(recipient, transmissions, transmissionTimes, hostsList);
+				recipientList.addAll(recipient.getAllLeafNodes());
+			} else {
+				recipientList.add(recipient);
+			}
+			for (Node d : donorList) {
+				for (Node r : recipientList) {
+					int idx = hostsList.indexOf(d.getID().split("_")[0]);
+					String recipientID = r.getID().split("_")[0];
+					idx = idx * hostsList.size() + hostsList.indexOf(recipientID);
+					transmissions.set(idx);
+
+					if (!transmissionTimes
+							.containsKey(d.getID().split("_")[0] + "_" + r.getID().split("_")[0])) {
+						List<Double> tmp = new ArrayList<Double>();
+						tmp.add(subroot.getHeight());
+						transmissionTimes.put(d.getID().split("_")[0] + "_" + r.getID().split("_")[0], tmp);
+					} else
+						transmissionTimes.get(d.getID().split("_")[0] + "_" + r.getID().split("_")[0])
+								.add(subroot.getHeight());
+				}
+			}
+		} else {
+			if (subroot.getChild(0).getHeight() == subroot.getHeight()) {
+				if (!subroot.getChild(1).isLeaf())
+					fillBitSet(subroot.getChild(1), transmissions, transmissionTimes, hostsList);
+			} else {
+				subroot.setID(subroot.getChild(1).getID());
+				if (!subroot.getChild(0).isLeaf())
+					fillBitSet(subroot.getChild(0), transmissions, transmissionTimes, hostsList);
+		}
+	}
+	}
+
+
+	private void fittBitSet(Node subroot, BitSet transmissions, HashMap<String, List<Double>> transmissionTimes,
+			List<String> hostsList) {
 
 		if (!subroot.isFake()) {
 			Node donor = subroot.getChild(0).metaDataString.contains("orientation=donor") ? subroot.getChild(0)
 					: subroot.getChild(1);
 			if (!donor.isLeaf()) {
-				fittBitSet(donor, transmissions, leafCount, idLeafNrMap);
+				fittBitSet(donor, transmissions, transmissionTimes, hostsList);
 			}
 			subroot.setID(donor.getID());
-			Node recipient = donor.getNr() == subroot.getChild(0).getNr() ? subroot.getChild(0) : subroot.getChild(1);
+			Node recipient = donor.getNr() == subroot.getChild(0).getNr() ? subroot.getChild(1) : subroot.getChild(0);
 			if (recipient.isLeaf()) {
-				int idx = idLeafNrMap.get(subroot.getID());
-				idx = idx * leafCount + recipient.getNr();
+				int idx = hostsList.indexOf(subroot.getID().split("_")[0]);
+				String recipientIdNr = recipient.getID().split("_")[0];
+				idx = idx * hostsList.size() + hostsList.indexOf(recipientIdNr);
 				transmissions.set(idx);
+				if (!transmissionTimes
+						.containsKey(donor.getID().split("_")[0] + "_" + recipient.getID().split("_")[0])) {
+					List<Double> tmp = new ArrayList<Double>();
+					tmp.add(subroot.getHeight());
+					transmissionTimes.put(donor.getID().split("_")[0] + "_" + recipient.getID().split("_")[0], tmp);
+				} else
+					transmissionTimes.get(donor.getID().split("_")[0] + "_" + recipient.getID().split("_")[0])
+							.add(subroot.getHeight());
 			} else {
 				for (Node n : recipient.getAllLeafNodes()) {
-					int idx = idLeafNrMap.get(subroot.getID());
-					idx = idx * leafCount + n.getNr();
+					int idx = hostsList.indexOf(subroot.getID().split("_")[0]);
+					String recipientIdNr = n.getID().split("_")[0];
+					idx = idx * hostsList.size() + hostsList.indexOf(recipientIdNr);
 					transmissions.set(idx);
+					if (!transmissionTimes.containsKey(donor.getID().split("_")[0] + "_" + n.getID().split("_")[0])) {
+						List<Double> tmp = new ArrayList<Double>();
+						tmp.add(subroot.getHeight());
+						transmissionTimes.put(donor.getID().split("_")[0] + "_" + n.getID().split("_")[0], tmp);
+					} else
+						transmissionTimes.get(donor.getID().split("_")[0] + "_" + n.getID().split("_")[0])
+								.add(subroot.getHeight());
 				}
-				fittBitSet(recipient, transmissions, leafCount, idLeafNrMap);
+				fittBitSet(recipient, transmissions, transmissionTimes, hostsList);
 			}
 		} else {
 			if (subroot.getChild(0).getHeight() == subroot.getHeight()) {
 				subroot.setID(subroot.getChild(0).getID());
-				fittBitSet(subroot.getChild(1), transmissions, leafCount, idLeafNrMap);
+				if (!subroot.getChild(1).isLeaf())
+					fittBitSet(subroot.getChild(1), transmissions, transmissionTimes, hostsList);
 			} else {
 				subroot.setID(subroot.getChild(1).getID());
-				fittBitSet(subroot.getChild(0), transmissions, leafCount, idLeafNrMap);
+				if (!subroot.getChild(0).isLeaf())
+					fittBitSet(subroot.getChild(0), transmissions, transmissionTimes, hostsList);
 			}
 		}
 	}
@@ -393,18 +459,6 @@ public class TransmissionAnalyser extends TreeAnnotator {
 			case "-help":
 				printUsageAndExit();
 				break;
-			case "-leafIds":
-				options.leafIds = new ArrayList<>(Arrays.asList(args[i + 1].split(",")));
-				i += 1;
-				break;
-			case "-minHeight":
-				options.minHeight = new Double(args[i + 1]);
-				i += 1;
-				break;	
-			case "-maxHeight":
-				options.maxHeight = new Double(args[i + 1]);
-				i += 1;
-				break;
 			
 			default:
 				printUsageAndError("Unrecognised command line option '" + args[i] + "'.");
@@ -420,7 +474,7 @@ public class TransmissionAnalyser extends TreeAnnotator {
 		if (i + 1 < args.length)
 			options.outFile = new File(args[i + 1]);
 		else
-			options.outFile = new File(options.outputFileName());
+			options.outFile = new File("tntAnalysis.log");
 	}
 
 	/**
@@ -442,16 +496,6 @@ public class TransmissionAnalyser extends TreeAnnotator {
 				Log.warning.println("Error setting cross-platform look and feel.");
 			}
 
-//			try {
-//				SwingUtilities.invokeAndWait(() -> {
-//					if (!getOptionsGUI(options))
-//						System.exit(0);
-//
-//					setupGUIOutput();
-//				});
-//			} catch (InterruptedException | InvocationTargetException e) {
-//				e.printStackTrace();
-//			}
 
 		} else {
 			getCLIOptions(args, options);

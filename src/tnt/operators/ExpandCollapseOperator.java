@@ -158,7 +158,7 @@ public class ExpandCollapseOperator extends TreeOperator {
             nodeToMove.setParent(null);
 
 
-            if (nodeToMove == logicalParent)
+			if (nodeToMove.getNr() == logicalParent.getNr())
                 logicalParent = sisterNode;
 
             // Attach edge
@@ -219,7 +219,7 @@ public class ExpandCollapseOperator extends TreeOperator {
 
             Node sister = getOtherChild(node.getParent(), node);
 			int trNodeSisterNr = geneNodeAssignment[sister.getNr()];
-			if (sister.getHeight() <= node.getHeight() || sister.isLeaf()
+			if (Tools.greaterOrEqualHeightNode(node, sister) || sister.isLeaf()
 					|| !possibleAssignments.contains(trNodeSisterNr))
                 continue;
 

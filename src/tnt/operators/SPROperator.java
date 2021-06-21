@@ -151,7 +151,7 @@ public class SPROperator extends TreeOperator {
 			return Double.NEGATIVE_INFINITY; // no nodes to choose from
 //		List<Node> innerNodes = Pitchforks.getTrueInternalNodes(tree);
 
-		List<Node> subtreeNodesAtTransmission = Tools.getGeneNodesAtTransmission(subtreeNodes,
+		List<Node> subtreeNodesAtTransmission = Tools.getGeneNodesAtTransmissionWithPrecision(subtreeNodes,
 				trHeights);
 		
 //		if (Tools.listEqualsIgnoreOrder(subtreeNodes, subtreeNodesAtTransmission)) {
@@ -160,7 +160,8 @@ public class SPROperator extends TreeOperator {
 
 		List<Node> subtreeNodesBottlenecHeight = new ArrayList<Node>();
 		for (Node n : subtreeNodes) {
-			if (!subtreeNodesAtTransmission.contains(n) && n.getHeight() > srcNode.getHeight() && !n.isLeaf()) {
+			if (!subtreeNodesAtTransmission.contains(n) && Tools.greaterDouble(srcNode.getHeight(), n.getHeight())
+					&& !n.isLeaf()) {
 				subtreeNodesBottlenecHeight.add(n);
 			}
 		}
@@ -185,7 +186,8 @@ public class SPROperator extends TreeOperator {
 			for (Node n : subtreeNodes) {
 				if (!subtreeNodesAtTransmission.contains(n)) { // do not allow exact height
 			// to be transmission height
-					if (n.getHeight() == newHeight && subtreeNodesBottlenecHeight.contains(n))
+					if (Tools.equalWithPrecisionDouble(n.getHeight(), newHeight)
+							&& subtreeNodesBottlenecHeight.contains(n))
 					atSameHeight.add(n);
 					if (n.getHeight() <= newHeight
 							&& (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > newHeight)) {
@@ -197,7 +199,8 @@ public class SPROperator extends TreeOperator {
 			bottleneck = false;
 		}
 
-		if (fitNodes.size() == 0 || heightNodeBot.isLeaf() || newHeight <= srcNode.getHeight())
+		if (fitNodes.size() == 0 || heightNodeBot.isLeaf()
+				|| Tools.greaterOrEqualDouble(srcNode.getHeight(), newHeight))
 			bottleneck = false;
 		else {
 			if (Randomizer.nextDouble() < probBottleneck) {
@@ -254,10 +257,12 @@ public class SPROperator extends TreeOperator {
 		List<Node> origAtSameHeight = new ArrayList<Node>();
 		for (Node n : subtreeNodes) {
 			if (!subtreeNodesAtTransmission.contains(n)) {
-				if (n.getHeight() == oldParentHeight && subtreeNodesBottlenecHeight.contains(n))
+				if (Tools.equalWithPrecisionDouble(n.getHeight(), oldParentHeight)
+						&& subtreeNodesBottlenecHeight.contains(n))
 					origAtSameHeight.add(n);
-				if (n.getHeight() <= oldParentHeight
-						&& (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > oldParentHeight)) {
+				if (Tools.greaterOrEqualDouble(oldParentHeight, n.getHeight())
+						&& (n.isRoot()
+								|| Tools.greaterDouble(Pitchforks.getLogicalParent(n).getHeight(), oldParentHeight))) {
 					origFitNodes.add(n);
 				}
 			}

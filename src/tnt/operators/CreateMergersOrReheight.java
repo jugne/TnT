@@ -80,7 +80,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 		boolean makeMerger = Randomizer.nextDouble() < mergerProb;
 		List<Node> trueNodes = getTrueInternalNodes(tree);
 		List<Double> trHeights = Tools.getTransmissionHeights(transmissionTree);
-		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmission(trueNodes,
+		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmissionWithPrecision(trueNodes,
 				trHeights);
 
 		if (Tools.listEqualsIgnoreOrder(trueNodes, trueNodesAtTransmission))
@@ -114,7 +114,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 			for (Node n : trueNodes) {
 				if (trueNodesAtTransmission.contains(n))
 					continue;
-				if (n.getHeight() == srcNode.getHeight() && n.getNr() != srcNode.getNr())
+				if (Tools.equalHeightWithPrecisionNode(n, srcNode) && n.getNr() != srcNode.getNr())
 					wasSrcNodeInMerger = true;
 				else if (!n.isRoot() && n.getNr() != srcNode.getNr() && n.getHeight() > minHeight
 						&& n.getHeight() < maxHeight && !possibleMergerHeights.contains(n.getHeight())) {
@@ -202,7 +202,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 				for (Node n : trueNodes) {
 					if (trueNodesAtTransmission.contains(n)) // do not add the nodes that are at transmission heights
 						continue;
-					if (n.getHeight() == srcNode.getHeight() && n.getNr() != srcNode.getNr()) {
+					if (Tools.equalHeightWithPrecisionNode(n, srcNode) && n.getNr() != srcNode.getNr()) {
 						wasSrcNodeInMerger = true;
 						possibleMergerHeights.add(n.getHeight());
 					}

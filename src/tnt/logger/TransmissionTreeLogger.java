@@ -122,11 +122,7 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
             }
             buf.append(")");
         } else {
-			if (node.getID() == null) {
-				buf.append(node.getNr() + 1);
-			} else {
-				buf.append(node.getID());
-			}
+			buf.append(node.getNr() + 1);
         }
         if (someMetaDataNeedsLogging) {
 			if (node.getID() == null) {

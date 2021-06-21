@@ -147,11 +147,12 @@ public class CoordinatedUniform extends CoordinatedOperator {
             findConnectingNodes(geneTreeRootNode, jConnectingNodes, leftChildDescendants, rightChildDescendants, tipwardFreedom, rootwardFreedom);
 			// this for loop is the only change necessary for TNT
 			for (Node n : geneTree.getNodesAsArray()) {
-				if (jConnectingNodes.contains(n) && trHeights.contains(n.getHeight())
-						&& n.getHeight() != speciesTreeNode.getHeight())
+				if (jConnectingNodes.contains(n) && Tools.containsDoubleWithPrecision(trHeights, n.getHeight())
+						&& !Tools.equalHeightWithPrecisionNode(n, speciesTreeNode))
 					return HashMultimap.create();
 //					jConnectingNodes.remove(n);
-				else if (!n.isLeaf() && n.getHeight() == speciesTreeNode.getHeight() && !jConnectingNodes.contains(n)) {
+				else if (!n.isLeaf() && Tools.equalHeightWithPrecisionNode(n, speciesTreeNode)
+						&& !jConnectingNodes.contains(n)) {
 					return HashMultimap.create();
 //					jConnectingNodes.add(n);
 				}

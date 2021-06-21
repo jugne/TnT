@@ -158,7 +158,7 @@ public class GeneTreeIntervals extends CalculationNode {
 				.collect(Collectors.toList());
 		for (Node n : sortedNodes) {
 
-			if (!n.isRoot() && n.getParent().getHeight() - n.getHeight() == 0) {
+			if (!n.isRoot() && Tools.equalHeightWithPrecisionNode(n.getParent(), n)) {
 				Node multifurcationParent = getMultifurcationParent(n, n.getParent());
 				if (fakeBifurcations.containsKey(multifurcationParent.getNr()))
 					fakeBifurcations.get(multifurcationParent.getNr()).add(n.getNr());
@@ -191,21 +191,16 @@ public class GeneTreeIntervals extends CalculationNode {
 		// DEBUG
 		// Uncomment bellow for debugging
 
-//		double treeLength = getLength(geneTree);
-//		double treeLength2 = Arrays.stream(trNodeOccupancy).sum();
-//		if (Math.abs(treeLength - treeLength2) > 10e-12)
-//			throw new RuntimeException("lengths don't match!");
-
 		nodeTime = new HashMap<Double, List<Integer>>();
 		for (Node node : geneTree.getNodesAsArray()) {
-			if (node.isRoot() || (!node.isLeaf() && node.getParent().getHeight() != node.getHeight())) {
-				if (nodeTime.containsKey(node.getHeight())) {
-					nodeTime.get(node.getHeight()).add(node.getNr());
+			if (node.isRoot() || (!node.isLeaf() && !Tools.equalHeightWithPrecisionNode(node.getParent(), node))) {
+				if (nodeTime.containsKey(Tools.round(node.getHeight(), 11))) {
+					nodeTime.get(Tools.round(node.getHeight(), 11)).add(node.getNr());
 				}
 				else {
 					List<Integer> list = new ArrayList<Integer>();
 					list.add(node.getNr());
-					nodeTime.put(node.getHeight(), list);
+					nodeTime.put(Tools.round(node.getHeight(), 11), list);
 				}
 			}
 		}
@@ -221,7 +216,6 @@ public class GeneTreeIntervals extends CalculationNode {
 					eventsPerTransmissionTreeNode = null;
 					return;
 				}
-
 			}
 
 			GeneTreeEvent event = new GeneTreeEvent();
@@ -387,7 +381,7 @@ public class GeneTreeIntervals extends CalculationNode {
 					.getNode(geneTreeNodeAssignment.get(subRoot.getChild(0).getNr()));
 			while (!tr1.isRoot()) {
 				Node tr1ParentNode = tr1.getParent();
-				if (tr1ParentNode.getHeight() >= subRoot.getHeight())
+				if (Tools.greaterOrEqualHeightNode(tr1ParentNode, subRoot))
 					break;
 				tr1 = tr1ParentNode;
 			}
@@ -399,7 +393,7 @@ public class GeneTreeIntervals extends CalculationNode {
 						.getNode(geneTreeNodeAssignment.get(subRoot.getChild(1).getNr()));
 				while (!tr2.isRoot()) {
 					Node tr2ParentNode = tr2.getParent();
-					if (tr2ParentNode.getHeight() >= subRoot.getHeight())
+					if (Tools.greaterOrEqualHeightNode(tr2ParentNode, subRoot))
 						break;
 					tr2 = tr2ParentNode;
 				}
@@ -407,7 +401,7 @@ public class GeneTreeIntervals extends CalculationNode {
 				if (tr1.getNr() != tr2.getNr())
 					return false;
 			}
-			if (tr1.getHeight() == subRoot.getHeight() && !subRoot.isLeaf())
+			if (Tools.equalHeightWithPrecisionNode(tr1, subRoot) && !subRoot.isLeaf())
 				return false;
 			geneTreeNodeAssignment.put(subRoot.getNr(), tr1.getNr());
 		}
@@ -416,7 +410,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	Node getMultifurcationParent(Node child, Node parent) {
 		Node multParent;
-		if (!parent.isRoot() && child.getHeight() == parent.getParent().getHeight())
+		if (!parent.isRoot() && Tools.equalHeightWithPrecisionNode(child, parent.getParent()))
 			multParent = getMultifurcationParent(child, parent.getParent());
 		else
 			multParent = parent;
@@ -494,21 +488,5 @@ public class GeneTreeIntervals extends CalculationNode {
 		update();
 		return trNodeOccupancy;
 	}
-
-	private double getLength(Tree tree) {
-		double length = 0;
-		for (Node node : tree.getNodesAsArray()) {
-			if (!node.isRoot()) {
-				length += node.getLength();
-			}
-		}
-		return length;
-	}
-
-
-//
-//	public HashMap<Integer, List<Integer>> getLogicalGeneNodesPerTransmissionNode() {
-//		return logicalGeneNodesPerTransmissionNode;
-//	}
    
 }

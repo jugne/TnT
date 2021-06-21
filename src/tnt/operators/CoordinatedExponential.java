@@ -156,11 +156,12 @@ public class CoordinatedExponential extends CoordinatedOperator {
 			// this for loop is the only change necessary for TNT
 
 			for (Node n : geneTree.getNodesAsArray()) {
-				if (jConnectingNodes.contains(n) && trHeights.contains(n.getHeight())
+				if (jConnectingNodes.contains(n) && Tools.containsDoubleWithPrecision(trHeights, n.getHeight())
 						&& n.getHeight() != speciesTreeNode.getHeight())
 					return HashMultimap.create();
 //					jConnectingNodes.remove(n);
-				else if (!n.isLeaf() && n.getHeight() == speciesTreeNode.getHeight() && !jConnectingNodes.contains(n)) {
+				else if (!n.isLeaf() && Tools.greaterOrEqualHeightNode(n, speciesTreeNode)
+						&& !jConnectingNodes.contains(n)) {
 					return HashMultimap.create();
 //					jConnectingNodes.add(n);
 				}

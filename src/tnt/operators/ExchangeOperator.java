@@ -55,11 +55,6 @@ public class ExchangeOperator extends TreeOperator {
 	/** The gene tree intervals. */
 	GeneTreeIntervals intervals;
 
-	/**
-	 * The transmission node heights on the transmission tree (bifurcating node
-	 * heights).
-	 */
-	List<Double> trHeights;
 
     @Override
     public void initAndValidate() {
@@ -72,7 +67,6 @@ public class ExchangeOperator extends TreeOperator {
     public double proposal() {
 
 		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
-		trHeights = Tools.getTransmissionHeights(intervals.transmissionTreeInput.get());
 
         if (isNarrow) {
             List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
@@ -133,7 +127,7 @@ public class ExchangeOperator extends TreeOperator {
 		List<Node> remove = new ArrayList<Node>();
 		for (Node n : possibleDestNodes) {
 			if (!possibleAssignments.contains(geneNodeAssignment[n.getNr()])
-					|| n.getHeight() == srcNodeLogicalParent.getHeight())
+					|| Tools.equalHeightWithPrecisionNode(n, srcNodeLogicalParent))
 					remove.add(n);
 		}
 		
