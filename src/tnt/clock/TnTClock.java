@@ -72,6 +72,11 @@ public class TnTClock extends BranchRateModel.Base {
             branchRates[i] = geneTreeRate * weightedSum / branchLength;
 			if (Double.isNaN(branchRates[i]) && branchLength == 0)
 				branchRates[i] = 0;
+			if (Double.isInfinite(branchRates[i])) {
+				System.err.println("Infinite branch rate!");
+				System.exit(1);
+			}
+
         }
         // set the rate for the root branch of this gene to equal the input mean rate
         branchRates[geneNodeCount - 1] = geneTreeRate;

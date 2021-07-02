@@ -453,11 +453,14 @@ public class GeneTreeIntervals extends CalculationNode {
 
 	@Override
 	protected void store() {
-		System.arraycopy(geneTreeNodeAssignment, 0, storedGeneTreeNodeAssignment, 0, geneTreeNodeAssignment.length);
+		if (geneTreeNodeAssignment != null)
+			System.arraycopy(geneTreeNodeAssignment, 0, storedGeneTreeNodeAssignment, 0, geneTreeNodeAssignment.length);
 
 
-		storedGeneTreeEventList.clear();
-		storedGeneTreeEventList.addAll(geneTreeEventList);
+		if (geneTreeEventList != null) {
+			storedGeneTreeEventList.clear();
+			storedGeneTreeEventList.addAll(geneTreeEventList);
+		}
 
 		if (eventsPerTransmissionTreeNode != null)
 			storedEventsPerTransmissionTreeNode = new HashMap<Integer, List<GeneTreeEvent>>(
@@ -465,9 +468,11 @@ public class GeneTreeIntervals extends CalculationNode {
 		else
 			storedEventsPerTransmissionTreeNode = null;
 
+		if (trHeights != null) {
+			System.arraycopy(trHeights, 0, storedTrHeights, 0, trHeights.length);
+			System.arraycopy(trNodeOccupancy, 0, storedTrNodeOccupancy, 0, trNodeOccupancy.length);
+		}
 
-		System.arraycopy(trHeights, 0, storedTrHeights, 0, trHeights.length);
-		System.arraycopy(trNodeOccupancy, 0, storedTrNodeOccupancy, 0, trNodeOccupancy.length);
 		super.store();
 	}
 

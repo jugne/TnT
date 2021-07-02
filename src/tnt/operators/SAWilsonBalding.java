@@ -1,10 +1,7 @@
 package tnt.operators;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import beast.core.Input;
 import beast.core.Input.Validate;
@@ -13,7 +10,6 @@ import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
-import tnt.distribution.GeneTreeEvent;
 import tnt.distribution.GeneTreeIntervals;
 import tnt.util.Tools;
 
@@ -45,7 +41,7 @@ public class SAWilsonBalding extends TreeOperator {
         int newDimension, oldDimension;
 
 		// get fit nodes as lis
-        Integer[] fitNodesNrs = getTrNodeNrsNotTransmissionOnGenes(tree);
+		Integer[] fitNodesNrs = Tools.getTrNodeNrsNotTransmissionOnGenes(tree, geneTreeIntervalsInput.get());
         
 //		Integer[] fitNodesNrs2 = getTrNodeNrsNotTransmissionOnGenesAfter(tree);
 
@@ -242,39 +238,39 @@ public class SAWilsonBalding extends TreeOperator {
 
     }
 
-	private Integer[] getTrNodeNrsNotTransmissionOnGenes(Tree transmissionTree) {
-		Set<Integer> fitNodeNrs = new HashSet<Integer>();
-		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
-
-		for (Node n : transmissionTree.getNodesAsArray()) {
-			if (n.isRoot()) {
-				fitNodeNrs.add(n.getNr());
-				continue;
-			}
-
-			int recipientNr = n.getParent().getChild(1).getNr();
-			boolean addToFit = true;
-
-			for (GeneTreeIntervals intervals : intervalsLis) {
-				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
-				List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
-				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
-
-				if (!n.getParent().isFake()
-						&& Tools.equalWithPrecisionDouble(n.getParent().getHeight(), lastEvent.time)) {
-					addToFit = false;
-					break;
-				}
-			}
-
-			if (addToFit) {
-				fitNodeNrs.add(recipientNr);
-				fitNodeNrs.add(n.getParent().getChild(0).getNr());
-			}
-		}
-
-		return fitNodeNrs.toArray(new Integer[0]);
-	}
+//	private Integer[] getTrNodeNrsNotTransmissionOnGenes(Tree transmissionTree) {
+//		Set<Integer> fitNodeNrs = new HashSet<Integer>();
+//		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
+//
+//		for (Node n : transmissionTree.getNodesAsArray()) {
+//			if (n.isRoot()) {
+//				fitNodeNrs.add(n.getNr());
+//				continue;
+//			}
+//
+//			int recipientNr = n.getParent().getChild(1).getNr();
+//			boolean addToFit = true;
+//
+//			for (GeneTreeIntervals intervals : intervalsLis) {
+//				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
+//				List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
+//				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
+//
+//				if (!n.getParent().isFake()
+//						&& Tools.equalWithPrecisionDouble(n.getParent().getHeight(), lastEvent.time)) {
+//					addToFit = false;
+//					break;
+//				}
+//			}
+//
+//			if (addToFit) {
+//				fitNodeNrs.add(recipientNr);
+//				fitNodeNrs.add(n.getParent().getChild(0).getNr());
+//			}
+//		}
+//
+//		return fitNodeNrs.toArray(new Integer[0]);
+//	}
 
 //	private Integer[] getTrNodeNrsNotTransmissionOnGenesAfter(Tree transmissionTree) {
 //		Set<Double> unfitHeights = new HashSet<Double>();

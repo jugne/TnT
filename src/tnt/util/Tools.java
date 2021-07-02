@@ -4,13 +4,17 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import pitchfork.Pitchforks;
 import starbeast2.SpeciesTreeInterface;
+import tnt.distribution.GeneTreeEvent;
+import tnt.distribution.GeneTreeIntervals;
 
 public class Tools {
 
@@ -54,6 +58,41 @@ public class Tools {
 		}
 
 		return tmp;
+	}
+
+	public static Integer[] getTrNodeNrsNotTransmissionOnGenes(Tree transmissionTree,
+			List<GeneTreeIntervals> geneTreeIntervals) {
+		Set<Integer> fitNodeNrs = new HashSet<Integer>();
+		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervals;
+
+		for (Node n : transmissionTree.getNodesAsArray()) {
+			if (n.isRoot()) {
+				fitNodeNrs.add(n.getNr());
+				continue;
+			}
+
+			int recipientNr = n.getParent().getChild(1).getNr();
+			boolean addToFit = true;
+
+			for (GeneTreeIntervals intervals : intervalsLis) {
+				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
+				List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
+				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
+
+				if (!n.getParent().isFake()
+						&& Tools.equalWithPrecisionDouble(n.getParent().getHeight(), lastEvent.time)) {
+					addToFit = false;
+					break;
+				}
+			}
+
+			if (addToFit) {
+				fitNodeNrs.add(recipientNr);
+				fitNodeNrs.add(n.getParent().getChild(0).getNr());
+			}
+		}
+
+		return fitNodeNrs.toArray(new Integer[0]);
 	}
 
 	/**
@@ -200,7 +239,7 @@ public class Tools {
 
 
 		if (!subRoot.isLeaf()) {
-			if (!subRoot.isRoot() && subRoot.getParent().getHeight() < subRoot.getHeight()) {
+			if (!subRoot.isRoot() && greaterDouble(subRoot.getHeight(), subRoot.getParent().getHeight())) {
 
 				throw new RuntimeException("Negative branch length!");
 			}
@@ -251,17 +290,25 @@ public class Tools {
 				
 				if (!tr1.isRoot()) {
 					if (greaterOrEqualDouble(parentHeight, tr1.getParent().getHeight())) {
-						trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount() + tr1.getNr()] += tr1
-								.getParent().getHeight() - subRoot.getHeight();
+						trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+								+ tr1.getNr()] += equalWithPrecisionDouble(tr1.getParent().getHeight(),
+										subRoot.getHeight())
+												? 0.0
+												: tr1.getParent().getHeight() - subRoot.getHeight();
 						Node child = tr1.getParent();
 						Node parent = child.getParent();
 						while (greaterOrEqualDouble(parentHeight, child.getHeight())) {
 							if (!child.isRoot() && greaterOrEqualDouble(parentHeight, parent.getHeight()))
 								trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-										+ child.getNr()] = parent.getHeight() - child.getHeight();
+										+ child.getNr()] = equalWithPrecisionDouble(parent.getHeight(),
+												child.getHeight())
+														? 0.0
+														: parent.getHeight() - child.getHeight();
 							else
 								trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-										+ child.getNr()] = parentHeight - child.getHeight();
+										+ child.getNr()] = equalWithPrecisionDouble(parentHeight, child.getHeight())
+												? 0.0
+												: parentHeight - child.getHeight();
 
 							if (child.isRoot())
 								break;
@@ -270,11 +317,15 @@ public class Tools {
 						}
 					} else {
 						trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-								+ tr1.getNr()] = parentHeight - subRoot.getHeight();
+								+ tr1.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+										? 0.0
+										: parentHeight - subRoot.getHeight();
 					}
 				} else {
 					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-							+ tr1.getNr()] = parentHeight - subRoot.getHeight();
+							+ tr1.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+									? 0.0
+									: parentHeight - subRoot.getHeight();
 				}
 
 			}
@@ -289,17 +340,24 @@ public class Tools {
 					subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount(), 0);
 			if (!trLeaf.isRoot()) {
 				if (greaterOrEqualDouble(parentHeight, trLeaf.getParent().getHeight())) {
-					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount() + trLeaf.getNr()] += trLeaf
-							.getParent().getHeight() - subRoot.getHeight();
+					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
+							+ trLeaf.getNr()] += equalWithPrecisionDouble(trLeaf.getParent().getHeight(),
+									subRoot.getHeight())
+											? 0.0
+											: trLeaf.getParent().getHeight() - subRoot.getHeight();
 					Node child = trLeaf.getParent();
 					Node parent = child.getParent();
 					while (greaterOrEqualDouble(parentHeight, child.getHeight())) {
 						if (!child.isRoot() && greaterOrEqualDouble(parentHeight, parent.getHeight()))
 							trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-									+ child.getNr()] = parent.getHeight() - child.getHeight();
+									+ child.getNr()] = equalWithPrecisionDouble(parent.getHeight(), child.getHeight())
+											? 0.0
+											: parent.getHeight() - child.getHeight();
 						else
 							trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-									+ child.getNr()] = parentHeight - child.getHeight();
+									+ child.getNr()] = equalWithPrecisionDouble(parentHeight, child.getHeight())
+											? 0.0
+											: parentHeight - child.getHeight();
 
 						if (child.isRoot())
 							break;
@@ -308,11 +366,15 @@ public class Tools {
 					}
 				} else {
 					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-							+ trLeaf.getNr()] = parentHeight - subRoot.getHeight();
+							+ trLeaf.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+									? 0.0
+									: parentHeight - subRoot.getHeight();
 				}
 			} else {
 				trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-						+ trLeaf.getNr()] = parentHeight - subRoot.getHeight();
+						+ trLeaf.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+								? 0.0
+								: parentHeight - subRoot.getHeight();
 			}
 
 		}
@@ -379,5 +441,66 @@ public class Tools {
 		BigDecimal bd = BigDecimal.valueOf(value);
 		bd = bd.setScale(places, RoundingMode.HALF_UP);
 		return bd.doubleValue();
+	}
+
+	public static void exchangeNodesRandomDirection(Node i, Node j,
+			Node p, Node jP) {
+		// precondition p -> i & jP -> j
+		replaceRandomDirection(p, i, j);
+		replaceRandomDirection(jP, j, i);
+		// postcondition p -> j & p -> i
+	}
+
+	public static void replaceRandomDirection(final Node node, final Node child, final Node replacement) {
+		boolean left = node.getLeft().getNr() == child.getNr();
+		Node otherChild = getOtherChild(node, child);
+		node.removeChild(otherChild);
+		node.removeChild(child);
+		if (left) {
+			node.addChild(replacement);
+			node.addChild(otherChild);
+		} else {
+			node.addChild(otherChild);
+			node.addChild(replacement);
+		}
+		node.makeDirty(Tree.IS_FILTHY);
+		replacement.makeDirty(Tree.IS_FILTHY);
+	}
+
+	public static void exchangeNodesKeepDirection(Node i, Node j,
+			Node p, Node jP) {
+		// precondition p -> i & jP -> j
+		replaceKeepDirection(p, i, j);
+		replaceKeepDirection(jP, j, i);
+		// postcondition p -> j & p -> i
+	}
+
+	public static void replaceKeepDirection(final Node node, final Node child, final Node replacement) {
+			boolean left = node.getLeft().getNr() == child.getNr();
+			Node otherChild = getOtherChild(node, child);
+			node.removeChild(otherChild);
+			node.removeChild(child);
+			if (left) {
+				node.addChild(replacement);
+				node.addChild(otherChild);
+			} else {
+				node.addChild(otherChild);
+				node.addChild(replacement);
+			}
+			node.makeDirty(Tree.IS_FILTHY);
+			replacement.makeDirty(Tree.IS_FILTHY);
+		}
+
+	/**
+	 * @param parent the parent
+	 * @param child  the child that you want the sister of
+	 * @return the other child of the given parent.
+	 */
+	protected static Node getOtherChild(final Node parent, final Node child) {
+		if (parent.getLeft().getNr() == child.getNr()) {
+			return parent.getRight();
+		} else {
+			return parent.getLeft();
+		}
 	}
 }
