@@ -11,6 +11,7 @@ import java.util.Set;
 
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
+import beast.util.Randomizer;
 import pitchfork.Pitchforks;
 import starbeast2.SpeciesTreeInterface;
 import tnt.distribution.GeneTreeEvent;
@@ -452,11 +453,10 @@ public class Tools {
 	}
 
 	public static void replaceRandomDirection(final Node node, final Node child, final Node replacement) {
-		boolean left = node.getLeft().getNr() == child.getNr();
 		Node otherChild = getOtherChild(node, child);
 		node.removeChild(otherChild);
 		node.removeChild(child);
-		if (left) {
+		if (Randomizer.nextBoolean()) {
 			node.addChild(replacement);
 			node.addChild(otherChild);
 		} else {
@@ -503,4 +503,5 @@ public class Tools {
 			return parent.getLeft();
 		}
 	}
+
 }
