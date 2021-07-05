@@ -196,7 +196,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 			GeneTreeEvent prevEvent = new GeneTreeEvent();
 			prevEvent.time = trNode.getHeight();
 
-
+			List<GeneTreeEvent> e = eventList.get(trNode.getNr());
 			for (GeneTreeEvent event : eventList.get(trNode.getNr())) {
 
 				// Check that there are no events that leave non-positive number of lineages
