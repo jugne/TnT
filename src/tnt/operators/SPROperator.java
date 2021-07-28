@@ -160,7 +160,7 @@ public class SPROperator extends TreeOperator {
 
 		List<Node> subtreeNodesBottlenecHeight = new ArrayList<Node>();
 		for (Node n : subtreeNodes) {
-			if (!subtreeNodesAtTransmission.contains(n) && Tools.greaterDouble(srcNode.getHeight(), n.getHeight())
+			if (!subtreeNodesAtTransmission.contains(n) && Tools.greaterDouble(n.getHeight(), srcNode.getHeight())
 					&& !n.isLeaf()) {
 				subtreeNodesBottlenecHeight.add(n);
 			}

@@ -415,6 +415,12 @@ public class Tools {
 		return false;
 	}
 
+	public static boolean greaterHeightNode(Node n1, Node n2) {
+		if (n1.getHeight() > n2.getHeight() + globalPrecisionThreshold)
+			return true;
+		return false;
+	}
+
 	public static boolean greaterOrEqualDouble(Double d1, Double d2) {
 		if (greaterDouble(d1, d2) || equalWithPrecisionDouble(d1, d2))
 			return true;

@@ -76,6 +76,9 @@ public class SimulatedGeneTreeInit extends Tree {
 
 	public Input<Boolean> hiddenKnownInput = new Input<>("complete",
 			"Simulate hidden bottlenecks", false);
+	public Input<Function> finalSampleOffsetInput = new Input<>("finalSampleOffset",
+			"If provided, the difference in time between the final sample and the end of the BD process.",
+			new RealParameter("0.0"));
 
 
 	public TransmissionTree transmissionTree;
@@ -282,11 +285,11 @@ public class SimulatedGeneTreeInit extends Tree {
 							double timeToNextCoalOrig = Randomizer
 									.nextExponential(0.5 * k * (k - 1) * 1.0 / NeAbove);
 
-							if (t < originInput.get().getArrayValue(0))
+							if (getAgeWithOffset(t) < originInput.get().getArrayValue(0))
 								timeToNextCoalOrig += originInput.get().getArrayValue(0) - t;
 							double timeToNextCoalBefore = Randomizer
 									.nextExponential(0.5 * k * (k - 1) * 1.0 / Ne);
-							if (t + timeToNextCoalBefore > originInput.get().getArrayValue(0))
+							if (getAgeWithOffset(t + timeToNextCoalBefore) > originInput.get().getArrayValue(0))
 								timeToNextCoalBefore = Double.POSITIVE_INFINITY;
 
 							double timeNextCoalMin = Math.min(timeToNextCoalOrig, timeToNextCoalBefore);
@@ -298,7 +301,7 @@ public class SimulatedGeneTreeInit extends Tree {
 
 						}
 					} else {
-						if (t > originInput.get().getArrayValue(0)) {
+						if (getAgeWithOffset(t) > originInput.get().getArrayValue(0)) {
 							Ne = popSize.get(aboveOrigin);
 						}
 						if (k > 1) {
@@ -331,9 +334,10 @@ public class SimulatedGeneTreeInit extends Tree {
 //						double timeToNextNonObsTr = soveForTime(0,
 //								birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
 //								samplingRateInput.get().getArrayValue(0), endTime - t);
-						double timeToNextNonObsTr = soveForTime(t,
+						double timeToNextNonObsTr = soveForTime(getAgeWithOffset(t),
 								birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
-								samplingRateInput.get().getArrayValue(0), endTime) - t;
+								samplingRateInput.get().getArrayValue(0), getAgeWithOffset(endTime))
+								- getAgeWithOffset(t);
 //						double timeToNextNonObsTr = Double.POSITIVE_INFINITY;
 //						if (transmissionNode.isRoot())
 //							timeToNextNonObsTr = Randomizer
@@ -350,7 +354,7 @@ public class SimulatedGeneTreeInit extends Tree {
 //											deathRateInput.get().getArrayValue(0),
 //											samplingRateInput.get().getArrayValue(0)));
 
-						if (timeToNextNonObsTr + t < originInput.get().getArrayValue(0)
+						if (getAgeWithOffset(timeToNextNonObsTr + t) < originInput.get().getArrayValue(0)
 								&& timeToNextNonObsTr < minNonObsTrTime) {
 							minNonObsTrTime = timeToNextNonObsTr;
 							minNonObsTr = transmissionNode;
@@ -609,6 +613,17 @@ public class SimulatedGeneTreeInit extends Tree {
 			orientateTreeAtFakeNodes(subRoot.getChild(1));
 
 		}
+	}
+
+	/**
+	 * Return the age corresponding to the given time relative to the most recent
+	 * sample.
+	 *
+	 * @param time time to query age for
+	 * @return age corresponding to time
+	 */
+	public double getAgeWithOffset(double time) {
+		return time + finalSampleOffsetInput.get().getArrayValue(0);
 	}
 
 }
