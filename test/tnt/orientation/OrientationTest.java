@@ -48,10 +48,8 @@ import tnt.operators.ExpandCollapseOperator;
 import tnt.operators.LeafToSampledAncestorJump;
 import tnt.operators.SAUniform;
 import tnt.operators.SAWilsonBalding;
-//import beast.evolution.operators.SAExchange;
-//import beast.evolution.operators.SAScaleOperator;
-import tnt.operators.SPROperatorChanged;
-import tnt.operators.TransmissionAttachChanged;
+import tnt.operators.SPROperator;
+import tnt.operators.TransmissionAttach;
 
 public class OrientationTest{
 	
@@ -293,12 +291,12 @@ public class OrientationTest{
 //		wilsonBalding.initByName("tree", geneTree, "weight", "15.0");
 
 		// SPR
-		SPROperatorChanged spr = new SPROperatorChanged();
+		SPROperator spr = new SPROperator();
 		spr.initByName("tree", geneTree, "transmissionTree", transmissionTree, "geneTreeIntervals", intervals,
 				"probBottleneck", "0.5", "rootAttachLambda", "0.5", "weight", "75.0");
 
 		// Transmission_Attach
-		TransmissionAttachChanged trAttach = new TransmissionAttachChanged();
+		TransmissionAttach trAttach = new TransmissionAttach();
 		trAttach.initByName("tree", geneTree, "geneTreeIntervals", intervals,
 				"rootAttachLambda", "0.5", "weight", "60.0");
 
