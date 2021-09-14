@@ -274,8 +274,11 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 
 			for (String speciesName : allSpeciesNames) {
 				boolean speciesRepresented = false;
-				for (String tipName : allTipNames)
+				for (String tipName : allTipNames) {
+					System.out.println(tipName);
 					speciesRepresented |= tipSpeciesMap.get(tipName).equals(speciesName);
+				}
+
 				if (!speciesRepresented)
 					return false;
 			}

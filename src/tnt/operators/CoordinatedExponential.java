@@ -107,33 +107,84 @@ public class CoordinatedExponential extends CoordinatedOperator {
         speciesTreeRoot.setHeight(currentRootHeight + uniformShift);
 		Set<Node> group = new HashSet<>();
 		for (Node geneTreeNode : connectingNodes.values()) {
-			group.addAll(Pitchforks.getGroup(geneTreeNode));
+			group.add(Pitchforks.getLogicalNode(geneTreeNode));
+			group.addAll(Pitchforks.getGroup(Pitchforks.getLogicalNode(geneTreeNode)));
 		}
 
-//		System.out.println(geneTreeInput.get().get(0));
+//		int p_bf = getPolytomyCount(geneTreeInput.get().get(0));
+//		int m_bf = updateMultiMergeCount(geneTreeInput.get().get(0));
+//		final Tree treebf = geneTreeInput.get().get(0).copy();
+
 
 		for (Node n : group) {
+			if (!connectingNodes.values().contains(n)) {
+				return Double.NEGATIVE_INFINITY;
+			}
 			n.setHeight(n.getHeight() + uniformShift);
-
 		}
 
 		for (Node geneTreeNode : connectingNodes.values()) {
-//	        	if (skip.contains(geneTreeNode))
-//	        		continue;
-//				List<Node> group = new ArrayList<>();
 			if (!group.contains(geneTreeNode)) {
-//					group = Pitchforks.getGroup(geneTreeNode);
-//					skip.addAll(group);
-
 				geneTreeNode.setHeight(geneTreeNode.getHeight() + uniformShift);
 			}
 		}
+
+//		int p_af = getPolytomyCount(geneTreeInput.get().get(0));
+//		int m_af = updateMultiMergeCount(geneTreeInput.get().get(0));
+//		final Tree treeaf = geneTreeInput.get().get(0);
+//
+//		if (p_bf != p_af) {
+//			System.out.println();
+//		}
+//		if (m_bf != m_af) {
+//			return Double.NEGATIVE_INFINITY;
+//		}
 
         // the log ratio of the density of the proposed over the current species tree root heights
         final double fLogHastingsRatio = lambda * uniformShift;
 
         return fLogHastingsRatio;
     }
+
+//	private int updateMultiMergeCount(Tree tree) {
+//		// Zero entries
+//		int nMultiMerge = 0;
+//
+//		// Compute histogram
+//		List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
+//		HashMap<Double, Integer> mergerMap = new HashMap<Double, Integer>();
+//
+//		for (Node node : trueNodes) {
+//			if (!mergerMap.keySet().contains(node.getHeight())) {
+//				mergerMap.put(node.getHeight(), 0);
+//			} else
+//				mergerMap.put(node.getHeight(), mergerMap.get(node.getHeight()) + 1);
+//		}
+//
+//		for (Double key : mergerMap.keySet()) {
+//			if (mergerMap.get(key) > 0)
+//				nMultiMerge += 1;
+//		}
+//		return nMultiMerge;
+//	}
+//
+//	private int getPolytomyCount(Tree tree) {
+//		int count = 0;
+//
+//		List<Node> trueNodes = new ArrayList<>();
+//		for (Node node : tree.getNodesAsArray())
+//			if (node.isRoot() || node.getParent().getHeight() > node.getHeight())
+//				trueNodes.add(node);
+//
+//		for (Node node : trueNodes) {
+//			if (!node.isLeaf() && (node.getChildren().get(0).getHeight() == node.getHeight()
+//					|| node.getChildren().get(1).getHeight() == node.getHeight()))
+//				count += 1;
+//		}
+//
+//		return count;
+//	}
+
 
     // identify gene tree nodes which descend through both (and also descend exclusively through)
     // the left and right children of the species tree node of interest
@@ -150,6 +201,7 @@ public class CoordinatedExponential extends CoordinatedOperator {
 		final List<Double> trHeights = Tools.getTransmissionHeights(speciesTree);
         for (int j = 0; j < nGeneTrees; j++) {
             final Tree geneTree = geneTrees.get(j);
+			final List<Node> logical = Pitchforks.getTrueNodes(geneTree);
             final Node geneTreeRootNode = geneTree.getRoot();
             final Set<Node> jConnectingNodes = new HashSet<Node>();
             findConnectingNodes(geneTreeRootNode, jConnectingNodes, leftChildDescendants, rightChildDescendants, tipwardFreedom);
@@ -157,13 +209,15 @@ public class CoordinatedExponential extends CoordinatedOperator {
 
 			for (Node n : geneTree.getNodesAsArray()) {
 				if (jConnectingNodes.contains(n) && Tools.containsDoubleWithPrecision(trHeights, n.getHeight())
-						&& n.getHeight() != speciesTreeNode.getHeight())
+						&& !Tools.equalHeightWithPrecisionNode(n, speciesTreeNode))
 					return HashMultimap.create();
 //					jConnectingNodes.remove(n);
-				else if (!n.isLeaf() && Tools.greaterOrEqualHeightNode(n, speciesTreeNode)
+				else if (!n.isLeaf() && Tools.equalHeightWithPrecisionNode(n, speciesTreeNode)
 						&& !jConnectingNodes.contains(n)) {
 					return HashMultimap.create();
 //					jConnectingNodes.add(n);
+				} else if (jConnectingNodes.contains(n) && Tools.isMultiMerger(logical, n)) {
+					return HashMultimap.create();
 				}
 			}
 
@@ -207,7 +261,8 @@ public class CoordinatedExponential extends CoordinatedOperator {
             } else { // the gene tree node right child descends exclusively through the left XOR right child of the species tree node of interest
                 // so the current gene tree node is part of a connected component but the right child is not
                 final double connectedComponentTipFreedom = geneTreeNodeHeight - rightChild.getHeight();
-                tipwardFreedom.set(connectedComponentTipFreedom);
+				if (connectedComponentTipFreedom != 0)
+					tipwardFreedom.set(connectedComponentTipFreedom);
                 connectingNodes.add(geneTreeNode);
                 return descendsThrough.BOTH;
             }
@@ -217,7 +272,8 @@ public class CoordinatedExponential extends CoordinatedOperator {
             } else { // the gene tree node left child descends exclusively through the left XOR right child of the species tree node of interest
 // so the current gene tree node is part of a connected component but the left child is not
                 final double connectedComponentTipFreedom = geneTreeNodeHeight - leftChild.getHeight();
-                tipwardFreedom.set(connectedComponentTipFreedom);
+				if (connectedComponentTipFreedom != 0)
+					tipwardFreedom.set(connectedComponentTipFreedom);
                 connectingNodes.add(geneTreeNode);
                 return descendsThrough.BOTH;
             }
@@ -226,7 +282,9 @@ public class CoordinatedExponential extends CoordinatedOperator {
         } else { // this is a tip node of a connected component
             final double leftChildBranchLength = geneTreeNodeHeight - leftChild.getHeight();
             final double rightChildBranchLength = geneTreeNodeHeight - rightChild.getHeight();
+			if (leftChildBranchLength != 0)
             tipwardFreedom.set(leftChildBranchLength);
+			if (rightChildBranchLength != 0)
             tipwardFreedom.set(rightChildBranchLength);
             connectingNodes.add(geneTreeNode);
             return descendsThrough.BOTH;
@@ -251,7 +309,12 @@ public class CoordinatedExponential extends CoordinatedOperator {
         if (optimise) {
             final double count = (m_nNrRejectedForCorrection + m_nNrAcceptedForCorrection + 1.0);
             final double delta = (waitingTime - beta) / count;
+			final double beta_copy = beta;
+			if (beta == delta)
+				System.out.println();
             setCoercableParameterValue(beta + delta);
+			if (beta == 0)
+				System.out.println();
         }
     }
 }

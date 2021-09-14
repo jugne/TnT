@@ -72,6 +72,10 @@ public class SAUniform extends TreeOperator {
 			i += 1;
 			HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
 			List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientChild.getNr());
+			if (eventsPerTrNode == null || eventsPerTrNode.size() == 0) {
+				intervals.eventListDirty = true;
+				continue;
+			}
 			GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
 
 			if (node.getHeight() == lastEvent.time) {

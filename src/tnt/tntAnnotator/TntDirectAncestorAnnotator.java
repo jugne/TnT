@@ -31,14 +31,12 @@ import beast.app.treeannotator.TreeAnnotator;
 import beast.core.util.Log;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
-import beast.util.Randomizer;
-import tnt.util.Tools;
 
-public class TransmissionTreeOrientator extends TreeAnnotator {
+public class TntDirectAncestorAnnotator extends TreeAnnotator {
 
-	private static class TnTOrientatorOptions extends TreeAnnotator {
+	private static class TntDirectAncestorAnnotatorOptions extends TreeAnnotator {
 		File inFile;
-		File outFile = new File("summary.tree");
+		File outFile = new File("directAncestors.log");
 
 		@Override
 		public String toString() {
@@ -48,8 +46,11 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 
 		}
 	}
+	
+	PrintStream ps;
+	boolean first = true;
 
-	public TransmissionTreeOrientator(TnTOrientatorOptions options) throws IOException {
+	public TntDirectAncestorAnnotator(TntDirectAncestorAnnotatorOptions options) throws IOException {
  	
     	
         // Display options:
@@ -58,58 +59,46 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
         // Initialise reader
 
 		TreeSet treeSet = new FastTreeSet(options.inFile.toString(), 0);
-		PrintStream ps = new PrintStream(options.outFile);
-		ps.println("#NEXUS");
-		ps.println("Begin trees;");
+		ps = new PrintStream(options.outFile);
 		int i = 0;
         while (treeSet.hasNext()) {
 			Tree tree = treeSet.next();
-			orientateNodeChildren(tree, tree.getRoot().getNr());
-			ps.println("tree STATE_" + i + " = " + tree.getRoot().toNewick() + ";");
+			ps.println("tree_" + i);
+			getSAConstraint(tree);
 			i += 1;
         }
-		ps.println("End;");
 		System.out.println("\nDone!");
  
 
         }
 
-	private void orientateNodeChildren(Tree tree, int nodeNr) {
-		Node subTreeRoot = tree.getNode(nodeNr);
-		if (!subTreeRoot.isLeaf()) {
-			if (!Tools.equalHeightWithPrecisionNode(subTreeRoot.getRight(), subTreeRoot)
-					&& !Tools.equalHeightWithPrecisionNode(subTreeRoot.getLeft(), subTreeRoot)) {
-				Node left = Randomizer.nextBoolean() ? subTreeRoot.getRight() : subTreeRoot.getLeft();
-				Node right = left.getNr() == subTreeRoot.getLeft().getNr() ? subTreeRoot.getRight()
-						: subTreeRoot.getLeft();
-
-				subTreeRoot.removeAllChildren(false);
-
-				subTreeRoot.addChild(left);
-				subTreeRoot.addChild(right);
-
-				left.metaDataString = "orientation=donor";
-				right.metaDataString = "orientation=recipient";
-			} else if (Tools.equalHeightWithPrecisionNode(subTreeRoot.getLeft(), subTreeRoot)) {
-				Node left = subTreeRoot.getRight();
-				Node right = subTreeRoot.getLeft();
-
-				subTreeRoot.removeAllChildren(false);
-
-				subTreeRoot.addChild(left);
-				subTreeRoot.addChild(right);
-
-				left.metaDataString = subTreeRoot.metaDataString;
-				right.metaDataString = subTreeRoot.metaDataString;
-			} else if (Tools.equalHeightWithPrecisionNode(subTreeRoot.getRight(), subTreeRoot)) {
-				subTreeRoot.getLeft().metaDataString = subTreeRoot.metaDataString;
-				subTreeRoot.getRight().metaDataString = subTreeRoot.metaDataString;
+		private void getSAConstraint(Tree tree) {
+			for (int i = 0; i < tree.getLeafNodeCount(); i++) {
+				if (!tree.getNode(i).isDirectAncestor()) {
+					String s=tree.getNode(i).getID()+":";
+					first = true;
+					s = getAncestors(tree.getNode(i), s);
+					String[] parts = s.split(":");
+					if (parts.length > 1)
+						ps.println(s);
+				}
 			}
-
-			orientateNodeChildren(tree, subTreeRoot.getLeft().getNr());
-			orientateNodeChildren(tree, subTreeRoot.getRight().getNr());
 		}
 
+		private String getAncestors(Node n, String s) {
+			if (n.isRoot())
+				return s;
+			if (n.getParent().isFake()) {
+				if (!first)
+					s += ",";
+				s += n.getParent().getChild(1).getID();
+				first = false;
+				s = getAncestors(n.getParent(), s);
+			} else if (n.getParent().getChild(1).getNr() == n.getNr())
+				return s;
+			else
+				s = getAncestors(n.getParent(), s);
+			return s;
 	}
 
 	/**
@@ -118,7 +107,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 	 * @param options options object to populate using GUI
 	 * @return true if options successfully collected, false otherwise
 	 */
-	private static boolean getOptionsGUI(TnTOrientatorOptions options) {
+	private static boolean getOptionsGUI(TntDirectAncestorAnnotatorOptions options) {
 
 		boolean[] canceled = { false };
 
@@ -287,7 +276,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 			+ "-help                    Display usage info.\n"
 			+ "\n"
 			+ "If no output file is specified, output is written to a file\n"
-			+ "named 'summary.tree'.";
+			+ "named 'directAncestors.log'.";
 
 	/**
 	 * Print usage info and exit.
@@ -312,7 +301,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 	 * @param args    command line arguments
 	 * @param options object to populate with options
 	 */
-	public static void getCLIOptions(String[] args, TnTOrientatorOptions options) {
+	public static void getCLIOptions(String[] args, TntDirectAncestorAnnotatorOptions options) {
 		int i = 0;
 		while (args[i].startsWith("-")) {
 			switch (args[i]) {
@@ -342,7 +331,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 	 * @param args command line arguments
 	 */
 	public static void main(String[] args) {
-		TnTOrientatorOptions options = new TnTOrientatorOptions();
+		TntDirectAncestorAnnotatorOptions options = new TntDirectAncestorAnnotatorOptions();
 
 		if (args.length == 0) {
 			// Retrieve options from GUI:
@@ -371,7 +360,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 
 		// Run ACGAnnotator
 		try {
-			new TransmissionTreeOrientator(options);
+			new TntDirectAncestorAnnotator(options);
 		} catch (Exception e) {
 			if (args.length == 0) {
 				JOptionPane.showMessageDialog(null, e.getMessage(),

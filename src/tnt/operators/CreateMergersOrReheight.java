@@ -124,7 +124,6 @@ public class CreateMergersOrReheight extends TreeOperator {
 			}
 
 			int nNewMergerHeights = possibleMergerHeights.size();
-			System.out.println(nNewMergerHeights);
 			if (nNewMergerHeights == 0)
 				return Double.NEGATIVE_INFINITY; // no nodes to choose from
 			double newMergerHeight = possibleMergerHeights.get(Randomizer.nextInt(nNewMergerHeights));
@@ -215,7 +214,6 @@ public class CreateMergersOrReheight extends TreeOperator {
 
 				if (wasSrcNodeInMerger) {
 					int nNewMergerHeights = possibleMergerHeights.size();
-					System.out.println("after: " + nNewMergerHeights);
 					logHR += Math.log(1.0 / nNewMergerHeights);
 					if (trueNodesAtTransmission.contains(tree.getRoot()))
 						logHR += Math.log(1.0 / (nTrueInnerNodes - trueNodesAtTransmission.size()));

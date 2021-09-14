@@ -7,23 +7,23 @@ import java.util.Random;
 
 import beast.core.Distribution;
 import beast.core.Input;
-import beast.core.Input.Validate;
 import beast.core.State;
 import beast.evolution.alignment.TaxonSet;
 import beast.evolution.tree.Node;
-import tnt.transmissionTree.TransmissionTree;
+import beast.evolution.tree.Tree;
 
 public class SamplingConstraint extends Distribution {
 
-	public Input<TransmissionTree> trTreeInput = new Input<>("transmissionTree",
-			"transmission tree", Validate.REQUIRED);
+	public Input<Tree> trTreeInput = new Input<>("transmissionTree",
+			"transmission tree");
+	public Input<Tree> treeInput = new Input<>("tree", "tree input", Input.Validate.XOR, trTreeInput);
 	public Input<List<TaxonSet>> taxonsetsInput = new Input<>("taxonsets",
 			"a separate list of taxa for samples collected from the same patient", new ArrayList<>());
 
 
 
 
-	private TransmissionTree trTree;
+
 	private List<List<Node>> taxonsets;
 	private int nSets;
 	private int nSamples;
@@ -31,7 +31,10 @@ public class SamplingConstraint extends Distribution {
 
 	@Override
 	public void initAndValidate() {
-		trTree = trTreeInput.get();
+		Tree trTree = trTreeInput.get();
+		if (trTree == null)
+			trTree = treeInput.get();
+
 		nSets = taxonsetsInput.get().size();
 		nSamples = trTree.getLeafNodeCount();
 		taxonsets = new ArrayList<List<Node>>(nSets);
@@ -66,7 +69,9 @@ public class SamplingConstraint extends Distribution {
 	@Override
 	public double calculateLogP() {
 		logP = 0;
-		trTree = trTreeInput.get();
+		Tree trTree = trTreeInput.get();
+		if (trTree == null)
+			trTree = treeInput.get();
 		for (int j = 0; j < nSets; j++) {
 			List<Node> tmp = new ArrayList<Node>(taxonsets.get(j));
 			Node startLeaf = tmp.get(0);

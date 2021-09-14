@@ -78,6 +78,8 @@ public class Tools {
 			for (GeneTreeIntervals intervals : intervalsLis) {
 				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
 				List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
+				if (eventsPerTrNode == null || eventsPerTrNode.size()==0)
+					continue;
 				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
 
 				if (!n.getParent().isFake()
@@ -424,6 +426,15 @@ public class Tools {
 	public static boolean greaterOrEqualDouble(Double d1, Double d2) {
 		if (greaterDouble(d1, d2) || equalWithPrecisionDouble(d1, d2))
 			return true;
+		return false;
+	}
+
+	public static boolean containsDoubleWithPrecision(Set<Double> set, Double d) {
+		for (Double l : set) {
+			if (equalWithPrecisionDouble(d, l))
+				return true;
+		}
+
 		return false;
 	}
 

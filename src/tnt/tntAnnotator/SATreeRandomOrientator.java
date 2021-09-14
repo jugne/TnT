@@ -34,11 +34,11 @@ import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import tnt.util.Tools;
 
-public class TransmissionTreeOrientator extends TreeAnnotator {
+public class SATreeRandomOrientator extends TreeAnnotator {
 
 	private static class TnTOrientatorOptions extends TreeAnnotator {
 		File inFile;
-		File outFile = new File("summary.tree");
+		File outFile = new File("sa_orientated.trees");
 
 		@Override
 		public String toString() {
@@ -49,7 +49,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 		}
 	}
 
-	public TransmissionTreeOrientator(TnTOrientatorOptions options) throws IOException {
+	public SATreeRandomOrientator(TnTOrientatorOptions options) throws IOException {
  	
     	
         // Display options:
@@ -64,6 +64,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 		int i = 0;
         while (treeSet.hasNext()) {
 			Tree tree = treeSet.next();
+			tree.getRoot().metaDataString = "orientation=donor";
 			orientateNodeChildren(tree, tree.getRoot().getNr());
 			ps.println("tree STATE_" + i + " = " + tree.getRoot().toNewick() + ";");
 			i += 1;
@@ -371,7 +372,7 @@ public class TransmissionTreeOrientator extends TreeAnnotator {
 
 		// Run ACGAnnotator
 		try {
-			new TransmissionTreeOrientator(options);
+			new SATreeRandomOrientator(options);
 		} catch (Exception e) {
 			if (args.length == 0) {
 				JOptionPane.showMessageDialog(null, e.getMessage(),
