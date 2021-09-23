@@ -310,8 +310,8 @@ public class CoordinatedExponential extends CoordinatedOperator {
             final double count = (m_nNrRejectedForCorrection + m_nNrAcceptedForCorrection + 1.0);
             final double delta = (waitingTime - beta) / count;
 			final double beta_copy = beta;
-			if (beta == delta)
-				System.out.println();
+			if (beta == -delta)
+				return;
             setCoercableParameterValue(beta + delta);
 			if (beta == 0)
 				System.out.println();
