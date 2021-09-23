@@ -23,6 +23,11 @@ public class SAWilsonBalding extends TreeOperator {
 	public Input<List<GeneTreeIntervals>> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
 			"intervals for a gene tree", new ArrayList<>(), Validate.REQUIRED);
 
+	public Input<Boolean> allowSACreationInput = new Input<Boolean>("allowSaCreation",
+			"If the operator should be able to create SA nodes. Default 'true'. "
+					+ "Only applicable if removalProbability >0.",
+			true);
+
     @Override
     public void initAndValidate() {
     }
@@ -34,6 +39,8 @@ public class SAWilsonBalding extends TreeOperator {
     public double proposal() {
 
         Tree tree = treeInput.get(this);
+
+		int oldSACount = tree.getDirectAncestorNodeCount();
 
         //double x0 = 10;
 
@@ -223,6 +230,11 @@ public class SAWilsonBalding extends TreeOperator {
         if ((rInput.get() != null) && (tree.getDirectAncestorNodeCount() > 0 && rInput.get().getValue() == 1))  {
             return Double.NEGATIVE_INFINITY;
         }
+
+		int newSACount = tree.getDirectAncestorNodeCount();
+		if (!allowSACreationInput.get() && oldSACount != newSACount) {
+			return Double.NEGATIVE_INFINITY;
+		}
 
 //		newDimension = nodeCountFrom - tree.getDirectAncestorNodeCount() - 1;
 //		if (nodeCountFrom != getTrNodeNrsNotTransmissionOnGenesAfter(tree).length)
