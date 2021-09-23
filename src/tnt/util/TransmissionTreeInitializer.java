@@ -223,9 +223,8 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 							"samplingExtantRate", rhoInput.get(),
 							"origin", originInput.get());
 
-//					final TreeParser parser = new TreeParser(geneTree.getSimulatedGeneTree().getRoot().toNewick());
-//					gtree.assignFromWithoutID(parser);
-					gtree.getGeneTree().assignFromWithoutID(geneTree.getSimulatedGeneTree());
+					gtree.getGeneTree().assignFromWithoutID(geneTree);
+					System.out.println(gtree.getGeneTree().getRoot().toNewick());
 				} else {
 					gtree.getGeneTree().makeCaterpillar(rootHeight,
 							rootHeight / gtree.getGeneTree().getInternalNodeCount(), true);
