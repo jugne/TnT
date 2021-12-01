@@ -78,7 +78,7 @@ public class SAWilsonBalding extends TreeOperator {
         }
 
         // make sure that there is at least one candidate edge to attach node iP to
-		if (iP.getParent() == null && Tools.greaterOrEqualHeightNode(i, CiP)) {
+		if (iP.getParent() == null && Tools.greaterOrEqualHeighWithPrecision(i, CiP)) {
             return Double.NEGATIVE_INFINITY;
         }
 
@@ -119,7 +119,7 @@ public class SAWilsonBalding extends TreeOperator {
                 attachingToLeaf = true;
                 //adjacentLeaf = (iP.getNr() == j.getNr());
             }
-		} while (j.isDirectAncestor() || (Tools.greaterOrEqualDouble(i.getHeight(), newParentHeight))
+		} while (j.isDirectAncestor() || (Tools.greaterOrEqualWithPrecision(i.getHeight(), newParentHeight))
 				|| (i.getNr() == j.getNr()) || adjacentEdge /* || adjacentLeaf */);
 
 
