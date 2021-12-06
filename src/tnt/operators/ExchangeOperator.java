@@ -127,7 +127,7 @@ public class ExchangeOperator extends TreeOperator {
 		List<Node> remove = new ArrayList<Node>();
 		for (Node n : possibleDestNodes) {
 			if (!possibleAssignments.contains(geneNodeAssignment[n.getNr()])
-					|| Tools.equalHeightWithPrecisionNode(n, srcNodeLogicalParent))
+					|| Tools.equalHeightWithPrecision(n, srcNodeLogicalParent))
 					remove.add(n);
 		}
 		

@@ -365,9 +365,9 @@ public class TransmissionAttach extends TreeOperator {
 			if (!n.isRoot()
 					&& !Pitchforks.isPolytomy(n.getParent()) && !Tools.isMultiMerger(trueNodes, n.getParent())
 						&& !Arrays.stream(trHeights)
-								.anyMatch(x -> Tools.equalWithPrecisionDouble(x, n.getParent().getHeight()))// !=
+								.anyMatch(x -> Tools.equalWithPrecision(x, n.getParent().getHeight()))// !=
 																									// trNode.getParent().getHeight()
-						&& Tools.greaterDouble(trNode.getParent().getHeight(), n.getHeight())) {
+						&& Tools.greaterWithPrecision(trNode.getParent().getHeight(), n.getHeight())) {
 				fitToMove.add(n);
 			}
 		}
@@ -389,7 +389,7 @@ public class TransmissionAttach extends TreeOperator {
 //					System.out.println();
 			if (!n.isRoot()
 					&& geneNodeAssignment[n.getParent().getNr()] == recipient.getNr()
-					&& Tools.equalHeightWithPrecisionNode(n.getParent(), recipient.getParent()))
+					&& Tools.equalHeightWithPrecision(n.getParent(), recipient.getParent()))
 //					&& Pitchforks.isLogicalNode(n.getParent()))
 				fitToMove.add(n);
 		}
@@ -416,13 +416,13 @@ public class TransmissionAttach extends TreeOperator {
 						subtreeRoot.getParent().getHeight() > recipient.getParent().getHeight()) // TODO equality here
 																									// is an experiment.
 																									// CHECK!!
-				&& Tools.greaterOrEqualHeightNode(recipient.getParent(), subtreeRoot)) {
+				&& Tools.greaterOrEqualHeighWithPrecision(recipient.getParent(), subtreeRoot)) {
 //			if (subtreeRoot.getHeight() == recipient.getParent().getHeight())
 //				System.out.println();
 			edgesAtTransmission.add(subtreeRoot);
 		}
 
-		if (Tools.greaterDouble(subtreeRoot.getHeight(), recipient.getParent().getHeight())) {
+		if (Tools.greaterWithPrecision(subtreeRoot.getHeight(), recipient.getParent().getHeight())) {
 			for (Node child : subtreeRoot.getChildren())
 				edgesAtTransmission.addAll(getEdgesAtTransmission(child, recipient, recipientGroupNr));
 		}
@@ -437,7 +437,7 @@ public class TransmissionAttach extends TreeOperator {
 		List<Node> fitToAttach = new ArrayList<>();
 
 		if (Pitchforks.isLogicalNode(subtreeRoot)
-				&& (subtreeRoot.isRoot() || (Tools.greaterDouble(subtreeRoot.getParent().getHeight(),
+				&& (subtreeRoot.isRoot() || (Tools.greaterWithPrecision(subtreeRoot.getParent().getHeight(),
 						nodeToMove.getHeight())
 						&& possibleNodeAssignments.contains(geneNodeAssignment[subtreeRoot.getParent().getNr()]))))
 			fitToAttach.add(subtreeRoot);

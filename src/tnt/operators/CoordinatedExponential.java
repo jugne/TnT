@@ -209,10 +209,10 @@ public class CoordinatedExponential extends CoordinatedOperator {
 
 			for (Node n : geneTree.getNodesAsArray()) {
 				if (jConnectingNodes.contains(n) && Tools.containsDoubleWithPrecision(trHeights, n.getHeight())
-						&& !Tools.equalHeightWithPrecisionNode(n, speciesTreeNode))
+						&& !Tools.equalHeightWithPrecision(n, speciesTreeNode))
 					return HashMultimap.create();
 //					jConnectingNodes.remove(n);
-				else if (!n.isLeaf() && Tools.equalHeightWithPrecisionNode(n, speciesTreeNode)
+				else if (!n.isLeaf() && Tools.equalHeightWithPrecision(n, speciesTreeNode)
 						&& !jConnectingNodes.contains(n)) {
 					return HashMultimap.create();
 //					jConnectingNodes.add(n);

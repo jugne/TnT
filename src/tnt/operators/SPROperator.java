@@ -165,11 +165,11 @@ public class SPROperator extends TreeOperator {
 //		List<Node> fitNodes2 = new ArrayList<Node>();
 //		List<Node> subtreeNodesBottlenecHeight = new ArrayList<Node>();
 		for (Node n : subtreeNodes) {
-			if (!subtreeNodesAtTransmission.contains(n) && Tools.greaterDouble(n.getHeight(), srcNode.getHeight())
+			if (!subtreeNodesAtTransmission.contains(n) && Tools.greaterWithPrecision(n.getHeight(), srcNode.getHeight())
 					&& !n.isLeaf()) {
 //				subtreeNodesBottlenecHeight.add(n);
 				for (Node nn : subtreeNodes) {
-					if (Tools.greaterOrEqualDouble(n.getHeight(), nn.getHeight())
+					if (Tools.greaterOrEqualWithPrecision(n.getHeight(), nn.getHeight())
 							&& (nn.isRoot() || Pitchforks.getLogicalParent(nn).getHeight() > n.getHeight())) {
 						Node s = null;
 						if (!fitNodes2.keySet().isEmpty()) {
@@ -431,7 +431,7 @@ public class SPROperator extends TreeOperator {
 
 	private Node getNodeWithHeight(Set<Node> set, Double height) {
 		for (Node s : set) {
-			if (Tools.equalWithPrecisionDouble(s.getHeight(), height))
+			if (Tools.equalWithPrecision(s.getHeight(), height))
 				return s;
 		}
 		return null;
@@ -439,7 +439,7 @@ public class SPROperator extends TreeOperator {
 
 	private boolean containsNodeWithHeight(Set<Node> set, Double height) {
 		for (Node s : set) {
-			if (Tools.equalWithPrecisionDouble(s.getHeight(), height))
+			if (Tools.equalWithPrecision(s.getHeight(), height))
 				return true;
 		}
 		return false;

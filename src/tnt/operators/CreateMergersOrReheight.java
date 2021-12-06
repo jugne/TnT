@@ -115,7 +115,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 			for (Node n : trueNodes) {
 				if (trueNodesAtTransmission.contains(n))
 					continue;
-				if (Tools.equalHeightWithPrecisionNode(n, srcNode) && n.getNr() != srcNode.getNr())
+				if (Tools.equalHeightWithPrecision(n, srcNode) && n.getNr() != srcNode.getNr())
 					wasSrcNodeInMerger = true;
 				else if (!n.isRoot() && n.getNr() != srcNode.getNr() && n.getHeight() > minHeight
 						&& n.getHeight() < maxHeight && !possibleMergerHeights.contains(n.getHeight())) {
@@ -204,7 +204,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 				for (Node n : trueNodes) {
 					if (trueNodesAtTransmission.contains(n)) // do not add the nodes that are at transmission heights
 						continue;
-					if (Tools.equalHeightWithPrecisionNode(n, srcNode) && n.getNr() != srcNode.getNr()) {
+					if (Tools.equalHeightWithPrecision(n, srcNode) && n.getNr() != srcNode.getNr()) {
 						wasSrcNodeInMerger = true;
 					} else if (!n.isRoot() && n.getNr() != srcNode.getNr() && n.getHeight() > minHeight
 							&& n.getHeight() < maxHeight && !possibleMergerHeights.contains(n.getHeight())) {

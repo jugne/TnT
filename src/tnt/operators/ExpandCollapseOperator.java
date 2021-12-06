@@ -276,7 +276,7 @@ public class ExpandCollapseOperator extends TreeOperator {
 
             Node sister = getOtherChild(node.getParent(), node);
 			int trNodeSisterNr = geneNodeAssignment[sister.getNr()];
-			if (Tools.greaterOrEqualHeightNode(node, sister) || sister.isLeaf()
+			if (Tools.greaterOrEqualHeighWithPrecision(node, sister) || sister.isLeaf()
 					|| !possibleAssignments.contains(trNodeSisterNr))
                 continue;
 
