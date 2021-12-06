@@ -62,7 +62,7 @@ public class Tools {
 	}
 
 	public static Integer[] getTrNodeNrsNotTransmissionOnGenes(Tree transmissionTree,
-			List<GeneTreeIntervals> geneTreeIntervals) {
+			List<GeneTreeIntervals> geneTreeIntervals, boolean bothChildren) {
 		Set<Integer> fitNodeNrs = new HashSet<Integer>();
 		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervals;
 
@@ -83,7 +83,7 @@ public class Tools {
 				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
 
 				if (!n.getParent().isFake()
-						&& Tools.equalWithPrecisionDouble(n.getParent().getHeight(), lastEvent.time)) {
+						&& Tools.equalWithPrecision(n.getParent().getHeight(), lastEvent.time)) {
 					addToFit = false;
 					break;
 				}
@@ -92,7 +92,10 @@ public class Tools {
 			if (addToFit) {
 				fitNodeNrs.add(recipientNr);
 				fitNodeNrs.add(n.getParent().getChild(0).getNr());
+			} else if (!bothChildren) {// see if this works
+				fitNodeNrs.add(n.getParent().getChild(0).getNr());
 			}
+
 		}
 
 		return fitNodeNrs.toArray(new Integer[0]);
@@ -242,7 +245,7 @@ public class Tools {
 
 
 		if (!subRoot.isLeaf()) {
-			if (!subRoot.isRoot() && greaterDouble(subRoot.getHeight(), subRoot.getParent().getHeight())) {
+			if (!subRoot.isRoot() && greaterWithPrecision(subRoot.getHeight(), subRoot.getParent().getHeight())) {
 
 				throw new RuntimeException("Negative branch length!");
 			}
@@ -254,7 +257,7 @@ public class Tools {
 					.getNode(geneTreeNodeAssignment[subRoot.getChild(0).getNr()]);
 			while (!tr1.isRoot()) {
 				Node tr1ParentNode = tr1.getParent();
-				if (greaterOrEqualHeightNode(tr1ParentNode, subRoot))
+				if (greaterOrEqualHeighWithPrecision(tr1ParentNode, subRoot))
 					break;
 				tr1 = tr1ParentNode;
 			}
@@ -267,7 +270,7 @@ public class Tools {
 						.getNode(geneTreeNodeAssignment[subRoot.getChild(1).getNr()]);
 				while (!tr2.isRoot()) {
 					Node tr2ParentNode = tr2.getParent();
-					if (greaterOrEqualHeightNode(tr2ParentNode, subRoot))
+					if (greaterOrEqualHeighWithPrecision(tr2ParentNode, subRoot))
 						break;
 					tr2 = tr2ParentNode;
 				}
@@ -275,11 +278,11 @@ public class Tools {
 				if (tr1.getNr() != tr2.getNr())
 					return false;
 			}
-			if (equalHeightWithPrecisionNode(tr1, subRoot) && !subRoot.isLeaf())
+			if (equalHeightWithPrecision(tr1, subRoot) && !subRoot.isLeaf())
 				return false;
 			boolean recipient = isRecipient(tr1);
 			if (!tr1.isRoot() && !recipient && !subRoot.isLeaf()
-					&& equalHeightWithPrecisionNode(tr1.getParent(), subRoot))
+					&& equalHeightWithPrecision(tr1.getParent(), subRoot))
 				return false;
 			geneTreeNodeAssignment[subRoot.getNr()] = tr1.getNr();
 
@@ -292,24 +295,24 @@ public class Tools {
 				double parentHeight = subRoot.getParent().getHeight();
 				
 				if (!tr1.isRoot()) {
-					if (greaterOrEqualDouble(parentHeight, tr1.getParent().getHeight())) {
+					if (greaterOrEqualWithPrecision(parentHeight, tr1.getParent().getHeight())) {
 						trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-								+ tr1.getNr()] += equalWithPrecisionDouble(tr1.getParent().getHeight(),
+								+ tr1.getNr()] += equalWithPrecision(tr1.getParent().getHeight(),
 										subRoot.getHeight())
 												? 0.0
 												: tr1.getParent().getHeight() - subRoot.getHeight();
 						Node child = tr1.getParent();
 						Node parent = child.getParent();
-						while (greaterOrEqualDouble(parentHeight, child.getHeight())) {
-							if (!child.isRoot() && greaterOrEqualDouble(parentHeight, parent.getHeight()))
+						while (greaterOrEqualWithPrecision(parentHeight, child.getHeight())) {
+							if (!child.isRoot() && greaterOrEqualWithPrecision(parentHeight, parent.getHeight()))
 								trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-										+ child.getNr()] = equalWithPrecisionDouble(parent.getHeight(),
+										+ child.getNr()] = equalWithPrecision(parent.getHeight(),
 												child.getHeight())
 														? 0.0
 														: parent.getHeight() - child.getHeight();
 							else
 								trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-										+ child.getNr()] = equalWithPrecisionDouble(parentHeight, child.getHeight())
+										+ child.getNr()] = equalWithPrecision(parentHeight, child.getHeight())
 												? 0.0
 												: parentHeight - child.getHeight();
 
@@ -320,13 +323,13 @@ public class Tools {
 						}
 					} else {
 						trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-								+ tr1.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+								+ tr1.getNr()] = equalWithPrecision(parentHeight, subRoot.getHeight())
 										? 0.0
 										: parentHeight - subRoot.getHeight();
 					}
 				} else {
 					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-							+ tr1.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+							+ tr1.getNr()] = equalWithPrecision(parentHeight, subRoot.getHeight())
 									? 0.0
 									: parentHeight - subRoot.getHeight();
 				}
@@ -342,23 +345,23 @@ public class Tools {
 			Arrays.fill(trNodeOccupancy, subRoot.getNr() * transmissionTree.getNodeCount(),
 					subRoot.getNr() * transmissionTree.getNodeCount() + transmissionTree.getNodeCount(), 0);
 			if (!trLeaf.isRoot()) {
-				if (greaterOrEqualDouble(parentHeight, trLeaf.getParent().getHeight())) {
+				if (greaterOrEqualWithPrecision(parentHeight, trLeaf.getParent().getHeight())) {
 					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-							+ trLeaf.getNr()] += equalWithPrecisionDouble(trLeaf.getParent().getHeight(),
+							+ trLeaf.getNr()] += equalWithPrecision(trLeaf.getParent().getHeight(),
 									subRoot.getHeight())
 											? 0.0
 											: trLeaf.getParent().getHeight() - subRoot.getHeight();
 					Node child = trLeaf.getParent();
 					Node parent = child.getParent();
-					while (greaterOrEqualDouble(parentHeight, child.getHeight())) {
-						if (!child.isRoot() && greaterOrEqualDouble(parentHeight, parent.getHeight()))
+					while (greaterOrEqualWithPrecision(parentHeight, child.getHeight())) {
+						if (!child.isRoot() && greaterOrEqualWithPrecision(parentHeight, parent.getHeight()))
 							trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-									+ child.getNr()] = equalWithPrecisionDouble(parent.getHeight(), child.getHeight())
+									+ child.getNr()] = equalWithPrecision(parent.getHeight(), child.getHeight())
 											? 0.0
 											: parent.getHeight() - child.getHeight();
 						else
 							trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-									+ child.getNr()] = equalWithPrecisionDouble(parentHeight, child.getHeight())
+									+ child.getNr()] = equalWithPrecision(parentHeight, child.getHeight())
 											? 0.0
 											: parentHeight - child.getHeight();
 
@@ -369,13 +372,13 @@ public class Tools {
 					}
 				} else {
 					trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-							+ trLeaf.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+							+ trLeaf.getNr()] = equalWithPrecision(parentHeight, subRoot.getHeight())
 									? 0.0
 									: parentHeight - subRoot.getHeight();
 				}
 			} else {
 				trNodeOccupancy[subRoot.getNr() * transmissionTree.getNodeCount()
-						+ trLeaf.getNr()] = equalWithPrecisionDouble(parentHeight, subRoot.getHeight())
+						+ trLeaf.getNr()] = equalWithPrecision(parentHeight, subRoot.getHeight())
 								? 0.0
 								: parentHeight - subRoot.getHeight();
 			}
@@ -385,7 +388,7 @@ public class Tools {
 		try {
 			List<Double> trHeights = getTransmissionHeights(transmissionTree);
 			if (containsDoubleWithPrecision(trHeights, subRoot.getHeight()) &&
-					!equalHeightWithPrecisionNode(subRoot,
+					!equalHeightWithPrecision(subRoot,
 							transmissionTree.getNode(geneTreeNodeAssignment[subRoot.getNr()]).getParent()))
 			return false;
 		} catch (Exception e) {
@@ -399,20 +402,20 @@ public class Tools {
 				&& trTreeNode.getParent().getChild(0) != trTreeNode && !trTreeNode.getParent().isFake());
 	}
 
-	public static boolean equalHeightWithPrecisionNode(Node n1, Node n2) {
+	public static boolean equalHeightWithPrecision(Node n1, Node n2) {
 		if (Math.abs(n1.getHeight() - n2.getHeight()) <= globalPrecisionThreshold)
 			return true;
 		return false;
 	}
 
-	public static boolean equalWithPrecisionDouble(Double d1, Double d2) {
+	public static boolean equalWithPrecision(Double d1, Double d2) {
 		if (Math.abs(d1 - d2) <= globalPrecisionThreshold)
 			return true;
 		return false;
 	}
 
-	public static boolean greaterOrEqualHeightNode(Node n1, Node n2) {
-		if (n1.getHeight() > n2.getHeight() + globalPrecisionThreshold || equalHeightWithPrecisionNode(n1, n2))
+	public static boolean greaterOrEqualHeighWithPrecision(Node n1, Node n2) {
+		if (n1.getHeight() > n2.getHeight() + globalPrecisionThreshold || equalHeightWithPrecision(n1, n2))
 			return true;
 		return false;
 	}
@@ -423,22 +426,22 @@ public class Tools {
 		return false;
 	}
 
-	public static boolean greaterOrEqualDouble(Double d1, Double d2) {
-		if (greaterDouble(d1, d2) || equalWithPrecisionDouble(d1, d2))
+	public static boolean greaterOrEqualWithPrecision(Double d1, Double d2) {
+		if (greaterWithPrecision(d1, d2) || equalWithPrecision(d1, d2))
 			return true;
 		return false;
 	}
 
 	public static boolean containsDoubleWithPrecision(Set<Double> set, Double d) {
 		for (Double l : set) {
-			if (equalWithPrecisionDouble(d, l))
+			if (equalWithPrecision(d, l))
 				return true;
 		}
 
 		return false;
 	}
 
-	public static boolean greaterDouble(Double d1, Double d2) {
+	public static boolean greaterWithPrecision(Double d1, Double d2) {
 		if (d1 > d2 + globalPrecisionThreshold)
 			return true;
 		return false;
@@ -446,7 +449,7 @@ public class Tools {
 
 	public static boolean containsDoubleWithPrecision(List<Double> list, Double d) {
 		for (int i=0; i<list.size(); i++) {
-			if (equalWithPrecisionDouble(list.get(i), d))
+			if (equalWithPrecision(list.get(i), d))
 				return true;
 		}
 		return false;
