@@ -156,7 +156,8 @@ public class SimulatedGeneTreeInit extends Tree {
 		System.out.println(transmissionTree.getRoot().toNewick());
 			System.out.println(tree.getRoot().toNewick());
 
-					assignFromWithoutID(tree);
+//					assignFromWithoutID(tree);
+			assignFrom(tree);
 //					break;
 //				}
 //			}
