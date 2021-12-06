@@ -173,7 +173,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
-			if (eventList.get(trNode.getNr()) != null) {
+			if (eventList.get(trNode.getNr()) != null && !trNode.isDirectAncestor()) {
 			updateParameters(trNode.getNr());
 
 			int i = parameterization.getIntervalIndex(parameterization.getNodeTime(trNode, finalSampleOffset.getArrayValue()));
@@ -208,7 +208,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 				// Check if the event is at transmission time and on recipient side
 				boolean eventAtTransmission = !trNode.isRoot() && recipient
-							&& Tools.equalWithPrecisionDouble(event.time, trNode.getParent().getHeight());
+							&& Tools.equalWithPrecision(event.time, trNode.getParent().getHeight());
 
 				// Contribution from every interval, except the last				
 				if (prevEvent.time < event.time) {
