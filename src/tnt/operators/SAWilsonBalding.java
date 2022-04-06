@@ -47,8 +47,8 @@ public class SAWilsonBalding extends TreeOperator {
         double oldMinAge, newMinAge, newRange, oldRange, newAge, fHastingsRatio, DimensionCoefficient;
         int newDimension, oldDimension;
 
-		// get fit nodes as lis
-		Integer[] fitNodesNrs = Tools.getTrNodeNrsNotTransmissionOnGenes(tree, geneTreeIntervalsInput.get());
+		// get fit nodes as list
+		Integer[] fitNodesNrs = Tools.getTrNodeNrsNotTransmissionOnGenes(tree, geneTreeIntervalsInput.get(), true);
         
 //		Integer[] fitNodesNrs2 = getTrNodeNrsNotTransmissionOnGenesAfter(tree);
 
@@ -102,8 +102,8 @@ public class SAWilsonBalding extends TreeOperator {
         do {
             adjacentEdge = false;
             //adjacentLeaf = false;
-            nodeNumber = Randomizer.nextInt(nodeCount + leafNodeCount);
-            if (nodeNumber < nodeCount) {
+			nodeNumber = Randomizer.nextInt(nodeCount + leafNodeCount);
+			if (nodeNumber < nodeCount) {
                 j = tree.getNode(nodeNumber);
                 jP = j.getParent();
                 if (jP != null)
@@ -113,7 +113,8 @@ public class SAWilsonBalding extends TreeOperator {
                     adjacentEdge = (CiP.getNr() == j.getNr() || iP.getNr() == j.getNr());
                 attachingToLeaf = false;
             } else {
-                j = tree.getExternalNodes().get(nodeNumber - nodeCount);
+//				j = tree.getNode(nodeNumber);
+				j = tree.getExternalNodes().get(nodeNumber - nodeCount);
                 jP = j.getParent();
                 newParentHeight = j.getHeight();
                 attachingToLeaf = true;
@@ -213,7 +214,7 @@ public class SAWilsonBalding extends TreeOperator {
                 tree.setRootOnly(iP);
             }
 			iP.removeChild(otherIPChild);
-			if (right) {
+			if (right && !j.isLeaf()) {
 				iP.addChild(j);
 				iP.addChild(otherIPChild);
 			} else {

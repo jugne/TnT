@@ -121,7 +121,7 @@ public class ScaleOperator extends TreeOperator {
             }
 			for (int nodeNr = tree.getLeafNodeCount(); nodeNr < tree.getNodeCount(); nodeNr++) {
                 Node node = tree.getNode(nodeNr);
-				if (node.isRoot() || Tools.greaterDouble(node.getParent().getHeight(), node.getHeight()))
+				if (node.isRoot() || Tools.greaterWithPrecision(node.getParent().getHeight(), node.getHeight()))
                     logHR += logf;
             }
         }
