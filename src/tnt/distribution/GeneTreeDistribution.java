@@ -193,7 +193,7 @@ public class GeneTreeDistribution extends Distribution {
 
 				// Check if the event is at transmission time and on recipient side
 				boolean eventAtTransmission = !trNode.isRoot() && recipient
-						&& Tools.equalWithPrecisionDouble(event.time, trNode.getParent().getHeight());
+						&& Tools.equalWithPrecision(event.time, trNode.getParent().getHeight());
 
 				// Contribution from every interval, except the last
 				if (prevEvent.time < event.time) {

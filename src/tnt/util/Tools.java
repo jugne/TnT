@@ -490,12 +490,12 @@ public class Tools {
 	public static void exchangeNodesKeepDirection(Node i, Node j,
 			Node p, Node jP) {
 		// precondition p -> i & jP -> j
-		replaceKeepDirection(p, i, j);
-		replaceKeepDirection(jP, j, i);
+		replaceNodeKeepDirection(p, i, j);
+		replaceNodeKeepDirection(jP, j, i);
 		// postcondition p -> j & p -> i
 	}
 
-	public static void replaceKeepDirection(final Node node, final Node child, final Node replacement) {
+	public static void replaceNodeKeepDirection(final Node node, final Node child, final Node replacement) {
 			boolean left = node.getLeft().getNr() == child.getNr();
 			Node otherChild = getOtherChild(node, child);
 			node.removeChild(otherChild);
@@ -511,6 +511,27 @@ public class Tools {
 			replacement.makeDirty(Tree.IS_FILTHY);
 		}
 
+		/**
+		 * Divide the branch which is NOT a root branch with a single child node.
+		 * 
+		 * @param node
+		 * @param child
+		 * @param dividerNode
+		 * @return
+		 */
+		public static void divideBranch(final Node node, final Node child, final Node dividerNode) {
+			if (node.getChildCount() > 1) {
+				replaceNodeKeepDirection(node, child, dividerNode);
+			} else {
+				node.removeChild(child);
+				node.addChild(dividerNode);
+				node.makeDirty(Tree.IS_FILTHY);
+				dividerNode.makeDirty(Tree.IS_FILTHY);
+			}
+			dividerNode.addChild(child);
+			child.makeDirty(Tree.IS_FILTHY);
+		}
+
 	/**
 	 * @param parent the parent
 	 * @param child  the child that you want the sister of
@@ -522,6 +543,30 @@ public class Tools {
 		} else {
 			return parent.getLeft();
 		}
+	}
+
+	/**
+	 * COPIED from BDMM prime package by T. G. Vaughan on 2022-03-12
+	 * 
+	 * Apply node numbers to internal nodes below and including subtreeRoot. Numbers
+	 * are applied postorder, so parents always have larger numbers than their
+	 * children and the root has the hightest number.
+	 *
+	 * @param subtreeRoot root of subtree
+	 * @param nextNumber  next number to be used
+	 * @return next number to be used on another part of the tree.
+	 */
+	public static int numberInternalNodesOnSubtree(Node subtreeRoot, int nextNumber) {
+
+		if (subtreeRoot.isLeaf())
+			return nextNumber;
+
+		for (Node child : subtreeRoot.getChildren())
+			nextNumber = numberInternalNodesOnSubtree(child, nextNumber);
+
+		subtreeRoot.setNr(nextNumber);
+
+		return nextNumber + 1;
 	}
 
 }
