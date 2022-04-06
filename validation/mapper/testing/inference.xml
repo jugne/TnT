@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beast version="2.4" beautitemplate='StarBeast2'
+	beautistatus='noAutoSetClockRate'
+	namespace="beast.core
+              :beast.evolution.alignment
+              :beast.evolution.tree.coalescent
+              :beast.core.util
+              :beast.evolution.nuc
+              :beast.evolution.tree
+              :beast.evolution.operators
+              :beast.evolution.sitemodel
+              :beast.evolution.substitutionmodel
+              :beast.evolution.likelihood
+              :beast.core.parameter
+              :beast.util
+              :feast.fileio
+              :starbeast2
+              :starbeast2.utils
+              :tnt.distribution
+              :tnt.operators
+              :tnt.util
+              :tnt.transmissionTree
+              :pitchfork.util
+              :tnt.simulator
+              :tnt.mapping
+              :bdmmprime.parameterization
+              :bdmmprime.distribution">
+
+
+
+	<alignment id="gene" spec="AlignmentFromNexus"
+		fileName="geneTreeSim.alignment.nexus" />
+
+
+	<trait id='tipDates' spec='beast.evolution.tree.TraitSet' traitname='date-backward' units='year' value='1_=0,2_=0,3_=0,4_=0.475195324555326,5_=0.506140268228374,6_=0.540351844929765,7_=0.607833349264784,8_=0.870651839376729,9_=1.00218635833225,10_=1.05102081633473,11_=1.10271406629622,12_=1.14107216645356,13_=1.60025683917847,14_=2.36136270350982,15_=2.39131121178489'>
+		<taxa id="taxonsuperset" spec="TaxonSet">
+			 <taxon id="1_" spec="TaxonSet"> <taxon id="1_1" spec="Taxon"/> <taxon id="1_2" spec="Taxon"/> <taxon id="1_3" spec="Taxon"/> <taxon id="1_4" spec="Taxon"/> <taxon id="1_5" spec="Taxon"/> </taxon> <taxon id="2_" spec="TaxonSet"> <taxon id="2_1" spec="Taxon"/> <taxon id="2_2" spec="Taxon"/> <taxon id="2_3" spec="Taxon"/> <taxon id="2_4" spec="Taxon"/> <taxon id="2_5" spec="Taxon"/> </taxon> <taxon id="3_" spec="TaxonSet"> <taxon id="3_1" spec="Taxon"/> <taxon id="3_2" spec="Taxon"/> <taxon id="3_3" spec="Taxon"/> <taxon id="3_4" spec="Taxon"/> <taxon id="3_5" spec="Taxon"/> </taxon> <taxon id="4_" spec="TaxonSet"> <taxon id="4_1" spec="Taxon"/> <taxon id="4_2" spec="Taxon"/> <taxon id="4_3" spec="Taxon"/> <taxon id="4_4" spec="Taxon"/> <taxon id="4_5" spec="Taxon"/> </taxon> <taxon id="5_" spec="TaxonSet"> <taxon id="5_1" spec="Taxon"/> <taxon id="5_2" spec="Taxon"/> <taxon id="5_3" spec="Taxon"/> <taxon id="5_4" spec="Taxon"/> <taxon id="5_5" spec="Taxon"/> </taxon> <taxon id="6_" spec="TaxonSet"> <taxon id="6_1" spec="Taxon"/> <taxon id="6_2" spec="Taxon"/> <taxon id="6_3" spec="Taxon"/> <taxon id="6_4" spec="Taxon"/> <taxon id="6_5" spec="Taxon"/> </taxon> <taxon id="7_" spec="TaxonSet"> <taxon id="7_1" spec="Taxon"/> <taxon id="7_2" spec="Taxon"/> <taxon id="7_3" spec="Taxon"/> <taxon id="7_4" spec="Taxon"/> <taxon id="7_5" spec="Taxon"/> </taxon> <taxon id="8_" spec="TaxonSet"> <taxon id="8_1" spec="Taxon"/> <taxon id="8_2" spec="Taxon"/> <taxon id="8_3" spec="Taxon"/> <taxon id="8_4" spec="Taxon"/> <taxon id="8_5" spec="Taxon"/> </taxon> <taxon id="9_" spec="TaxonSet"> <taxon id="9_1" spec="Taxon"/> <taxon id="9_2" spec="Taxon"/> <taxon id="9_3" spec="Taxon"/> <taxon id="9_4" spec="Taxon"/> <taxon id="9_5" spec="Taxon"/> </taxon> <taxon id="10_" spec="TaxonSet"> <taxon id="10_1" spec="Taxon"/> <taxon id="10_2" spec="Taxon"/> <taxon id="10_3" spec="Taxon"/> <taxon id="10_4" spec="Taxon"/> <taxon id="10_5" spec="Taxon"/> </taxon> <taxon id="11_" spec="TaxonSet"> <taxon id="11_1" spec="Taxon"/> <taxon id="11_2" spec="Taxon"/> <taxon id="11_3" spec="Taxon"/> <taxon id="11_4" spec="Taxon"/> <taxon id="11_5" spec="Taxon"/> </taxon> <taxon id="12_" spec="TaxonSet"> <taxon id="12_1" spec="Taxon"/> <taxon id="12_2" spec="Taxon"/> <taxon id="12_3" spec="Taxon"/> <taxon id="12_4" spec="Taxon"/> <taxon id="12_5" spec="Taxon"/> </taxon> <taxon id="13_" spec="TaxonSet"> <taxon id="13_1" spec="Taxon"/> <taxon id="13_2" spec="Taxon"/> <taxon id="13_3" spec="Taxon"/> <taxon id="13_4" spec="Taxon"/> <taxon id="13_5" spec="Taxon"/> </taxon> <taxon id="14_" spec="TaxonSet"> <taxon id="14_1" spec="Taxon"/> <taxon id="14_2" spec="Taxon"/> <taxon id="14_3" spec="Taxon"/> <taxon id="14_4" spec="Taxon"/> <taxon id="14_5" spec="Taxon"/> </taxon> <taxon id="15_" spec="TaxonSet"> <taxon id="15_1" spec="Taxon"/> <taxon id="15_2" spec="Taxon"/> <taxon id="15_3" spec="Taxon"/> <taxon id="15_4" spec="Taxon"/> <taxon id="15_5" spec="Taxon"/> </taxon>
+		</taxa>
+	</trait>
+
+	<taxonSet spec="TaxonSet" id="taxonSet">
+		 <taxon idref="1_"/> <taxon idref="2_"/> <taxon idref="3_"/> <taxon idref="4_"/> <taxon idref="5_"/> <taxon idref="6_"/> <taxon idref="7_"/> <taxon idref="8_"/> <taxon idref="9_"/> <taxon idref="10_"/> <taxon idref="11_"/> <taxon idref="12_"/> <taxon idref="13_"/> <taxon idref="14_"/> <taxon idref="15_"/>
+	</taxonSet>
+	
+    <parameterization spec="EpiParameterization" id="parameterization">
+    	<typeSet id="typeSet" spec="bdmmprime.parameterization.TypeSet" value="0"/>
+      	<origin id="origin" spec="RealParameter" value="30." lower="0."/>
+      	<R0 spec="SkylineVectorParameter" typeSet="@typeSet">
+      		<skylineValues id="R0" spec="RealParameter" value="3.50038308626972"/>
+      	</R0>
+      	<becomeUninfectiousRate spec="SkylineVectorParameter" typeSet="@typeSet">
+      		<skylineValues id="becominUninfectiousRate" spec="RealParameter" value="0.329502775403671"/>
+      	</becomeUninfectiousRate>
+      	<samplingProportion spec="SkylineVectorParameter" typeSet="@typeSet">
+      		<skylineValues id="samplingProportion" spec="RealParameter" value="0.682711551082321"/>
+      	</samplingProportion>
+      	<removalProb spec="SkylineVectorParameter" typeSet="@typeSet">
+      		<skylineValues id="removalProb" spec="RealParameter" value="0.641101316176355"/>
+      	</removalProb>
+      	<rhoSampling spec="TimedParameter" typeSet="@typeSet" timesAreAges="true" origin="@origin">
+        	<times spec="RealParameter" value="0.0"/>
+        	<values id="rho" spec="RealParameter" value="0.404639906482771"/>
+      	</rhoSampling>
+    </parameterization>
+    
+    <finalSampleOffset id="finalSampleOffset" spec="RealParameter" value="0"/>
+	
+	<BirthDeathSkylineModel id="bdPrior"
+		spec="BirthDeathMigrationDistribution" tree="@transmissionTree"
+		parameterization="@parameterization" typeLabel="type"
+		conditionOnSurvival="false" finalSampleOffset="@finalSampleOffset">
+		<frequencies spec="RealParameter" value="1.0" />
+	</BirthDeathSkylineModel>
+
+	<run id="mcmc" spec="MCMC" chainLength="200000000" storeEvery="100000">
+		<init id="SBI" spec="tnt.util.TransmissionTreeInitializer"
+			estimate="true" transmissionTree="@transmissionTree">
+			
+			<geneTreeInitializerList spec="GeneTreeInitializer">
+				<geneTree idref="geneTree" />
+				<sampleCounts spec="TraitSet" traitname="sampleCounts"
+				taxa="@taxonSet">
+					1_=5,2_=5,3_=5,4_=5,5_=5,6_=5,7_=5,8_=5,9_=5,10_=5,11_=5,12_=5,13_=5,14_=5,15_=5
+				</sampleCounts>			
+			</geneTreeInitializerList>
+
+			<birthRate spec="RealParameter" value="1.15338594190194"/>
+			<deathRate spec="RealParameter" value="0.138477862734901"/>
+			<samplingRate spec="RealParameter" value="1.68396472266089"/>
+			<populationSizes idref="popSize"/>
+			<bottleneckStrength spec="RealParameter" value="0.0717333370273718"/>
+			<origin idref="origin"/>
+		</init>
+
+		<state id="state" storeEvery="100000">
+
+			<stateNode id="transmissionTree"
+				spec="TransmissionTree" taxonset="@taxonsuperset"
+				adjustTreeNodeHeights="false" trait="@tipDates" />
+			<stateNode id="clockRate.high" spec="RealParameter"
+				value="0.005" />
+				
+			<stateNode idref="origin"/>
+			<stateNode idref="R0"/>
+			<stateNode idref="becominUninfectiousRate"/>
+			<stateNode idref="samplingProportion"/>
+			<stateNode idref="removalProb"/>
+			<stateNode idref="rho"/>
+
+				
+			<parameter id="popSize" name="stateNode" value="0.684271506455562"/>
+			<parameter id="pairwiseCoalProbBottleneck" name="stateNode" value="0.0995239291805774"/>
+<!-- 			<parameter id="pairwiseCoalProbBottleneck" name="stateNode" -->
+<!-- 				value="0.2" /> -->
+
+			<tree id="geneTree" name="stateNode">
+				<taxonset id="TaxonSet.gene" spec="TaxonSet">
+					<alignment idref="gene"/>
+				</taxonset>
+			</tree>
+			
+			<stateNode spec="MappedTree" id="mappedTree" tree="@transmissionTree" parameterization="@parameterization" finalSampleOffset="@finalSampleOffset"/>
+		</state>
+
+		<distribution id="posterior"
+			spec="util.CompoundDistribution">
+			<distribution id="geneTreeLikelihood"
+				spec="CompoundDistribution">
+				<distribution spec="TreeLikelihood">
+					<data idref="gene" />
+					<tree idref="geneTree" />
+					<siteModel spec="SiteModel"
+						mutationRate="@clockRate.high">
+						<substModel spec="JukesCantor"/>
+					</siteModel>
+				</distribution>
+			</distribution>
+
+
+			<distribution id="multiCoalescent"
+				spec="util.CompoundDistribution">
+				<distribution spec="beast.math.distributions.Prior"
+					x="@popSize">
+					<distr spec="beast.math.distributions.LogNormalDistributionModel" M="1" S="0.5" meanInRealSpace="true"/>
+				</distribution>
+				<distribution spec="beast.math.distributions.Prior"
+					x="@pairwiseCoalProbBottleneck">
+					<distr spec="beast.math.distributions.Uniform"
+                          lower="0.0" upper="1.0" offset="0."/>
+				</distribution>
+				<distribution id="geneTreeDistribution"
+					spec="SkyGeneTreeDistribution" populationSizes="@popSize"
+					ploidy="1.0" pairwiseProbBottleneck="@pairwiseCoalProbBottleneck"
+					parameterization="@parameterization" finalSampleOffset="@finalSampleOffset">
+					<geneTreeIntervals id="geneTreeIntervals"
+						spec="GeneTreeIntervals" geneTree="@geneTree"
+						transmissionTree="@transmissionTree" />
+				</distribution>
+			</distribution>
+			<distribution id="prior"
+				spec="util.CompoundDistribution">
+				<distribution idref="bdPrior" />
+				
+				<distribution id="R0_prior"
+					spec="beast.math.distributions.Prior" x="@R0">
+					<distr spec="beast.math.distributions.Uniform"
+                          lower="1" upper="4" offset="0."/>
+				</distribution>
+				<distribution id="becominUninfectiousRate_Prior"
+					spec="beast.math.distributions.Prior" x="@becominUninfectiousRate">
+					<distr spec="beast.math.distributions.Uniform"
+                          lower="0.1" upper="2" offset="0."/>
+				</distribution>
+				<distribution id="r_prior"
+					spec="beast.math.distributions.Prior" x="@removalProb">
+					<distr spec="beast.math.distributions.Uniform"
+                          lower="0.2" upper="1" offset="0."/>
+				</distribution>
+				<distribution id="rho_prior"
+					spec="beast.math.distributions.Prior" x="@rho">
+					<distr spec="beast.math.distributions.Uniform"
+                          lower="0" upper="1" offset="0."/>
+				</distribution>
+				<distribution id="origin_Prior" x="@origin"
+					spec="beast.math.distributions.Prior">
+					<distr spec="beast.math.distributions.Uniform"
+                          lower="0." upper="1000." offset="0."/>
+				</distribution>
+			</distribution>
+		</distribution>
+
+		<operator id='origOperator' spec='ScaleOperator'
+			scaleFactor=".5" weight="3.0" parameter="@origin" />
+		<operator id='R0Operator'
+			spec='ScaleOperator' scaleFactor=".5" weight="3.0"
+			parameter="@R0" />
+		<operator id='becominUninfectiousRateOperator' spec='ScaleOperator'
+			scaleFactor=".5" weight="3.0" parameter="@becominUninfectiousRate" />
+		<!-- <operator id='samplingProportionOperator' spec='ScaleOperator' scaleFactor=".75" 
+			weight="10" parameter="@samplingProportion"/> -->
+		<operator id='rOperator' spec='ScaleOperator'
+			scaleFactor=".5" weight="3.0" parameter="@removalProb" />
+			
+		<operator id='rhoOperator' spec='ScaleOperator'
+			scaleFactor=".5" weight="3.0" parameter="@rho" />
+
+		<operator id="bottleneckOperator" spec="ScaleOperator"
+			weight="3.0" scaleFactor="0.5" optimise="true" parameter="@pairwiseCoalProbBottleneck">
+		</operator>
+
+		<operator id="PopSizeScaler" spec="ScaleOperator"
+			weight="3.0" scaleFactor="0.5" optimise="false" parameter="@popSize">
+		</operator>
+
+		<operator id="SAWilsonBaldingFBD" spec="tnt.operators.SAWilsonBalding"
+			tree="@transmissionTree" geneTreeIntervals="@geneTreeIntervals"
+			weight="50.0"/>
+			
+		<operator id="SAUniform" spec="tnt.operators.SAUniform"
+			tree="@transmissionTree" geneTreeIntervals="@geneTreeIntervals"
+			weight="75.0">
+			<geneTree idref="geneTree" />
+		</operator>
+			
+ 		<operator id="LeafToSAFBD.t:Species" spec="tnt.operators.LeafToSampledAncestorJump"
+			tree="@transmissionTree" geneTreeIntervals="@geneTreeIntervals" weight="30.0"/>
+			
+		<operator id="coordinatedUniform"
+			spec="tnt.operators.CoordinatedUniform" speciesTree="@transmissionTree"
+			weight="30.0">
+			<geneTree idref="geneTree" />
+		</operator>
+
+		<operator id="coordinatedExponential"
+			spec="tnt.operators.CoordinatedExponential"
+			speciesTree="@transmissionTree" weight="10.0" geneTreeIntervals="@geneTreeIntervals">
+			<geneTree idref="geneTree" />
+		</operator>
+	
+		<operator spec="tnt.operators.SPROperator" id="SPR"
+			tree="@geneTree" transmissionTree="@transmissionTree"
+			geneTreeIntervals="@geneTreeIntervals" weight="75.0"
+			probBottleneck="0.5" rootAttachLambda="0.5" />
+
+
+		<operator spec="TransmissionAttach" id="trAttach"
+			tree="@geneTree" rootAttachLambda="0.5"
+			geneTreeIntervals="@geneTreeIntervals" weight="60.0" />
+			
+		<operator spec="CreateMergersOrReheight" id="CMOR"
+			tree="@geneTree" mergerProb="0.1" transmissionTree="@transmissionTree"
+			weight="30.0" />
+		
+<!-- 		<operator spec="ExpandCollapseOperator" id="EC"
+			tree="@geneTree" geneTreeIntervals="@geneTreeIntervals"
+			weight="50.0" /> -->
+		
+		<operator spec="ExchangeOperator" id="Ex"
+			tree="@geneTree" geneTreeIntervals="@geneTreeIntervals"
+			weight="50.0" />
+
+
+		<logger id="treelog.t:gene" fileName="$(filebase).gene.trees"
+			logEvery="100000" mode="tree">
+			<log id="TreeWithMetaDataLogger.t:gene"
+				spec="beast.evolution.tree.TreeWithMetaDataLogger" tree="@geneTree" />
+		</logger>
+
+		<logger id="treelog.t:tr"
+			fileName="$(filebase).transmission.trees" logEvery="100000" mode="tree">
+			<log id="TreeWithMetaDataLogger.t:tr"
+				spec="tnt.logger.TransmissionTreeLogger"
+				geneTree="@geneTree"
+				transmissionTree="@transmissionTree" />
+		</logger>
+		
+		 <logger spec="Logger" logEvery="1000" mode="tree" fileName="$(filebase).mapped.trees">
+            <log idref="mappedTree"/>
+        </logger>
+
+		<logger logEvery="100000" fileName="$(filebase).log">
+			<log idref="multiCoalescent" />
+			<log idref="bdPrior" />
+			<log idref="geneTreeLikelihood" />
+			<distribution idref="posterior" name="log" />
+			<log id="treeHeightGene"
+				spec="beast.evolution.tree.TreeStatLogger" tree="@geneTree" />
+			<log id="treeHeightTransmission"
+				spec="beast.evolution.tree.TreeStatLogger" tree="@transmissionTree" />
+			<log id="SACount"
+				spec="beast.evolution.tree.SampledAncestorLogger"
+				tree="@transmissionTree" />
+			<log idref="origin" />
+			<log idref="R0" />
+			<log idref="becominUninfectiousRate" />
+			<log idref="samplingProportion" />
+			<log idref="removalProb" />
+			<log idref="rho" />
+			<log idref="popSize" />
+			<log idref="pairwiseCoalProbBottleneck" />
+			<log spec="tnt.util.PolytomyStatsLogger" tree="@geneTree" />
+		</logger>
+
+
+		<logger id="screenlog" logEvery="1000000" mode="autodetect">
+			<distribution idref="posterior" name="log" />
+			<log arg="@posterior" id="ESS.0" spec="util.ESS" />
+			<log idref="treeHeightGene" />
+			<log idref="treeHeightTransmission" />
+		</logger>
+
+	</run>
+
+</beast>    
