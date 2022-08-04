@@ -2,22 +2,27 @@ package tnt.mapping;
 
 
 import java.io.PrintStream;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.commons.math3.distribution.PoissonDistribution;
-
 import bdmmprime.parameterization.Parameterization;
+import beast.core.BEASTObject;
 import beast.core.Function;
 import beast.core.Input;
+import beast.core.StateNode;
 import beast.core.parameter.IntegerParameter;
+import beast.core.parameter.Parameter;
 import beast.core.parameter.RealParameter;
+import beast.evolution.alignment.TaxonSet;
+import beast.evolution.branchratemodel.BranchRateModel;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
-import tnt.util.Tools;
-
+import starbeast2.PopulationModel;
+import tnt.logger.TransmissionTreeLogger;
+import tnt.transmissionTree.TransmissionTree;
 
 
 /**
@@ -26,14 +31,14 @@ import tnt.util.Tools;
  * @author Ugne Stolz <ugne.stolz@protonmail.com>
  * @date 7 Mar 2022
  */
-public class MappedTree extends Tree {
+public class MappedTree extends TransmissionTree {
 
 	public Input<Boolean> mapOnInitInput = new Input<>("mapOnInit",
 			"If true, mapping will be performed when object is " +
 					"first initialize.",
 			true);
 
-	public Input<Tree> treeInput = new Input<>("tree", "Tree with no hidden host switch events.",
+	public Input<TransmissionTree> treeInput = new Input<>("tree", "Tree with no hidden host switch events.",
 			Input.Validate.REQUIRED);
 
 	public Input<Parameterization> parameterizationInput = new Input<>("parameterization",
@@ -41,9 +46,6 @@ public class MappedTree extends Tree {
 			Input.Validate.REQUIRED);
 
 	// transformed parameters:
-	public Input<RealParameter> expectedNInput = new Input<RealParameter>("expectedN",
-			"The expected-N-at-present parameterisation of T", (RealParameter) null);
-
 	public Input<Function> finalSampleOffsetInput = new Input<>("finalSampleOffset",
 			"If provided, the difference in time between the final sample and the end of the BD process.",
 			new RealParameter("0.0"));
@@ -57,10 +59,14 @@ public class MappedTree extends Tree {
 			"Number of hidden events. Set by sampler.",
 			new IntegerParameter("0"));
 
+	public Input<List<TaxonSet>> taxonsetsInput = new Input<>("taxonsets",
+			"a separate list of taxa for samples collected from the same patient", new ArrayList<>());
 
 
 
-	private Tree unmappedTree;
+
+
+	private TransmissionTree unmappedTree;
 
 	private Parameterization parameterization;
 
@@ -78,8 +84,8 @@ public class MappedTree extends Tree {
 
 	private int nHiddenEvents;
 
-	private IntegerParameter hiddenEventsCounter;
-
+	private List<String> constrainedTaxons = new ArrayList<>();
+	private DecimalFormat df;
 
 
 
@@ -89,6 +95,11 @@ public class MappedTree extends Tree {
 		parameterization = parameterizationInput.get();
 		origin = parameterization.originInput.get().getArrayValue(0);
 		finalSampleOffset = finalSampleOffsetInput.get();
+		unmappedTree = treeInput.get();
+
+		for (TaxonSet t : taxonsetsInput.get()) {
+			constrainedTaxons.addAll(t.asStringList());
+		}
 
 		A = new double[parameterization.getTotalIntervalCount()];
 		B = new double[parameterization.getTotalIntervalCount()];
@@ -101,25 +112,30 @@ public class MappedTree extends Tree {
 		computeConstants(A, B);
 		origin = parameterization.originInput.get().getArrayValue(0);
 		unmappedTree = treeInput.get();
+		unmappedTree.orientateTree();
 		nHiddenEvents = 0;
-		Node typedRoot = paintHiddenEvents(unmappedTree.getRoot());
+
+		boolean skip = false;
+		Node typedRoot = paintHiddenEvents(unmappedTree.getRoot(), skip);
 
 		// Ensure internal nodes are numbered correctly. (Leaf node numbers and
 		// labels are matched to those in the untyped tree during the simulation.)
 		numberInternalNodesOnSubtree(typedRoot, unmappedTree.getLeafNodeCount());
 
 		assignFromWithoutID(new Tree(typedRoot));
-		
-		hiddenEventsCounter = (IntegerParameter) hiddenEventsCounterInput.get();
+
+		IntegerParameter hiddenEventsCounter = (IntegerParameter) hiddenEventsCounterInput.get();
 		hiddenEventsCounter.setValue(nHiddenEvents);
 
 	}
 
-	private Node paintHiddenEvents(Node subroot) {
+	private Node paintHiddenEvents(Node subroot, boolean skip) {
 
-		Node root = new Node();
-		Node currentNode = root;
+		Node currentNode = new Node();
 
+		if(!skip && subroot.isFake() && constrainedTaxons.contains(subroot.getDirectAncestorChild().getID())){
+			skip=true;
+		}
 		double t_end_branch = origin - finalSampleOffset.getArrayValue();
 
 		if (!subroot.isRoot())
@@ -134,22 +150,24 @@ public class MappedTree extends Tree {
 		updateParameters(i);
 		
 		double t_start = t_start_branch;
-		List<Double> sampledTimes = new ArrayList<Double>();
-		while (t_end_branch > t_end_int) {
+		List<Double> sampledTimes = new ArrayList<>();
+		if (!skip) {
+			while (t_end_branch > t_end_int) {
+				// record event times
+				sampledTimes.addAll(sampleTimes(t_start, t_end_int));
+
+				i = i - 1;
+				t_start = t_end_int;
+				t_end_int = parameterization.getIntervalEndTimes()[i - 1];
+				updateParameters(i);
+			}
+
 			// record event times
-			sampledTimes.addAll(sampleTimes(t_start, t_end_int));
-
-			i = i - 1;
-			t_start = t_end_int;
-			t_end_int = parameterization.getIntervalEndTimes()[i - 1];
-			updateParameters(i);
+			sampledTimes.addAll(sampleTimes(t_start, t_end_branch));
+			// sort event times
+			sampledTimes.sort(Collections.reverseOrder());
+			nHiddenEvents += sampledTimes.size();
 		}
-
-		// record event times
-		sampledTimes.addAll(sampleTimes(t_start, t_end_branch));
-		// sort event times
-		Collections.sort(sampledTimes, Collections.reverseOrder());
-		nHiddenEvents += sampledTimes.size();
 
 		currentNode.setHeight(subroot.getHeight());
 		currentNode.setID(subroot.getID());
@@ -160,8 +178,8 @@ public class MappedTree extends Tree {
 
 
 		if (!subroot.isLeaf()) {
-			Node c1 = paintHiddenEvents(subroot.getChild(0));
-			Node c2 = paintHiddenEvents(subroot.getChild(1));
+			Node c1 = paintHiddenEvents(subroot.getChild(0), skip);
+			Node c2 = paintHiddenEvents(subroot.getChild(1), false);
 			currentNode.addChild(c1);
 			currentNode.addChild(c2);
 		}
@@ -178,15 +196,15 @@ public class MappedTree extends Tree {
 		Node tmp = new Node();
 		Node firstEvent = new Node();
 		boolean first = true;
-		for (int s = 0; s < eventTimes.size(); s++) {
+		for (Double eventTime : eventTimes) {
 			Node event = new Node();
 			if (first) {
-				event.setHeight(eventTimes.get(s));
+				event.setHeight(eventTime);
 				firstEvent = event;
 				first = false;
 			} else {
 				tmp.addChild(event);
-				event.setHeight(eventTimes.get(s));
+				event.setHeight(eventTime);
 			}
 			tmp = event;
 		}
@@ -204,7 +222,7 @@ public class MappedTree extends Tree {
 	}
 
 	private List<Double> sampleTimes(double startTime, double endTime) {
-		List<Double> eventTimes = new ArrayList<Double>();
+		List<Double> eventTimes = new ArrayList<>();
 
 		double meanN = meanEvents(parameterization.getAge(startTime, finalSampleOffset.getArrayValue()),
 				parameterization.getAge(endTime, finalSampleOffset.getArrayValue()));
@@ -356,6 +374,7 @@ public class MappedTree extends Tree {
 
     @Override
     public void init(PrintStream out) {
+//		trLog.init(out);
 		unmappedTree.init(out);
     }
 
@@ -363,17 +382,62 @@ public class MappedTree extends Tree {
     public void log(long sample, PrintStream out) {
         remapForLog(sample);
 
-        Tree tree = (Tree) getCurrent();
+//		TransmissionTree tree = (TransmissionTree) getCurrent();
+//		out.print("tree STATE_" + sample + " = ");
+//        final int[] dummy = new int[1];
+//		tree.addOrientationMetadata();
+//		String newick = tree.getRoot().toSortedNewick(dummy, true);
+//		newick = tree.getRoot().toShortNewick(true);
+//        out.print(newick);
+//        out.print(";");
+
+
+		TransmissionTree tree = (TransmissionTree) getCurrent();
+		tree.addOrientationMetadata();
+		// write out the log tree with meta data
 		out.print("tree STATE_" + sample + " = ");
-        final int[] dummy = new int[1];
-		final String newick = tree.getRoot().toSortedNewick(dummy, true);
-        out.print(newick);
-        out.print(";");
+//        tree.getRoot().sort();
+//		System.out.println(toNewick(tree.getRoot()));
+		out.print(toNewick(tree.getRoot()));
+		//out.print(tree.getRoot().toShortNewick(false));
+		out.print(";");
     }
 
     @Override
     public void close(PrintStream out) {
 		unmappedTree.close(out);
     }
+
+	String toNewick(Node node) {
+		StringBuffer buf = new StringBuffer();
+		if (node.getLeft() != null) {
+			buf.append("(");
+			buf.append(toNewick(node.getLeft()));
+			if (node.getRight() != null) {
+				buf.append(',');
+				buf.append(toNewick(node.getRight()));
+			}
+			buf.append(")");
+		} //else {
+			buf.append(node.getNr() + 1);
+//		}
+
+//			if (node.getID() == null) {
+//				buf.append(node.getNr() + 1);
+//			}
+			buf.append("[&");
+			buf.append(node.metaDataString);
+			buf.append(']');
+
+
+		buf.append(":");
+
+		double nodeLength;
+		nodeLength = node.getLength();
+
+		buf.append(nodeLength);
+
+		return buf.toString();
+	}
 
 }

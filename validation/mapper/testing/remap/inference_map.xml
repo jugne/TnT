@@ -1,0 +1,554 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<beast beautistatus="noAutoSetClockRate" beautitemplate="StarBeast2" namespace="beast.core               :beast.evolution.alignment               :beast.evolution.tree.coalescent               :beast.core.util               :beast.evolution.nuc               :beast.evolution.tree               :beast.evolution.operators               :beast.evolution.sitemodel               :beast.evolution.substitutionmodel               :beast.evolution.likelihood               :beast.core.parameter               :beast.util               :feast.fileio               :starbeast2               :starbeast2.utils               :tnt.distribution               :tnt.operators               :tnt.util               :tnt.transmissionTree               :pitchfork.util               :tnt.simulator               :bdmmprime.parameterization               :bdmmprime.distribution" version="2.4">
+    	
+    <alignment fileName="../sim/sampledGeneTreeSim.alignment.nexus" id="gene" spec="AlignmentFromNexus"/>
+    	
+    <trait id="tipDates" spec="beast.evolution.tree.TraitSet" traitname="date-backward" units="year" value="2_7_=1.220147645220179,5_4_=0.7054160653563866,5_3_=0.7150968065329537,5_2_=0.809772827817866,24_1_=0.0,13_1_=0.26275056531739915,19_1_=0.11865103077000239,17_1_=0.1919770071846867,22_2_=0.003986324371991312,22_1_=0.007549063536517409,25_1_=0.07303062689048812,6_5_=0.29821861829644325,12_1_=0.10540671421410464,6_4_=0.36035686716301996,9_2_=0.0990536132386084,9_1_=0.10031304040142208,10_1_=0.17503537391710555,6_3_=0.45118494186578095,6_2_=0.4619806180001196,6_1_=0.682561479122398,5_1_=0.9803776682020062,2_6_=1.8111097666204974,2_5_=1.8939010293059444,2_4_=2.0359565371262582,2_3_=2.05927011893117,2_2_=2.2498926884896115,2_1_=2.3413877796791476,3_2_=2.0211440608818645,3_1_=2.2135982408092905,1_1_=2.8892019198000365,">
+        		
+        <taxa id="taxonsuperset" spec="TaxonSet">
+            			 
+            <taxon id="2_7_" spec="TaxonSet">
+                 
+                <taxon id="2_7_1" spec="Taxon"/>
+                 
+                <taxon id="2_7_2" spec="Taxon"/>
+                 
+                <taxon id="2_7_3" spec="Taxon"/>
+                 
+                <taxon id="2_7_4" spec="Taxon"/>
+                 
+                <taxon id="2_7_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="5_4_" spec="TaxonSet">
+                 
+                <taxon id="5_4_1" spec="Taxon"/>
+                 
+                <taxon id="5_4_2" spec="Taxon"/>
+                 
+                <taxon id="5_4_3" spec="Taxon"/>
+                 
+                <taxon id="5_4_4" spec="Taxon"/>
+                 
+                <taxon id="5_4_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="5_3_" spec="TaxonSet">
+                 
+                <taxon id="5_3_1" spec="Taxon"/>
+                 
+                <taxon id="5_3_2" spec="Taxon"/>
+                 
+                <taxon id="5_3_3" spec="Taxon"/>
+                 
+                <taxon id="5_3_4" spec="Taxon"/>
+                 
+                <taxon id="5_3_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="5_2_" spec="TaxonSet">
+                 
+                <taxon id="5_2_1" spec="Taxon"/>
+                 
+                <taxon id="5_2_2" spec="Taxon"/>
+                 
+                <taxon id="5_2_3" spec="Taxon"/>
+                 
+                <taxon id="5_2_4" spec="Taxon"/>
+                 
+                <taxon id="5_2_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="24_1_" spec="TaxonSet">
+                 
+                <taxon id="24_1_1" spec="Taxon"/>
+                 
+                <taxon id="24_1_2" spec="Taxon"/>
+                 
+                <taxon id="24_1_3" spec="Taxon"/>
+                 
+                <taxon id="24_1_4" spec="Taxon"/>
+                 
+                <taxon id="24_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="13_1_" spec="TaxonSet">
+                 
+                <taxon id="13_1_1" spec="Taxon"/>
+                 
+                <taxon id="13_1_2" spec="Taxon"/>
+                 
+                <taxon id="13_1_3" spec="Taxon"/>
+                 
+                <taxon id="13_1_4" spec="Taxon"/>
+                 
+                <taxon id="13_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="19_1_" spec="TaxonSet">
+                 
+                <taxon id="19_1_1" spec="Taxon"/>
+                 
+                <taxon id="19_1_2" spec="Taxon"/>
+                 
+                <taxon id="19_1_3" spec="Taxon"/>
+                 
+                <taxon id="19_1_4" spec="Taxon"/>
+                 
+                <taxon id="19_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="17_1_" spec="TaxonSet">
+                 
+                <taxon id="17_1_1" spec="Taxon"/>
+                 
+                <taxon id="17_1_2" spec="Taxon"/>
+                 
+                <taxon id="17_1_3" spec="Taxon"/>
+                 
+                <taxon id="17_1_4" spec="Taxon"/>
+                 
+                <taxon id="17_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="22_2_" spec="TaxonSet">
+                 
+                <taxon id="22_2_1" spec="Taxon"/>
+                 
+                <taxon id="22_2_2" spec="Taxon"/>
+                 
+                <taxon id="22_2_3" spec="Taxon"/>
+                 
+                <taxon id="22_2_4" spec="Taxon"/>
+                 
+                <taxon id="22_2_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="22_1_" spec="TaxonSet">
+                 
+                <taxon id="22_1_1" spec="Taxon"/>
+                 
+                <taxon id="22_1_2" spec="Taxon"/>
+                 
+                <taxon id="22_1_3" spec="Taxon"/>
+                 
+                <taxon id="22_1_4" spec="Taxon"/>
+                 
+                <taxon id="22_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="25_1_" spec="TaxonSet">
+                 
+                <taxon id="25_1_1" spec="Taxon"/>
+                 
+                <taxon id="25_1_2" spec="Taxon"/>
+                 
+                <taxon id="25_1_3" spec="Taxon"/>
+                 
+                <taxon id="25_1_4" spec="Taxon"/>
+                 
+                <taxon id="25_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="6_5_" spec="TaxonSet">
+                 
+                <taxon id="6_5_1" spec="Taxon"/>
+                 
+                <taxon id="6_5_2" spec="Taxon"/>
+                 
+                <taxon id="6_5_3" spec="Taxon"/>
+                 
+                <taxon id="6_5_4" spec="Taxon"/>
+                 
+                <taxon id="6_5_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="12_1_" spec="TaxonSet">
+                 
+                <taxon id="12_1_1" spec="Taxon"/>
+                 
+                <taxon id="12_1_2" spec="Taxon"/>
+                 
+                <taxon id="12_1_3" spec="Taxon"/>
+                 
+                <taxon id="12_1_4" spec="Taxon"/>
+                 
+                <taxon id="12_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="6_4_" spec="TaxonSet">
+                 
+                <taxon id="6_4_1" spec="Taxon"/>
+                 
+                <taxon id="6_4_2" spec="Taxon"/>
+                 
+                <taxon id="6_4_3" spec="Taxon"/>
+                 
+                <taxon id="6_4_4" spec="Taxon"/>
+                 
+                <taxon id="6_4_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="9_2_" spec="TaxonSet">
+                 
+                <taxon id="9_2_1" spec="Taxon"/>
+                 
+                <taxon id="9_2_2" spec="Taxon"/>
+                 
+                <taxon id="9_2_3" spec="Taxon"/>
+                 
+                <taxon id="9_2_4" spec="Taxon"/>
+                 
+                <taxon id="9_2_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="9_1_" spec="TaxonSet">
+                 
+                <taxon id="9_1_1" spec="Taxon"/>
+                 
+                <taxon id="9_1_2" spec="Taxon"/>
+                 
+                <taxon id="9_1_3" spec="Taxon"/>
+                 
+                <taxon id="9_1_4" spec="Taxon"/>
+                 
+                <taxon id="9_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="10_1_" spec="TaxonSet">
+                 
+                <taxon id="10_1_1" spec="Taxon"/>
+                 
+                <taxon id="10_1_2" spec="Taxon"/>
+                 
+                <taxon id="10_1_3" spec="Taxon"/>
+                 
+                <taxon id="10_1_4" spec="Taxon"/>
+                 
+                <taxon id="10_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="6_3_" spec="TaxonSet">
+                 
+                <taxon id="6_3_1" spec="Taxon"/>
+                 
+                <taxon id="6_3_2" spec="Taxon"/>
+                 
+                <taxon id="6_3_3" spec="Taxon"/>
+                 
+                <taxon id="6_3_4" spec="Taxon"/>
+                 
+                <taxon id="6_3_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="6_2_" spec="TaxonSet">
+                 
+                <taxon id="6_2_1" spec="Taxon"/>
+                 
+                <taxon id="6_2_2" spec="Taxon"/>
+                 
+                <taxon id="6_2_3" spec="Taxon"/>
+                 
+                <taxon id="6_2_4" spec="Taxon"/>
+                 
+                <taxon id="6_2_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="6_1_" spec="TaxonSet">
+                 
+                <taxon id="6_1_1" spec="Taxon"/>
+                 
+                <taxon id="6_1_2" spec="Taxon"/>
+                 
+                <taxon id="6_1_3" spec="Taxon"/>
+                 
+                <taxon id="6_1_4" spec="Taxon"/>
+                 
+                <taxon id="6_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="5_1_" spec="TaxonSet">
+                 
+                <taxon id="5_1_1" spec="Taxon"/>
+                 
+                <taxon id="5_1_2" spec="Taxon"/>
+                 
+                <taxon id="5_1_3" spec="Taxon"/>
+                 
+                <taxon id="5_1_4" spec="Taxon"/>
+                 
+                <taxon id="5_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="2_6_" spec="TaxonSet">
+                 
+                <taxon id="2_6_1" spec="Taxon"/>
+                 
+                <taxon id="2_6_2" spec="Taxon"/>
+                 
+                <taxon id="2_6_3" spec="Taxon"/>
+                 
+                <taxon id="2_6_4" spec="Taxon"/>
+                 
+                <taxon id="2_6_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="2_5_" spec="TaxonSet">
+                 
+                <taxon id="2_5_1" spec="Taxon"/>
+                 
+                <taxon id="2_5_2" spec="Taxon"/>
+                 
+                <taxon id="2_5_3" spec="Taxon"/>
+                 
+                <taxon id="2_5_4" spec="Taxon"/>
+                 
+                <taxon id="2_5_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="2_4_" spec="TaxonSet">
+                 
+                <taxon id="2_4_1" spec="Taxon"/>
+                 
+                <taxon id="2_4_2" spec="Taxon"/>
+                 
+                <taxon id="2_4_3" spec="Taxon"/>
+                 
+                <taxon id="2_4_4" spec="Taxon"/>
+                 
+                <taxon id="2_4_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="2_3_" spec="TaxonSet">
+                 
+                <taxon id="2_3_1" spec="Taxon"/>
+                 
+                <taxon id="2_3_2" spec="Taxon"/>
+                 
+                <taxon id="2_3_3" spec="Taxon"/>
+                 
+                <taxon id="2_3_4" spec="Taxon"/>
+                 
+                <taxon id="2_3_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="2_2_" spec="TaxonSet">
+                 
+                <taxon id="2_2_1" spec="Taxon"/>
+                 
+                <taxon id="2_2_2" spec="Taxon"/>
+                 
+                <taxon id="2_2_3" spec="Taxon"/>
+                 
+                <taxon id="2_2_4" spec="Taxon"/>
+                 
+                <taxon id="2_2_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="2_1_" spec="TaxonSet">
+                 
+                <taxon id="2_1_1" spec="Taxon"/>
+                 
+                <taxon id="2_1_2" spec="Taxon"/>
+                 
+                <taxon id="2_1_3" spec="Taxon"/>
+                 
+                <taxon id="2_1_4" spec="Taxon"/>
+                 
+                <taxon id="2_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="3_2_" spec="TaxonSet">
+                 
+                <taxon id="3_2_1" spec="Taxon"/>
+                 
+                <taxon id="3_2_2" spec="Taxon"/>
+                 
+                <taxon id="3_2_3" spec="Taxon"/>
+                 
+                <taxon id="3_2_4" spec="Taxon"/>
+                 
+                <taxon id="3_2_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="3_1_" spec="TaxonSet">
+                 
+                <taxon id="3_1_1" spec="Taxon"/>
+                 
+                <taxon id="3_1_2" spec="Taxon"/>
+                 
+                <taxon id="3_1_3" spec="Taxon"/>
+                 
+                <taxon id="3_1_4" spec="Taxon"/>
+                 
+                <taxon id="3_1_5" spec="Taxon"/>
+                 
+            </taxon>
+             
+            <taxon id="1_1_" spec="TaxonSet">
+                 
+                <taxon id="1_1_1" spec="Taxon"/>
+                 
+                <taxon id="1_1_2" spec="Taxon"/>
+                 
+                <taxon id="1_1_3" spec="Taxon"/>
+                 
+                <taxon id="1_1_4" spec="Taxon"/>
+                 
+                <taxon id="1_1_5" spec="Taxon"/>
+                 
+            </taxon>
+            		
+        </taxa>
+        	
+    </trait>
+    	
+    <taxonSet id="taxonSet" spec="TaxonSet">
+        		 
+        <taxon idref="2_7_"/>
+         
+        <taxon idref="5_4_"/>
+         
+        <taxon idref="5_3_"/>
+         
+        <taxon idref="5_2_"/>
+         
+        <taxon idref="24_1_"/>
+         
+        <taxon idref="13_1_"/>
+         
+        <taxon idref="19_1_"/>
+         
+        <taxon idref="17_1_"/>
+         
+        <taxon idref="22_2_"/>
+         
+        <taxon idref="22_1_"/>
+         
+        <taxon idref="25_1_"/>
+         
+        <taxon idref="6_5_"/>
+         
+        <taxon idref="12_1_"/>
+         
+        <taxon idref="6_4_"/>
+         
+        <taxon idref="9_2_"/>
+         
+        <taxon idref="9_1_"/>
+         
+        <taxon idref="10_1_"/>
+         
+        <taxon idref="6_3_"/>
+         
+        <taxon idref="6_2_"/>
+         
+        <taxon idref="6_1_"/>
+         
+        <taxon idref="5_1_"/>
+         
+        <taxon idref="2_6_"/>
+         
+        <taxon idref="2_5_"/>
+         
+        <taxon idref="2_4_"/>
+         
+        <taxon idref="2_3_"/>
+         
+        <taxon idref="2_2_"/>
+         
+        <taxon idref="2_1_"/>
+         
+        <taxon idref="3_2_"/>
+         
+        <taxon idref="3_1_"/>
+         
+        <taxon idref="1_1_"/>
+        	
+    </taxonSet>
+    	
+    
+    
+    
+	
+	
+
+	
+
+
+    <run spec="feast.fileio.logfileiterator.LogFileIterator">
+        <logFileState logFileName="inference.log" spec="feast.fileio.logfileiterator.TraceLogFileState">
+            <logFileEntry fieldName="origin" spec="feast.fileio.logfileiterator.LogFileRealParameter">
+                <fieldParameter id="origin" spec="beast.core.parameter.RealParameter" value="0.0"/>
+            </logFileEntry>
+            <logFileEntry fieldName="R0" spec="feast.fileio.logfileiterator.LogFileRealParameter">
+                <fieldParameter id="R0" spec="beast.core.parameter.RealParameter" value="0.0"/>
+            </logFileEntry>
+            <logFileEntry fieldName="becominUninfectiousRate" spec="feast.fileio.logfileiterator.LogFileRealParameter">
+                <fieldParameter id="becominUninfectiousRate" spec="beast.core.parameter.RealParameter" value="0.0"/>
+            </logFileEntry>
+            <logFileEntry fieldName="samplingProportion" spec="feast.fileio.logfileiterator.LogFileRealParameter">
+                <fieldParameter id="samplingProportion" spec="beast.core.parameter.RealParameter" value="0.0"/>
+            </logFileEntry>
+            <logFileEntry fieldName="removalProb" spec="feast.fileio.logfileiterator.LogFileRealParameter">
+                <fieldParameter id="removalProb" spec="beast.core.parameter.RealParameter" value="0.0"/>
+            </logFileEntry>
+        </logFileState>
+        <logFileState logFileName="inference.transmission.trees" spec="feast.fileio.logfileiterator.TreeLogFileState">
+            <tree adjustTreeNodeHeights="false" id="tree" spec="tnt.transmissionTree.TransmissionTree" taxonset="@taxonsuperset" trait="@tipDates"/>
+        </logFileState>
+        <logger fileName="$(filebase).trees" logEvery="1" mode="tree" spec="Logger">
+            <log id="mappedTree" mapOnInit="false" spec="tnt.mapping.MappedTree" tree="@tree">
+                <parameterization id="parameterization" spec="EpiParameterization">
+                    <typeSet id="typeSet" spec="bdmmprime.parameterization.TypeSet" value="0"/>
+                    <origin idref="origin"/>
+                    <R0 spec="bdmmprime.parameterization.SkylineVectorParameter" typeSet="@typeSet">
+                        <skylineValues idref="R0"/>
+                    </R0>
+                    <becomeUninfectiousRate spec="bdmmprime.parameterization.SkylineVectorParameter" typeSet="@typeSet">
+                        <skylineValues idref="becominUninfectiousRate"/>
+                    </becomeUninfectiousRate>
+                    <samplingProportion spec="bdmmprime.parameterization.SkylineVectorParameter" typeSet="@typeSet">
+                        <skylineValues idref="samplingProportion"/>
+                    </samplingProportion>
+                    <removalProb spec="bdmmprime.parameterization.SkylineVectorParameter" typeSet="@typeSet">
+                        <skylineValues idref="removalProb"/>
+                    </removalProb>
+                </parameterization>
+                <finalSampleOffset id="finalSampleOffset" spec="RealParameter" value="0.06251070947335036"/>
+                <nHiddenEvents id="nHiddenEvents" spec="beast.core.parameter.IntegerParameter" value="0"/>
+            </log>
+        </logger>
+        <logger fileName="$(filebase).stats.log" logEvery="1" spec="Logger">
+            <log idref="nHiddenEvents"/>
+        </logger>
+    </run>
+</beast>

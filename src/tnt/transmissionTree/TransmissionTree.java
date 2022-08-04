@@ -2,8 +2,11 @@ package tnt.transmissionTree;
 
 import beast.evolution.tree.Node;
 import beast.util.TreeParser;
+import com.google.common.collect.HashMultimap;
 import starbeast2.SpeciesTree;
 import starbeast2.SpeciesTreeInterface;
+
+import java.util.LinkedHashMap;
 
 
 public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterface {
@@ -110,13 +113,17 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 			if (this.getNode(subtreeRootNr).isFake()) {
 				this.getNode(subtreeRootNr).getLeft().metaDataString = this.getNode(subtreeRootNr).metaDataString;
 				this.getNode(subtreeRootNr).getRight().metaDataString = this.getNode(subtreeRootNr).metaDataString;
+			} else if (this.getNode(subtreeRootNr).getChildCount()==1){
+				this.getNode(subtreeRootNr).getLeft().metaDataString = this.getNode(subtreeRootNr).metaDataString;
 			} else {
 				this.getNode(subtreeRootNr).getLeft().metaDataString = "orientation=donor";
 				this.getNode(subtreeRootNr).getRight().metaDataString = "orientation=recipient";
 			}
 
 			addOrientationMetadata(this.getNode(subtreeRootNr).getLeft().getNr());
-			addOrientationMetadata(this.getNode(subtreeRootNr).getRight().getNr());
+			if(this.getNode(subtreeRootNr).getChildCount()!=1){
+				addOrientationMetadata(this.getNode(subtreeRootNr).getRight().getNr());
+			}
 		}
 	}
 }

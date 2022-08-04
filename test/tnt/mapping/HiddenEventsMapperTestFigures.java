@@ -69,13 +69,13 @@ public class HiddenEventsMapperTestFigures {
 
 		try {
 
-			writerFullTree = new PrintStream(new File(outputName + ".fullTree.trees"));
-			writerSampledTrees = new PrintStream(new File(outputName + ".sampledTree.trees"));
-			writerMappedTrees = new PrintStream(new File(outputName + ".mappedTree.trees"));
+//			writerFullTree = new PrintStream(new File(outputName + ".fullTree.trees"));
+//			writerSampledTrees = new PrintStream(new File(outputName + ".sampledTree.trees"));
+//			writerMappedTrees = new PrintStream(new File(outputName + ".mappedTree.trees"));
 			writerHiddenEventsMap = new PrintStream(new File(outputName + ".hiddenEventsMap.log"));
-			writerHiddenEventsTime = new PrintStream(new File(outputName + ".hiddenEventsTimes.log"));
+//			writerHiddenEventsTime = new PrintStream(new File(outputName + ".hiddenEventsTimes.log"));
 			writerHiddenEventsMap.println("sample" + "\t" + "hiddenEventsSim" + "\t" + "hiddenEventsMap");
-			writerHiddenEventsTime.println("sample" + "\t" + "hiddenEventsTimes");
+//			writerHiddenEventsTime.println("sample" + "\t" + "hiddenEventsTimes");
 
 			if ((long) parameters[6] < 0) {
 				Randomizer.setSeed(Randomizer.nextLong());
@@ -119,12 +119,12 @@ public class HiddenEventsMapperTestFigures {
 					sampledTreeLeafNodeIds.add(k.getID());
 
 				}
-				writerHiddenEventsTime.print(i);
+//				writerHiddenEventsTime.print(i);
 				updateHiddenEventsCounter(simulator.fullRoot, sampledTreeLeafNodeIds);
 
-				writerFullTree.println(simulator.fullRoot.toNewick() + ";");
+//				writerFullTree.println(simulator.fullRoot.toNewick() + ";");
 
-				writerSampledTrees.println(simulator.sampledRoot.toNewick() + ";");
+//				writerSampledTrees.println(simulator.sampledRoot.toNewick() + ";");
 
 				MappedTree mappedTree = new MappedTree();
 				Parameterization parameterization = new CanonicalParameterization();
@@ -149,17 +149,17 @@ public class HiddenEventsMapperTestFigures {
 
 				Tree t = new Tree(simulator.sampledRoot.toNewick());
 
-				Double offset = parameters[5] + smallestHeightSampled;
+				double offset = parameters[5] + smallestHeightSampled;
 
 				mappedTree.initByName(
 						"tree", t,
 						"parameterization", parameterization,
-						"finalSampleOffset", new RealParameter(offset.toString()));
+						"finalSampleOffset", new RealParameter(Double.toString(offset)));
 
 				IntegerParameter h = (IntegerParameter) mappedTree.hiddenEventsCounterInput.get();
 
 				writerHiddenEventsMap.println(i + "\t" + hiddenEventsCounter + "\t" + h.getValue());
-				writerMappedTrees.println(mappedTree.getRoot().toNewick() + ";");
+//				writerMappedTrees.println(mappedTree.getRoot().toNewick() + ";");
 			}
 		} catch (IOException e) {
 			System.out.println(e.getMessage());
@@ -206,8 +206,8 @@ public class HiddenEventsMapperTestFigures {
 				}
 				if (hidden) {
 					hiddenEventsCounter += 1;
-					writerHiddenEventsTime.print("\t" + (rhoSamplingTime
-							+ fullTreeSubroot.getHeight()));
+//					writerHiddenEventsTime.print("\t" + (rhoSamplingTime
+//							+ fullTreeSubroot.getHeight()));
 				}
 
 			}
