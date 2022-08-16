@@ -1,36 +1,22 @@
 package tnt.mapping;
 
-import java.awt.BorderLayout;
-import java.awt.Container;
-import java.awt.Font;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import bdmmprime.parameterization.SkylineVectorParameter;
+import bdmmprime.parameterization.TimedParameter;
+import bdmmprime.parameterization.TypeSet;
+import beast.app.BeastMCMC;
+import beast.core.parameter.IntegerParameter;
+import beast.core.parameter.RealParameter;
+import beast.core.util.Log;
+import feast.fileio.logfileiterator.LogFileIterator;
+import feast.fileio.logfileiterator.LogFileRealParameter;
+import feast.fileio.logfileiterator.TraceLogFileState;
+import feast.fileio.logfileiterator.TreeLogFileState;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import tnt.transmissionTree.TransmissionTree;
 
-import javax.swing.BoxLayout;
-import javax.swing.GroupLayout;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.WindowConstants;
+import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -39,25 +25,14 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import bdmmprime.parameterization.SkylineVectorParameter;
-import bdmmprime.parameterization.TimedParameter;
-import bdmmprime.parameterization.TypeSet;
-import beast.app.BeastMCMC;
-import beast.core.MCMC;
-import beast.core.parameter.IntegerParameter;
-import beast.evolution.tree.Tree;
-import feast.fileio.logfileiterator.LogFileIterator;
-import feast.fileio.logfileiterator.TreeLogFileState;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
-import beast.core.parameter.RealParameter;
-import beast.core.util.Log;
-import feast.fileio.logfileiterator.LogFileRealParameter;
-import feast.fileio.logfileiterator.TraceLogFileState;
-import org.w3c.dom.NodeList;
-import tnt.transmissionTree.TransmissionTree;
+import java.awt.*;
+import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 //TODO make work with different parameterization (now only Epi)
 //TODO make work with non-present rho sampling
@@ -517,7 +492,7 @@ public class ReMapTool {
 
         JPanel buttonPanel = new JPanel();
 
-        JButton runButton = new JButton("Analyze");
+        JButton runButton = new JButton("Run");
         runButton.addActionListener((e) -> dialog.setVisible(false));
         runButton.setEnabled(false);
         buttonPanel.add(runButton);

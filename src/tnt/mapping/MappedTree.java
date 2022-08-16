@@ -394,6 +394,7 @@ public class MappedTree extends TransmissionTree {
 
 		TransmissionTree tree = (TransmissionTree) getCurrent();
 		tree.addOrientationMetadata();
+		tree.addHostMetadata();
 		// write out the log tree with meta data
 		out.print("tree STATE_" + sample + " = ");
 //        tree.getRoot().sort();

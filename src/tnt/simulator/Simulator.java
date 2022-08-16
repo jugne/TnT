@@ -94,7 +94,7 @@ public class Simulator {
                 simulator.printTraitsWithRhoSamplingTime(simulator.sampledRoot, writer, (simulator.rhoSamplingTime + smallestHeightSampled));
 
 				writer.println("same patient samples");
-				simulator.printSamepatientSamples(simulator.sampledRoot, writer);
+				simulator.printSamePatientSamples(simulator.sampledRoot, writer);
 
 				writer.println("origin");
 				writer.println(simulator.rhoSamplingTime);

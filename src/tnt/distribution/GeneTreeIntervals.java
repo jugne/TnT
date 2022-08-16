@@ -381,7 +381,7 @@ public class GeneTreeIntervals extends CalculationNode {
 					.getNode(geneTreeNodeAssignment.get(subRoot.getChild(0).getNr()));
 			while (!tr1.isRoot()) {
 				Node tr1ParentNode = tr1.getParent();
-				if (Tools.greaterOrEqualHeighWithPrecision(tr1ParentNode, subRoot))
+				if (Tools.greaterOrEqualHeightWithPrecision(tr1ParentNode, subRoot))
 					break;
 				tr1 = tr1ParentNode;
 			}
@@ -393,7 +393,7 @@ public class GeneTreeIntervals extends CalculationNode {
 						.getNode(geneTreeNodeAssignment.get(subRoot.getChild(1).getNr()));
 				while (!tr2.isRoot()) {
 					Node tr2ParentNode = tr2.getParent();
-					if (Tools.greaterOrEqualHeighWithPrecision(tr2ParentNode, subRoot))
+					if (Tools.greaterOrEqualHeightWithPrecision(tr2ParentNode, subRoot))
 						break;
 					tr2 = tr2ParentNode;
 				}

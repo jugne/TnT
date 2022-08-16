@@ -505,7 +505,7 @@ public class SABDSimulator {
 //
 //	}
 
-	public void printSamepatientSamples(Node root, PrintStream writer) {
+	public void printSamePatientSamples(Node root, PrintStream writer) {
 		HashMap<String, List<String>> samePatientSamples = new HashMap<String, List<String>>();
 		for (Node n : root.getAllLeafNodes()) {
 			String key = n.getID().split("_")[0];

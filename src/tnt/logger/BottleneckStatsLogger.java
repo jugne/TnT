@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2019. Tim Vaughan
+ * Changes made by Ugne Stolz, 2022
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pitchfork.util;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+package tnt.logger;
 
 import beast.core.CalculationNode;
 import beast.core.Function;
@@ -30,7 +26,12 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import pitchfork.Pitchforks;
 
-public class PolytomyStatsLogger extends CalculationNode implements Loggable, Function {
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+public class BottleneckStatsLogger extends CalculationNode implements Loggable, Function {
 
     public Input<Tree> treeInput = new Input<>("tree",
             "Tree whose polytomies to count.",
@@ -49,7 +50,7 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
     private int maxOrder;
 	private int nMultiMerge;
 
-    public PolytomyStatsLogger() { }
+    public BottleneckStatsLogger() { }
 
     @Override
     public void initAndValidate() {

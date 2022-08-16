@@ -257,7 +257,7 @@ public class Tools {
 					.getNode(geneTreeNodeAssignment[subRoot.getChild(0).getNr()]);
 			while (!tr1.isRoot()) {
 				Node tr1ParentNode = tr1.getParent();
-				if (greaterOrEqualHeighWithPrecision(tr1ParentNode, subRoot))
+				if (greaterOrEqualHeightWithPrecision(tr1ParentNode, subRoot))
 					break;
 				tr1 = tr1ParentNode;
 			}
@@ -270,7 +270,7 @@ public class Tools {
 						.getNode(geneTreeNodeAssignment[subRoot.getChild(1).getNr()]);
 				while (!tr2.isRoot()) {
 					Node tr2ParentNode = tr2.getParent();
-					if (greaterOrEqualHeighWithPrecision(tr2ParentNode, subRoot))
+					if (greaterOrEqualHeightWithPrecision(tr2ParentNode, subRoot))
 						break;
 					tr2 = tr2ParentNode;
 				}
@@ -414,7 +414,7 @@ public class Tools {
 		return false;
 	}
 
-	public static boolean greaterOrEqualHeighWithPrecision(Node n1, Node n2) {
+	public static boolean greaterOrEqualHeightWithPrecision(Node n1, Node n2) {
 		if (n1.getHeight() > n2.getHeight() + globalPrecisionThreshold || equalHeightWithPrecision(n1, n2))
 			return true;
 		return false;

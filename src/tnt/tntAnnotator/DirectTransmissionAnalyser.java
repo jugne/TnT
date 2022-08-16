@@ -119,9 +119,9 @@ public class DirectTransmissionAnalyser extends TreeAnnotator {
 
 				if (n.isLeaf()) {
 					return n.getID().split("_")[0];
-				} else if (Tools.equalHeightWithPrecisionNode(n, n.getLeft())) {
+				} else if (Tools.equalHeightWithPrecision(n, n.getLeft())) {
 					return n.getLeft().getID().split("_")[0];
-				} else if (Tools.equalHeightWithPrecisionNode(n, n.getRight())) {
+				} else if (Tools.equalHeightWithPrecision(n, n.getRight())) {
 					return n.getRight().getID().split("_")[0];
 				} else {
 					return n.getChild(0).metaDataString.contains("orientation=donor") ? firstLeafId(n.getChild(0))

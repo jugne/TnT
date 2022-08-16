@@ -78,8 +78,8 @@ public class SATreeRandomOrientator extends TreeAnnotator {
 	private void orientateNodeChildren(Tree tree, int nodeNr) {
 		Node subTreeRoot = tree.getNode(nodeNr);
 		if (!subTreeRoot.isLeaf()) {
-			if (!Tools.equalHeightWithPrecisionNode(subTreeRoot.getRight(), subTreeRoot)
-					&& !Tools.equalHeightWithPrecisionNode(subTreeRoot.getLeft(), subTreeRoot)) {
+			if (!Tools.equalHeightWithPrecision(subTreeRoot.getRight(), subTreeRoot)
+					&& !Tools.equalHeightWithPrecision(subTreeRoot.getLeft(), subTreeRoot)) {
 				Node left = Randomizer.nextBoolean() ? subTreeRoot.getRight() : subTreeRoot.getLeft();
 				Node right = left.getNr() == subTreeRoot.getLeft().getNr() ? subTreeRoot.getRight()
 						: subTreeRoot.getLeft();
@@ -91,7 +91,7 @@ public class SATreeRandomOrientator extends TreeAnnotator {
 
 				left.metaDataString = "orientation=donor";
 				right.metaDataString = "orientation=recipient";
-			} else if (Tools.equalHeightWithPrecisionNode(subTreeRoot.getLeft(), subTreeRoot)) {
+			} else if (Tools.equalHeightWithPrecision(subTreeRoot.getLeft(), subTreeRoot)) {
 				Node left = subTreeRoot.getRight();
 				Node right = subTreeRoot.getLeft();
 
@@ -102,7 +102,7 @@ public class SATreeRandomOrientator extends TreeAnnotator {
 
 				left.metaDataString = subTreeRoot.metaDataString;
 				right.metaDataString = subTreeRoot.metaDataString;
-			} else if (Tools.equalHeightWithPrecisionNode(subTreeRoot.getRight(), subTreeRoot)) {
+			} else if (Tools.equalHeightWithPrecision(subTreeRoot.getRight(), subTreeRoot)) {
 				subTreeRoot.getLeft().metaDataString = subTreeRoot.metaDataString;
 				subTreeRoot.getRight().metaDataString = subTreeRoot.metaDataString;
 			}

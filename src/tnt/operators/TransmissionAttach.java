@@ -416,7 +416,7 @@ public class TransmissionAttach extends TreeOperator {
 						subtreeRoot.getParent().getHeight() > recipient.getParent().getHeight()) // TODO equality here
 																									// is an experiment.
 																									// CHECK!!
-				&& Tools.greaterOrEqualHeighWithPrecision(recipient.getParent(), subtreeRoot)) {
+				&& Tools.greaterOrEqualHeightWithPrecision(recipient.getParent(), subtreeRoot)) {
 //			if (subtreeRoot.getHeight() == recipient.getParent().getHeight())
 //				System.out.println();
 			edgesAtTransmission.add(subtreeRoot);

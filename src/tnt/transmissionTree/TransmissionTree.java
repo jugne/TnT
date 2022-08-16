@@ -5,12 +5,15 @@ import beast.util.TreeParser;
 import com.google.common.collect.HashMultimap;
 import starbeast2.SpeciesTree;
 import starbeast2.SpeciesTreeInterface;
+import tnt.util.Tools;
 
 import java.util.LinkedHashMap;
 
 
 public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterface {
 
+	private boolean hasOrientationMetadata = false;
+	private boolean hasHostMetadata = false;
 
 	/**
 	 * reconstruct tree from XML fragment in the form of a DOM node *
@@ -47,6 +50,24 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		return tree;
 	}
 
+	public boolean hasOrientationMetadata(){
+		if (this.getRoot().metaDataString.contains("orientation")){
+			hasOrientationMetadata = true;
+			return true;
+		}
+		hasOrientationMetadata = false;
+		return false;
+	}
+	public boolean hasHostMetadata(){
+		if (this.getRoot().metaDataString.contains("host")){
+			hasHostMetadata = true;
+			return true;
+		}
+		hasHostMetadata = false;
+		return false;
+	}
+
+
 	/**
 	 * Orientates the tree according to stored (donor-recipient) metadata.
 	 */
@@ -60,6 +81,15 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 	 */
 	public void addOrientationMetadata() {
 		addOrientationMetadata(getRoot().getNr());
+		hasOrientationMetadata = true;
+	}
+
+	public void addHostMetadata() {
+		if (!hasOrientationMetadata()){
+			addOrientationMetadata();
+		}
+		addHostMetadata(getRoot().getNr());
+		hasHostMetadata = true;
 	}
 
 	@Override
@@ -102,7 +132,7 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 	 * and restored from file even when BEAST applies sorting. - metadata can be
 	 * used to color the output tree lineages for donors and recipients.
 	 * 
-	 * @param subtreeRootNr the none number
+	 * @param subtreeRootNr the node number
 	 */
 	private void addOrientationMetadata(int subtreeRootNr) {
 		if (this.getNode(subtreeRootNr).isRoot()) {
@@ -125,5 +155,70 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 				addOrientationMetadata(this.getNode(subtreeRootNr).getRight().getNr());
 			}
 		}
+	}
+
+	/**
+	 * Adds metadata on host occupying transmission tree edge.
+	 * Should be used on trees with full transmission histories.
+	 * That means either fully sampled trees or trees with stochastically mapped hidden transmission events.
+	 *
+	 * Relies on orientation metadata being added before
+	 * (public parent mathod makes sure of this).
+	 *
+	 * @param subtreeRootNr the node number
+	 */
+	private void addHostMetadata(int subtreeRootNr){
+		Node subTreeRoot = this.getNode(subtreeRootNr);
+		String metaData = subTreeRoot.metaDataString;
+
+		if (subTreeRoot.isLeaf()) {
+			this.getNode(subtreeRootNr).metaDataString = String.format("%s,%s=%s",
+					metaData, "host", subTreeRoot.getID().split("_")[0]);
+			return;
+		}
+		if (subTreeRoot.getChildCount()==1 && !subTreeRoot.isRoot()){
+			Node parent = subTreeRoot.getParent();
+			if (parent.getChildCount()>1 && !parent.isFake()){ // coalescent (transmission event)
+				if (subTreeRoot.metaDataString.contains("orientation=donor")){
+					subTreeRoot.metaDataString = parent.metaDataString;
+				} else {
+					subTreeRoot.metaDataString = String.format("%s,%s=%s",
+							metaData, "host", "unsampled");
+				}
+			} else if(parent.isFake()){ // fake (sampling event)
+				subTreeRoot.metaDataString = parent.metaDataString;
+			}
+			else if (parent.getChildCount()==1){ // jump (unobserved transmission event)
+				subTreeRoot.metaDataString = String.format("%s,%s=%s",
+						metaData, "host", "unsampled");
+			}
+		} else if (subTreeRoot.getChildCount()==1 && subTreeRoot.isRoot()){
+			subTreeRoot.metaDataString = String.format("%s,%s=%s",
+					metaData, "host", "unsampled");
+		} else {
+			subTreeRoot.metaDataString = String.format("%s,%s=%s",
+					metaData, "host", firstLeafId(subTreeRoot.getLeft()));
+		}
+			addHostMetadata(subTreeRoot.getLeft().getNr());
+			if(subTreeRoot.getChildCount()!=1){
+				addHostMetadata(subTreeRoot.getRight().getNr());
+			}
+	}
+
+	private String firstLeafId(Node n) {
+
+		if (n.isLeaf()) {
+			return n.getID().split("_")[0];
+		} else if (Tools.equalHeightWithPrecision(n, n.getLeft())) {
+			return n.getLeft().getID().split("_")[0];
+		} else if (n.getChildCount()>1 && Tools.equalHeightWithPrecision(n, n.getRight())) {
+			return n.getRight().getID().split("_")[0];
+		}else if (n.getChildCount()==1){
+			return "unsampled";
+		} else {
+			return n.getChild(0).metaDataString.contains("orientation=donor") ? firstLeafId(n.getChild(0))
+					: firstLeafId(n.getChild(1));
+		}
+
 	}
 }

@@ -78,7 +78,7 @@ public class SAWilsonBalding extends TreeOperator {
         }
 
         // make sure that there is at least one candidate edge to attach node iP to
-		if (iP.getParent() == null && Tools.greaterOrEqualHeighWithPrecision(i, CiP)) {
+		if (iP.getParent() == null && Tools.greaterOrEqualHeightWithPrecision(i, CiP)) {
             return Double.NEGATIVE_INFINITY;
         }
 
