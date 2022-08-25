@@ -112,7 +112,8 @@ public class MappedTree extends TransmissionTree {
 		computeConstants(A, B);
 		origin = parameterization.originInput.get().getArrayValue(0);
 		unmappedTree = treeInput.get();
-		unmappedTree.orientateTree();
+		if (unmappedTree.getRoot().getMetaData("host")!=null)
+			unmappedTree.orientateTree();
 		nHiddenEvents = 0;
 
 		boolean skip = false;

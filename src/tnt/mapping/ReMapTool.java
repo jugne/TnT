@@ -553,7 +553,7 @@ public class ReMapTool {
         JFileChooser outFileChooser = new JFileChooser();
         outFileButton.addActionListener(e -> {
             outFileChooser.setDialogTitle("Select output XML file name");
-            outFileChooser.setCurrentDirectory(Objects.requireNonNullElseGet(options.xmlFile, () -> new File(System.getProperty("user.dir"))));
+            outFileChooser.setCurrentDirectory(Objects.requireNonNull(options.xmlFile));
 
 //            outFileChooser.setSelectedFile(options.outFile);
             int returnVal = outFileChooser.showOpenDialog(dialog);

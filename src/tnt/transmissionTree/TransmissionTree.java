@@ -8,6 +8,7 @@ import starbeast2.SpeciesTreeInterface;
 import tnt.util.Tools;
 
 import java.util.LinkedHashMap;
+import java.util.Objects;
 
 
 public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterface {
@@ -51,7 +52,7 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 	}
 
 	public boolean hasOrientationMetadata(){
-		if (this.getRoot().metaDataString.contains("orientation")){
+		if (this.getRoot().metaDataString!=null && this.getRoot().metaDataString.contains("orientation")){
 			hasOrientationMetadata = true;
 			return true;
 		}
@@ -59,7 +60,7 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		return false;
 	}
 	public boolean hasHostMetadata(){
-		if (this.getRoot().metaDataString.contains("host")){
+		if (this.getRoot().metaDataString!=null && this.getRoot().metaDataString.contains("host")){
 			hasHostMetadata = true;
 			return true;
 		}
@@ -97,7 +98,9 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		// add orientation metadata before storing tree
 		// it is done since BEAST sort the tree in various places and changes the
 		// orientation of child nodes
-		addOrientationMetadata();
+		if(!hasOrientationMetadata()){
+			addOrientationMetadata();
+		}
 		super.store();
 	}
 
@@ -135,24 +138,27 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 	 * @param subtreeRootNr the node number
 	 */
 	private void addOrientationMetadata(int subtreeRootNr) {
-		if (this.getNode(subtreeRootNr).isRoot()) {
-			this.getNode(subtreeRootNr).metaDataString = "orientation=donor";
+		Node subRoot = this.getNode(subtreeRootNr);
+		if (Objects.equals(subRoot.getID(), "43"))
+			System.out.println("");
+		if (subRoot.isRoot()) {
+			subRoot.metaDataString = "orientation=donor";
 		}
 
-		if (!this.getNode(subtreeRootNr).isLeaf()) {
-			if (this.getNode(subtreeRootNr).isFake()) {
-				this.getNode(subtreeRootNr).getLeft().metaDataString = this.getNode(subtreeRootNr).metaDataString;
-				this.getNode(subtreeRootNr).getRight().metaDataString = this.getNode(subtreeRootNr).metaDataString;
-			} else if (this.getNode(subtreeRootNr).getChildCount()==1){
-				this.getNode(subtreeRootNr).getLeft().metaDataString = this.getNode(subtreeRootNr).metaDataString;
+		if (!subRoot.isLeaf()) {
+			if (subRoot.isFake()) {
+				subRoot.getLeft().metaDataString = subRoot.metaDataString;
+				subRoot.getRight().metaDataString = subRoot.metaDataString;
+			} else if (subRoot.getChildCount()==1){
+				subRoot.getLeft().metaDataString = subRoot.metaDataString;
 			} else {
-				this.getNode(subtreeRootNr).getLeft().metaDataString = "orientation=donor";
-				this.getNode(subtreeRootNr).getRight().metaDataString = "orientation=recipient";
+				subRoot.getLeft().metaDataString = "orientation=donor";
+				subRoot.getRight().metaDataString = "orientation=recipient";
 			}
 
-			addOrientationMetadata(this.getNode(subtreeRootNr).getLeft().getNr());
-			if(this.getNode(subtreeRootNr).getChildCount()!=1){
-				addOrientationMetadata(this.getNode(subtreeRootNr).getRight().getNr());
+			addOrientationMetadata(subRoot.getLeft().getNr());
+			if(subRoot.getChildCount()!=1){
+				addOrientationMetadata(subRoot.getRight().getNr());
 			}
 		}
 	}
@@ -172,7 +178,7 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		String metaData = subTreeRoot.metaDataString;
 
 		if (subTreeRoot.isLeaf()) {
-			this.getNode(subtreeRootNr).metaDataString = String.format("%s,%s=%s",
+			subTreeRoot.metaDataString = String.format("%s,%s=%s",
 					metaData, "host", subTreeRoot.getID().split("_")[0]);
 			return;
 		}
@@ -186,7 +192,8 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 							metaData, "host", "unsampled");
 				}
 			} else if(parent.isFake()){ // fake (sampling event)
-				subTreeRoot.metaDataString = parent.metaDataString;
+				subTreeRoot.metaDataString = String.format("%s,%s=%s",
+						metaData, "host", "unsampled");//parent.metaDataString;
 			}
 			else if (parent.getChildCount()==1){ // jump (unobserved transmission event)
 				subTreeRoot.metaDataString = String.format("%s,%s=%s",
@@ -195,9 +202,12 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		} else if (subTreeRoot.getChildCount()==1 && subTreeRoot.isRoot()){
 			subTreeRoot.metaDataString = String.format("%s,%s=%s",
 					metaData, "host", "unsampled");
-		} else {
+		} else if (subTreeRoot.isFake()){
 			subTreeRoot.metaDataString = String.format("%s,%s=%s",
-					metaData, "host", firstLeafId(subTreeRoot.getLeft()));
+					metaData, "host", firstLeafId(subTreeRoot.getDirectAncestorChild()));
+		}else {
+			subTreeRoot.metaDataString = String.format("%s,%s=%s",
+					metaData, "host", firstLeafId(subTreeRoot.getLeft())); // bug here
 		}
 			addHostMetadata(subTreeRoot.getLeft().getNr());
 			if(subTreeRoot.getChildCount()!=1){
