@@ -98,9 +98,7 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		// add orientation metadata before storing tree
 		// it is done since BEAST sort the tree in various places and changes the
 		// orientation of child nodes
-		if(!hasOrientationMetadata()){
-			addOrientationMetadata();
-		}
+		addOrientationMetadata();
 		super.store();
 	}
 
@@ -139,8 +137,6 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 	 */
 	private void addOrientationMetadata(int subtreeRootNr) {
 		Node subRoot = this.getNode(subtreeRootNr);
-		if (Objects.equals(subRoot.getID(), "43"))
-			System.out.println("");
 		if (subRoot.isRoot()) {
 			subRoot.metaDataString = "orientation=donor";
 		}
