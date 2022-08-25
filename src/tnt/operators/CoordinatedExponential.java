@@ -313,8 +313,8 @@ public class CoordinatedExponential extends CoordinatedOperator {
 			if (beta == -delta)
 				return;
             setCoercableParameterValue(beta + delta);
-			if (beta == 0)
-				System.out.println();
+//			if (beta == 0)
+//				System.out.println("beta=0 in CoordinatedExponential OP");
         }
     }
 }

@@ -197,12 +197,12 @@ public class ExpandCollapseOperator extends TreeOperator {
 		int p_af = getPolytomyCount(tree);
 		int m_af = updateMultiMergeCount(tree);
 
-		if (Math.abs(p_bf - p_af) != 1 && Math.abs(p_bf - p_af) != 0) {
-			System.out.println();
-		}
-		if (m_bf != m_af) {
-			System.out.println();
-		}
+//		if (Math.abs(p_bf - p_af) != 1 && Math.abs(p_bf - p_af) != 0) {
+//			System.out.println();
+//		}
+//		if (m_bf != m_af) {
+//			System.out.println();
+//		}
 
 
         return logHR;
