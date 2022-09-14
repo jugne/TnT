@@ -248,7 +248,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 						logP += transmission(event, prevEvent);
 					} else {
 						// otherwise, bifurcation contribution
-						logP += biffurcation(event, prevEvent);
+						logP += bifurcation(event, prevEvent);
 					}
 					break;
 
@@ -411,7 +411,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 		return Math.log(ans);
 	}
 
-	private double biffurcation(GeneTreeEvent event, GeneTreeEvent prevEvent) {
+	private double bifurcation(GeneTreeEvent event, GeneTreeEvent prevEvent) {
 		double ans = 0.0;
 
 		// event is after origin backwards in time
