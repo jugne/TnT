@@ -30,7 +30,7 @@ public class SwapOrientations extends TreeOperator {
 
         Tree tree = treeInput.get(this);
 
-		// get fit nodes as lis
+		// get fit nodes as list
 		List<Integer> fitNodesNrs = new ArrayList<Integer>() {
 			{
 				for (int i : Tools.getTrNodeNrsNotTransmissionOnGenes(tree, geneTreeIntervalsInput.get(), true))
@@ -40,7 +40,7 @@ public class SwapOrientations extends TreeOperator {
 
 		List<Integer> tmp = new ArrayList<Integer>();
 		for (int i : fitNodesNrs) {
-			if (tree.getNode(i).isRoot() || tree.getNode(i).isDirectAncestor() || tree.getNode(i).getParent().isFake())
+			if (tree.getNode(i).isRoot() || tree.getNode(i).getParent().isFake())
 				tmp.add(i);
 		}
 		fitNodesNrs.removeAll(tmp);
@@ -57,12 +57,17 @@ public class SwapOrientations extends TreeOperator {
 
 //        do {
 		int nr = fitNodesNrs.get(Randomizer.nextInt(fitNodesNrs.size()));
-			i = tree.getNode(nr);
+		i = tree.getNode(nr);
 //		} while (i.isRoot() || i.isDirectAncestor() || i.getParent().isFake());
 
 
         Node iP = i.getParent();
-        Node CiP;
+		Node left = iP.getLeft();
+		Node right = iP.getRight();
+
+		iP.setLeft(right);
+		iP.setRight(left);
+/*        Node CiP;
         if (iP.getLeft().getNr() == i.getNr()) {
             CiP = iP.getRight();
 			iP.removeAllChildren(true);
@@ -73,7 +78,7 @@ public class SwapOrientations extends TreeOperator {
 			iP.removeAllChildren(true);
 			iP.addChild(i);
 			iP.addChild(CiP);
-        }
+        }*/
 
 
 		return 0.0;

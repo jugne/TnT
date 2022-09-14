@@ -204,7 +204,8 @@ public class SAWilsonBalding extends TreeOperator {
             }
 
             if (jP != null) {
-				replace(jP, j, iP);
+                Tools.replaceNodeKeepDirection(jP,j,iP);
+//				replace(jP, j, iP);
 
 //                jP.removeChild(j);  // remove <jP, j>
 //                jP.addChild(iP);   // add <jP, iP>
