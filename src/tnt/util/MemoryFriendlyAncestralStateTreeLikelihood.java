@@ -40,6 +40,18 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 	public Input<List<LeafTrait>> leafTriatsInput = new Input<>("leaftrait", "list of leaf traits",
 			new ArrayList<>());
 
+    protected DataType dataType;
+    private int[][] reconstructedStates;
+    private int[][] storedReconstructedStates;
+    private String tag;
+    private boolean areStatesRedrawn = false;
+    private boolean storedAreStatesRedrawn = false;
+    private boolean useMAP = false;
+    private boolean returnMarginalLogLikelihood = true;
+    private double jointLogLikelihood;
+    private double storedJointLogLikelihood;
+    boolean likelihoodKnown = false;
+
 	int[][] storedTipStates;
 
 	/** parameters for each of the leafs **/
@@ -104,11 +116,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
             }
         });
 
-//        if (m_useAmbiguities.get()) {
-//            Logger.getLogger("dr.evomodel.treelikelihood").info("Ancestral reconstruction using ambiguities is currently "+
-//            "not support without BEAGLE");
-//            System.exit(-1);
-//        }
         if (beagle != null) {
             if (!(siteModelInput.get() instanceof SiteModel.Base)) {
             	throw new IllegalArgumentException ("siteModel input should be of type SiteModel.Base");
@@ -147,7 +154,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 	                else
 	                    states[i] = code; // Causes ambiguous states to be ignored.
 	            }
-
             }
     	}
 
@@ -199,8 +205,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 		for (int i = 0; i < tipStates.length; i++) {
 			System.arraycopy(tipStates[i], 0, storedTipStates[i], 0, traitDimension);
 		}
-
-
     }
 
     @Override
@@ -217,10 +221,9 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 
         // deal with ambiguous tips
         if (leafNr != null) {
-			for (int i = 0; i < leafNr.length; i++) {
-				int k = leafNr[i];
-				System.arraycopy(tipStates[k], 0, storedTipStates[k], 0, traitDimension);
-			}
+            for (int k : leafNr) {
+                System.arraycopy(tipStates[k], 0, storedTipStates[k], 0, traitDimension);
+            }
         }
     }
 
@@ -238,14 +241,13 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 
         // deal with ambiguous tips
         if (leafNr != null) {
-			for (int i = 0; i < leafNr.length; i++) {
-				int k = leafNr[i];
-				int[] tmp = tipStates[k];
-				tipStates[k] = storedTipStates[k];
-				storedTipStates[k] = tmp;
-				// Does not handle ambiguities or missing taxa
-				likelihoodCore.setNodeStates(k, tipStates[k]);
-			}
+            for (int k : leafNr) {
+                int[] tmp = tipStates[k];
+                tipStates[k] = storedTipStates[k];
+                storedTipStates[k] = tmp;
+                // Does not handle ambiguities or missing taxa
+                likelihoodCore.setNodeStates(k, tipStates[k]);
+            }
         }
     }
 
@@ -257,7 +259,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
     	if (!m_useAmbiguities.get()) {
     		return isDirty;
     	}
-
 
     	int hasDirt = Tree.IS_CLEAN;
 
@@ -284,11 +285,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 
 
     }
-//    protected void handleModelChangedEvent(Model model, Object object, int index) {
-//        super.handleModelChangedEvent(model, object, index);
-//        fireModelChanged(model);
-//    }
-
 
 
     public DataType getDataType() {
@@ -333,7 +329,7 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
         likelihoodKnown = true;
 
         if (returnMarginalLogLikelihood) {
-            return logP;
+            return marginalLogLikelihood;
         }
         // redraw states and return joint density of drawn states
         redrawAncestralStates();
@@ -353,7 +349,7 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 
 
     private static String formattedState(int[] state, DataType dataType) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("\"");
         if (dataType instanceof UserDataType) {
             boolean first = true;
@@ -443,13 +439,11 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
                     try {
                         state[j] = drawChoice(conditionalProbabilities);
                     } catch (Error e) {
-                        System.err.println(e.toString());
+                        System.err.println(e);
                         System.err.println("Please report error to Marc");
                         state[j] = 0;
                     }
                     reconstructedStates[nodeNum][j] = state[j];
-
-                    //System.out.println("Pr(j) = " + rootFrequencies[state[j]]);
                     jointLogLikelihood += Math.log(rootFrequencies[state[j]]);
                 }
 
@@ -458,24 +452,12 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
                 // This is an internal node, but not the root
                 double[] partialLikelihood = new double[stateCount * patternCount];
 
-//				final double branchRate = branchRateModel.getBranchRate(tree, node);
-//
-//				            // Get the operational time of the branch
-//				final double branchTime = branchRate * ( tree.getNodeHeight(parent) - tree.getNodeHeight(node) );
-//
-//				for (int i = 0; i < categoryCount; i++) {
-//
-//				                siteModel.getTransitionProbabilitiesForCategory(i, branchTime, probabilities);
-//
-//				}
-//
-
             	if (beagle != null) {
                     System.err.println("beagle support not implemented yet");
                     System.exit(1);
             	} else {
                     likelihoodCore.getNodePartials(node.getNr(), partialLikelihood);
-                    /*((AbstractLikelihoodCore)*/ likelihoodCore.getNodeMatrix(nodeNum, 0, probabilities);
+                    likelihoodCore.getNodeMatrix(nodeNum, 0, probabilities);
             	}
 
 
@@ -490,13 +472,7 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 
                     state[j] = drawChoice(conditionalProbabilities);
                     reconstructedStates[nodeNum][j] = state[j];
-//                    if (node.getLeft().isLeaf() && node.getLeft().getID().equals("xd779") || node.getRight().isLeaf() && node.getRight().getID().equals("xd779")) {
-//                    	double [] part = new double[5];
-//                    	System.arraycopy(probabilities, parentIndex,  part, 0, 5);
-//                    	System.out.println(nodeNum + ": " + node.getLength() + " " +Arrays.toString(partialLikelihood) + " x "+parentState[j] + Arrays.toString(part) + " = " + state[j]+Arrays.toString(conditionalProbabilities));
-//                    }
                     double contrib = probabilities[parentIndex + state[j]];
-                    //System.out.println("Pr(" + parentState[j] + ", " + state[j] +  ") = " + contrib);
                     jointLogLikelihood += Math.log(contrib);
                 }
             }
@@ -512,12 +488,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
             // This is an external leaf
         	getStates(nodeNum, reconstructedStates[nodeNum]);
 
-//        	if (beagle != null) {
-//                /*((AbstractLikelihoodCore)*/ getStates(nodeNum, reconstructedStates[nodeNum]);
-//        	} else {
-//            /*((AbstractLikelihoodCore)*/ likelihoodCore.getNodeStates(nodeNum, reconstructedStates[nodeNum]);
-//        		}
-//        	}
         	if (sampleTipsInput.get()) {
 	            // Check for ambiguity codes and sample them
 	            for (int j = 0; j < patternCount; j++) {
@@ -528,7 +498,7 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
                         System.err.println("beagle support not implemented yet");
                         System.exit(1);
 	            	} else {
-	                /*((AbstractLikelihoodCore) */likelihoodCore.getNodeMatrix(nodeNum, 0, probabilities);
+	                likelihoodCore.getNodeMatrix(nodeNum, 0, probabilities);
 	            	}
 	                if (dataType.isAmbiguousCode(thisState)) {
 
@@ -541,7 +511,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
 	                }
 
 	                double contrib = probabilities[parentIndex + reconstructedStates[nodeNum][j]];
-	                //System.out.println("Pr(" + parentState[j] + ", " + reconstructedStates[nodeNum][j] +  ") = " + contrib);
 	                jointLogLikelihood += Math.log(contrib);
 	            }
         	}
@@ -567,7 +536,6 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
         tag = null;
         jointLogLikelihood = 0;
         storedJointLogLikelihood = 0;
-
         patternCount=0;
         stateCount = 0;
         m_fRootPartials = null;
@@ -580,23 +548,5 @@ public class MemoryFriendlyAncestralStateTreeLikelihood extends TreeLikelihood i
         parameters = null;
         treeTraits = null;
         treeTraits = new Helper();
-//
     }
-
-
-    protected DataType dataType;
-    private int[][] reconstructedStates;
-    private int[][] storedReconstructedStates;
-
-    private String tag;
-    private boolean areStatesRedrawn = false;
-    private boolean storedAreStatesRedrawn = false;
-
-    private boolean useMAP = false;
-    private boolean returnMarginalLogLikelihood = true;
-
-    private double jointLogLikelihood;
-    private double storedJointLogLikelihood;
-
-    boolean likelihoodKnown = false;
 }

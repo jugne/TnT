@@ -109,11 +109,6 @@ public class MappedGeneTree extends Tree {
 			}
 			ps.println("Sample"+"\t"+"Transmission Type"+"\t"+"Time"+"\t"+"Sequence");
 		}
-//		final List<Sequence>  tmp = new ArrayList<>();
-//		for (Sequence seq : data.sequenceInput.get()){
-//			Sequence nSeq = new Sequence(seq.getTaxon(), seq.getData());
-//			tmp.add(nSeq);
-//		}
 
 	}
 
@@ -143,23 +138,18 @@ public class MappedGeneTree extends Tree {
 		assignFromWithoutID(new Tree(mappedGeneTree.getRoot().copy()));
 
 		seqs.clear();
-//		seqs = new ArrayList<>();
 		for (Sequence seq : data.sequenceInput.get()){
 			Sequence nSeq = new Sequence(seq.getTaxon(), seq.getData());
 			seqs.add(nSeq);
 		}
 
-//		seqs =  new ArrayList<>(tmp);
-//		seqs.clear();
 		seqLength = seqs.get(0).dataInput.get().length();
-//		seqLength = 70000;
 		char[] charArray = new char[seqLength];
 		Arrays.fill(charArray, '-');
 		String newString = new String(charArray);
 		for (int i=geneTreeInput.get().getLeafNodeCount(); i<fakeLeafNr; i++)
 			seqs.add(new Sequence(Integer.toString(i), newString));
 
-//		alignment = new MemoryFriendlyAlignment();
 		if (filtered){
 			Alignment al = new Alignment();
 			al.initByName("sequence", seqs, "statecount", 4);
@@ -181,8 +171,6 @@ public class MappedGeneTree extends Tree {
 
 	// geneRoot has to be a logicalNode
 	private void paintTransmissionNodes(Node geneRoot){
-//		Node trTreeNode = trTreeRoot;
-//		Node mappedTrTreeNode = mappedTrTreeRoot;
 		Node geneNode = geneRoot;
 
 		int trTreeNr = geneTreeNodeAssignment[geneNode.getNr()];
@@ -301,25 +289,19 @@ public class MappedGeneTree extends Tree {
 	public void log(long sample, PrintStream out) {
 		if (sample > burninInput.get()) {
 			remapForLog(sample);
-//			System. gc();
 
 			Tree tree = (Tree) getCurrent();
 			if (externalSeqFile) {
 				logSeqsToFile(sample, tree.getRoot());
-//				logger = null;
 				seqs.clear();
-//				seqs = null;
-				alignment.freeMemory();
-//				alignment = null;
-//				System. gc();
+				alignment.finalize();
 				try {
 					logger.finalize();
 				} catch (Throwable e) {
 					throw new RuntimeException(e);
 				}
-//				System. gc();
 			} else {
-				// write out the log tree with meta data
+				// write out the log tree with metadata
 				out.print("tree STATE_" + sample + " = ");
 				out.print(toNewick(tree.getRoot()));
 				out.print(";");
@@ -334,16 +316,14 @@ public class MappedGeneTree extends Tree {
 	}
 
 	void logSeqsToFile(long sample, Node node){
-		if (node.metaDataString != null || node.isLeaf()){
-			if (node.isLeaf())
-				node.metaDataString = "nodeType=leaf";
+		if (node.metaDataString != null){
 			if (logAllHiddenInput.get() ||
 					(node.metaDataString.contains("gene") ||
-							node.metaDataString.contains("observed")) || (node.isLeaf() && !node.getParent().isFake())) {
-				int[] patternstates = logger.getStatesForNode(this, node);
+							node.metaDataString.contains("observed"))) {
+				int[] patternStates = logger.getStatesForNode(this, node);
 				int[] siteStates = new int[seqLength];
 				for (int i = 0; i < seqLength; i++) {
-					siteStates[i] = patternstates[alignment.getPatternIndex(i)];
+					siteStates[i] = patternStates[alignment.getPatternIndex(i)];
 				}
 				StringBuffer buf = new StringBuffer();
 				String seq = logger.getDataType().encodingToString(siteStates);
@@ -358,7 +338,6 @@ public class MappedGeneTree extends Tree {
 				buf.append(seq);
 
 				ps.println(buf);
-				buf = new StringBuffer();
 				ps.flush();
 			}
 		}
@@ -368,7 +347,7 @@ public class MappedGeneTree extends Tree {
 	}
 
 	String toNewick(Node node) {
-		StringBuffer buf = new StringBuffer();
+		StringBuilder buf = new StringBuilder();
 		if (node.getLeft() != null) {
 			buf.append("(");
 			buf.append(toNewick(node.getLeft()));
@@ -388,22 +367,13 @@ public class MappedGeneTree extends Tree {
 		String seq = logger.getDataType().encodingToString(siteStates);
 
 		if (node.metaDataString != null){
-//			if (logAllHiddenInput.get()){
 				buf.append("[&");
 				buf.append(node.metaDataString);
 				buf.append(",");
-				buf.append("nr"+"="+node.getNr());
+				buf.append("nr" + "=").append(node.getNr());
 				buf.append(",");
-				buf.append("seq"+"=\""+ seq + "\"");
+				buf.append("seq" + "=\"").append(seq).append("\"");
 				buf.append(']');
-//			} else if (node.metaDataString.contains("gene") ||
-//					node.metaDataString.contains("observed")){
-//				buf.append("[&");
-//				buf.append(node.metaDataString);
-//				buf.append(",");
-//				buf.append("seq"+"=\""+ seq + "\"");
-//				buf.append(']');
-//			}
 		}
 
 

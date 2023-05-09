@@ -37,14 +37,11 @@ public class SkyGeneTreeDistribution extends Distribution {
 	public Input<RealParameter> tauInput = new Input<>("tau",
 			"Strength of the transmission bottleneck");
 
-	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
+	public Input<RealParameter> popSizesInput = new Input<>("populationSizes",
 			"Constant per-branch population sizes.", Validate.REQUIRED);
 
 
 	// transformed parameters:
-	public Input<RealParameter> expectedNInput = new Input<RealParameter>("expectedN",
-			"The expected-N-at-present parameterisation of T", (RealParameter) null);
-	
     public Input<Function> finalSampleOffsetInput = new Input<>("finalSampleOffset",
             "If provided, the difference in time between the final sample and the end of the BD process.",
             new RealParameter("0.0"));
@@ -65,7 +62,6 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 	private Parameterization parameterization;
 
-	private double rho_i;
 	private double lambda_i;
 	private double mu_i;
 	private double psi_i;
@@ -100,7 +96,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 		popSizesInput.get().setDimension(popSizeDim);
 
 		parameterization = parameterizationInput.get();
-		
+
 		finalSampleOffset = finalSampleOffsetInput.get();
 
 		A = new double[parameterization.getTotalIntervalCount()];
@@ -109,7 +105,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 
 	protected void updateParameters(int trNodeNr) {
-		
+
 		popSizePerBranch = popSizePerBranchInput.get() ? popSizesInput.get().getValue(trNodeNr)
 				: popSizesInput.get().getValue(0);
 
@@ -178,7 +174,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		computeConstants(A, B);
 
-		
+
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
 			if (eventList.get(trNode.getNr()) != null && !trNode.isDirectAncestor()) {
 			updateParameters(trNode.getNr());
@@ -188,14 +184,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 			if (i != 0)
 				int_end_time = origin - parameterization.getIntervalEndTimes()[i - 1];
 
-			rho_i = parameterization.getRhoValues()[i][0];
-			lambda_i = parameterization.getBirthRates()[i][0];
-			mu_i = parameterization.getDeathRates()[i][0];
-			psi_i = parameterization.getSamplingRates()[i][0];
-				t_i = parameterization.getIntervalEndTimes()[i];
-				A_i = A[i];
-				B_i = B[i];
-
+			updateParametersforInterval(i);
 
 			boolean recipient = (!trNode.isRoot()
 					&& trNode.getParent().getChild(0) != trNode && !trNode.getParent().isFake());
@@ -217,7 +206,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 				boolean eventAtTransmission = !trNode.isRoot() && recipient
 							&& Tools.equalWithPrecision(event.time, trNode.getParent().getHeight());
 
-				// Contribution from every interval, except the last				
+				// Contribution from every interval, except the last
 				if (prevEvent.time < event.time) {
 					double startTime = prevEvent.time;
 					if (event.time > int_end_time) {
@@ -228,13 +217,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 							int_end_time = Double.POSITIVE_INFINITY;
 							if (i != 0)
 								int_end_time = origin - parameterization.getIntervalEndTimes()[i - 1];
-							rho_i = parameterization.getRhoValues()[i][0];
-							lambda_i = parameterization.getBirthRates()[i][0];
-							mu_i = parameterization.getDeathRates()[i][0];
-							psi_i = parameterization.getSamplingRates()[i][0];
-								t_i = parameterization.getIntervalEndTimes()[i];
-								A_i = A[i];
-								B_i = B[i];
+							updateParametersforInterval(i);
 						}
 						if (event.time != startTime) {
 							logP += interval(event.time, startTime, prevEvent);
@@ -305,13 +288,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 						int_end_time = Double.POSITIVE_INFINITY;
 						if (i != 0)
 							int_end_time = origin - parameterization.getIntervalEndTimes()[i - 1];
-						rho_i = parameterization.getRhoValues()[i][0];
-						lambda_i = parameterization.getBirthRates()[i][0];
-						mu_i = parameterization.getDeathRates()[i][0];
-						psi_i = parameterization.getSamplingRates()[i][0];
-							t_i = parameterization.getIntervalEndTimes()[i];
-							A_i = A[i];
-							B_i = B[i];
+						updateParametersforInterval(i);
 					}
 					if (mockEvent.time != startTime) {
 						logP += interval(mockEvent.time, startTime, prevEvent);
@@ -354,7 +331,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 		ans -= prevEvent.lineages * (prevEvent.lineages - 1) * 0.5 * (1.0 / (ploidy * popSizePerBranch))
 				* (end_time - prevEvent.time);
 
-		double sum = 0;
+		double sum;
 		sum = gUp(prevEvent.lineages, prevEvent.lineages, bottleneckDuration, popSizePerBranch);//
 
 		ans -= (1 - sum) * lambda_i//
@@ -447,7 +424,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		if (tau == 0.0 && i == j)
 			return 1.0;
-		if (tau == 0.0 && i != j)
+		if (tau == 0.0)
 			return 0.0;
 		for (int k = j; k <= i; k++) {
 			ans += (2.0 * k - 1) * Math.pow(-1.0, k - j) * Math.exp(-(k * (k - 1) * tau * 0.5) / (ploidy * Ne))
@@ -476,14 +453,13 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		return ans;
 	}
-	
+
 	private double get_p_i(double lambda, double mu, double psi, double A, double B, double t_i, double t) {
 
 		if (lambda > 0.0) {
 			double v = Math.exp(A * (t_i - t)) * (1 + B);
-			double ans = (lambda + mu + psi - A * (v - (1 - B)) / (v + (1 - B)))
+			return (lambda + mu + psi - A * (v - (1 - B)) / (v + (1 - B)))
 					/ (2 * lambda);
-			return ans;
         } else {
             // The limit of p_i as lambda -> 0
             return 0.5;
@@ -493,11 +469,10 @@ public class SkyGeneTreeDistribution extends Distribution {
 	private double integral_p_i(double t_0, double t_1) {
 		double t0 = t_i - t_0;
 		double t1 = t_i - t_1;
-		double ans = (1.0 / (2.0 * lambda_i)) * ((t1 - t0) * (mu_i + psi_i + lambda_i + A_i) + 2.0 * Math
+
+		return (1.0 / (2.0 * lambda_i)) * ((t1 - t0) * (mu_i + psi_i + lambda_i + A_i) + 2.0 * Math
 				.log(((-B_i - 1) * Math.exp(A_i * t0) + B_i - 1)
 						/ ((-B_i - 1) * Math.exp(A_i * t1) + B_i - 1)));
-
-		return ans;
 	}
 
 
@@ -529,6 +504,15 @@ public class SkyGeneTreeDistribution extends Distribution {
 		for (int i = 1; i <= k; i++)
 			binom = binom * (n + 1 - i) / i;
 		return binom;
+	}
+
+	private void updateParametersforInterval(int i){
+		lambda_i = parameterization.getBirthRates()[i][0];
+		mu_i = parameterization.getDeathRates()[i][0];
+		psi_i = parameterization.getSamplingRates()[i][0];
+		t_i = parameterization.getIntervalEndTimes()[i];
+		A_i = A[i];
+		B_i = B[i];
 	}
 
 	@Override

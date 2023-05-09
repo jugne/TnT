@@ -124,7 +124,7 @@ public class BottleneckStatsLogger extends CalculationNode implements Loggable, 
 
 		// Compute histogram
 		List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
-		HashMap<Double, Integer> mergerMap = new HashMap<Double, Integer>();
+		HashMap<Double, Integer> mergerMap = new HashMap<>();
 
 
 		for (Node node : trueNodes) {

@@ -22,10 +22,10 @@ public class GeneTreeDistribution extends Distribution {
 			"intervals for a gene tree", Validate.REQUIRED);
 	public Input<Double> ploidyInput = new Input<>("ploidy",
 			"Ploidy (copy number) for this gene, typically a whole number or half (default is 1).", 1.0);
-	public Input<RealParameter> birthRateInput = new Input<RealParameter>("birthRate", "Birth rate",
+	public Input<RealParameter> birthRateInput = new Input<>("birthRate", "Birth rate",
 			Input.Validate.REQUIRED);
-	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate", Input.Validate.REQUIRED);
-	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
+	public Input<Function> deathRateInput = new Input<>("deathRate", "Death rate", Input.Validate.REQUIRED);
+	public Input<RealParameter> samplingRateInput = new Input<>("samplingRate",
 			"Sampling rate per individual", Input.Validate.REQUIRED);
 
 	public Input<RealParameter> pairwiseProbBottleneckInput = new Input<>("pairwiseProbBottleneck",
@@ -37,28 +37,23 @@ public class GeneTreeDistribution extends Distribution {
 	public Input<RealParameter> tauInput = new Input<>("tau",
 			"Strength of the transmission bottleneck");
 
-	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
-			"Constant per-branch population sizes.", Validate.REQUIRED);
-	public Input<RealParameter> originInput = new Input<RealParameter>("origin",
-			"Start of branching process.", Validate.REQUIRED);
+	public Input<RealParameter> popSizesInput = new Input<>("populationSizes",
+            "Constant per-branch population sizes.", Validate.REQUIRED);
+	public Input<RealParameter> originInput = new Input<>("origin",
+            "Start of branching process.", Validate.REQUIRED);
 
 	// transformed parameters:
-	public Input<RealParameter> expectedNInput = new Input<RealParameter>("expectedN",
-			"The expected-N-at-present parameterisation of T", (RealParameter) null);
-	public Input<RealParameter> diversificationRateInput = new Input<RealParameter>("diversificationRate",
-			"Net diversification rate. Birth rate - death rate", Input.Validate.XOR, birthRateInput);
-	public Input<Function> turnoverInput = new Input<Function>("turnover", "Turnover. Death rate/birth rate",
-			Input.Validate.XOR, deathRateInput);
-	public Input<RealParameter> samplingProportionInput = new Input<RealParameter>("samplingProportion",
+	public Input<RealParameter> diversificationRateInput = new Input<>("diversificationRate",
+            "Net diversification rate. Birth rate - death rate", Input.Validate.XOR, birthRateInput);
+	public Input<Function> turnoverInput = new Input<>("turnover", "Turnover. Death rate/birth rate",
+            Input.Validate.XOR, deathRateInput);
+	public Input<RealParameter> samplingProportionInput = new Input<>("samplingProportion",
 			"The probability of sampling prior to death. Sampling rate/(sampling rate + death rate)",
 			Input.Validate.XOR, samplingRateInput);
 
 	// r parameter
-	public Input<RealParameter> removalProbability = new Input<RealParameter>("removalProbability",
-			"The probability that an individual is removed from the process after the sampling",
-			(RealParameter) null);
 
-	public Input<RealParameter> rhoProbability = new Input<RealParameter>("rho",
+	public Input<RealParameter> rhoProbability = new Input<>("rho",
 			"Probability of an individual to be sampled at present", (RealParameter) null);
 
 
@@ -74,9 +69,7 @@ public class GeneTreeDistribution extends Distribution {
 	private double mu;
 	private double c1;
 	private double c2;
-	private double rho;
-	private double r;
-	protected boolean transform; // is true if the model is parametrised through transformed parameters
+    protected boolean transform; // is true if the model is parametrised through transformed parameters
 	RealParameter popSizes;
 //	private double popSizes;
 	private GeneTreeIntervals intervals;
@@ -116,12 +109,8 @@ public class GeneTreeDistribution extends Distribution {
 
 	protected void updateParameters() {
 
-		if (removalProbability.get() != null) {
-			r = removalProbability.get().getValue();
-		} else {
-			r = 0.;
-		}
-		if (rhoProbability.get() != null) {
+        double rho;
+        if (rhoProbability.get() != null) {
 			rho = rhoProbability.get().getValue();
 		} else {
 			rho = 0.;
@@ -172,7 +161,7 @@ public class GeneTreeDistribution extends Distribution {
 		SpeciesTreeInterface transmissionTree = (SpeciesTreeInterface) intervals.transmissionTreeInput.get()
 				.getCurrent();
 
-		
+
 		for (Node trNode : transmissionTree.getNodesAsArray()) {
 			boolean recipient = (!trNode.isRoot()
 					&& trNode.getParent().getChild(0) != trNode && !trNode.getParent().isFake());
