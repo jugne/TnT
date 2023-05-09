@@ -1,0 +1,85 @@
+<beast version="2.0"
+	namespace="beast.core
+                 :beast.core.util
+                 :beast.core.parameter
+                 :beast.evolution.alignment
+                 :beast.evolution.likelihood
+                 :beast.evolution.tree
+                 :beast.evolution.tree.coalescent
+                 :beast.evolution.sitemodel
+                 :beast.evolution.substitutionmodel
+                 :beast.evolution.operators
+                 :beast.math.distributions
+                 :feast.simulation
+                 :bdmmprime.distribution
+                 :bdmmprime.parameterization
+                 :tnt.simulator
+                 :tnt.mapping">
+
+	<sampledTree spec="SampledTree" id="sampledTree">
+
+		<finalSampleOffset id="finalSampleOffset"
+			spec="RealParameter" value="0" /> <!-- Will be set by simulation -->
+		<nHiddenEvents id="nHiddenEventsSim"
+			spec="RealParameter" value="0" /> <!-- Will be set by simulation -->
+		<parameterization spec="CanonicalParameterization" id="param">
+			<typeSet id="typeSet"
+				spec="bdmmprime.parameterization.TypeSet" value="0" />
+			<origin id="origin" spec="RealParameter" value="1.0" /> <!-- Length of simulation -->
+			<birthRate spec="SkylineVectorParameter" typeSet="@typeSet">
+				<skylineValues spec="RealParameter"
+					value="3.57383023240944" />
+			</birthRate>
+			<deathRate spec="SkylineVectorParameter" typeSet="@typeSet">
+				<skylineValues spec="RealParameter"
+					value="1.12242310452165" />
+			</deathRate>
+			<samplingRate spec="SkylineVectorParameter"
+				typeSet="@typeSet">
+				<skylineValues spec="RealParameter"
+					value="3.41495738932089" />
+			</samplingRate>
+			<removalProb spec="SkylineVectorParameter"
+				typeSet="@typeSet">
+				<skylineValues spec="RealParameter" value="0.0" />
+			</removalProb>
+			<!-- <rhoSampling spec="TimedParameter" typeSet="@typeSet"> -->
+			<!-- <times spec="RealParameter" value="4.0 5.0"/> -->
+			<!-- <values spec="RealParameter" value="0.5 0.5"/> -->
+			<!-- </rhoSampling> -->
+		</parameterization>
+
+
+		<tree id="fullTree" spec="beast.util.TreeParser" adjustTipHeights="false" IsLabelledNewick="true" 
+		newick="(1_:0.04768782442891922,(((((((((2_:0.003878858306916255,2_5_:0.0)2_:0.14880753861673102,2_4_:0.0)2_:0.019844816758185946,2_3_:0.0)2_:0.03359456367415059,11_:0.2061257773559838)2_:0.09022628729422377,2_2_:0.0)2_:0.2017053086173869,7_:0.49805737326759447)2_:0.03691087140703564,2_1_:0.0)2_:0.10514652426512411,(5_:0.10218146440144005,((6_:0.027979955303103488,6_1_:0.0)6_:0.23376306549520653,((9_:0.13351254544985058,((12_:0.0897259739601548,(15_:0.04670772796385436,15_1_:0.0)15_:0.04301824599630044)12_:0.02494908644528726,13_:0.11467506040544206)12_:0.01883748504440852)9_:0.061470290015825824,9_1_:0.0)9_:0.06676018533263361)6_:0.16128498418844617)5_:0.21708676395299803)2_:0.018973582666642785,(3_:0.04484617926873419,((((4_:0.16745399931160332,4_2_:0.0)4_:0.02033694242751727,((10_:0.12081283674767396,14_:0.12081283674767396)10_:0.00986451519674636,10_1_:0.0)10_:0.05711358979470027)4_:0.22094895882980958,(8_:0.18439109844531199,8_1_:0.0)8_:0.001362294549066001)4_:0.06372155401362767,4_1_:0.0)4_:0.16582288195045497)3_:0.020804015073384197)2_:0.1970475552819936)1_:0.0;"/>
+
+	</sampledTree>
+	
+	<mappedTree spec="MappedTree" id="mappedTree" tree="@sampledTree" finalSampleOffset="@finalSampleOffset"
+		parameterization="@param">
+		<nHiddenEvents id="nHiddenEventsMap"
+			spec="RealParameter" value="0" /> <!-- Will be set by simulation -->
+	</mappedTree>
+
+
+	<run spec="GPSimulator" nSims="100000">
+
+		<simulationObject idref="sampledTree" />
+		<simulationObject idref="mappedTree" />
+
+		<logger spec="Logger" logEvery="1" mode="tree"
+			fileName="$(filebase).trees">
+			<log idref="sampledTree" />
+		</logger>
+		<logger spec="Logger" logEvery="1" mode="tree"
+			fileName="$(filebase).map.trees">
+			<log idref="mappedTree" />
+		</logger>
+
+		<logger spec="Logger" logEvery="1" fileName="$(filebase).log">
+			<log idref="finalSampleOffset" />
+			<log idref="nHiddenEventsSim"/>
+			<log idref="nHiddenEventsMap"/>
+		</logger>
+	</run>
+</beast>

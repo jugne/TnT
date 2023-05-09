@@ -47,7 +47,6 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
     private boolean polytomyCountOnly;
     private int[] nodeOrderHist;
     private int maxOrder;
-	private int maxMultiMerge;
 	private int nMultiMerge;
 
     public PolytomyStatsLogger() { }
@@ -63,11 +62,8 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
                 maxOrder = Math.min(maxOrder, maxOrderInput.get());
 
             nodeOrderHist = new int[maxOrder - 1];
-        }
-		if (!polytomyCountOnly) {
 			nMultiMerge = 0;
-
-		}
+        }
     }
 
 
@@ -75,12 +71,12 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
     public void init(PrintStream out) {
         String prefix = getID() == null ? "" : getID() + ".";
 
-        out.print(prefix + "PolytomyCount\t");
+		out.print(prefix + "PolytomyCount_" + tree.getID() + "\t");
 
         if (!polytomyCountOnly) {
             for (int i = 2; i <= maxOrder; i++)
-                out.print(prefix + "NodesOrder" + i + "\t");
-			out.print(prefix + "MultiMergerCount\t");
+				out.print(prefix + "NodesOrder_" + tree.getID() + "_" + i + "\t");
+			out.print(prefix + "MultiMergerCount_" + tree.getID() + "\t");
         }
 
     }
@@ -106,28 +102,18 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
         // Zero entries
         for (int i=0; i<nodeOrderHist.length; i++)
             nodeOrderHist[i] = 0;
+		nMultiMerge = 0;
 
 
         // Compute histogram
         List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
+		HashMap<Double, Integer> mergerMap = new HashMap<Double, Integer>();
 
         for (Node node : trueNodes) {
             int order = Pitchforks.getLogicalChildren(node).size();
             if (order <= maxOrder)
                 nodeOrderHist[order-2] += 1;
-        }
-    }
 
-	private void updateMultiMergeCount() {
-		// Zero entries
-		nMultiMerge = 0;
-
-		// Compute histogram
-		List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
-		HashMap<Double, Integer> mergerMap = new HashMap<Double, Integer>();
-
-
-		for (Node node : trueNodes) {
 			if (!mergerMap.keySet().contains(node.getHeight())) {
 				mergerMap.put(node.getHeight(), 0);
 			} else
@@ -140,6 +126,7 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
 		}
 	}
 
+
     @Override
     public void log(long sample, PrintStream out) {
         out.print(getPolytomyCount() + "\t");
@@ -148,7 +135,6 @@ public class PolytomyStatsLogger extends CalculationNode implements Loggable, Fu
             updateNodeOrderHist();
             for (int count : nodeOrderHist)
                 out.print(count + "\t");
-			updateMultiMergeCount();
 			out.print(nMultiMerge + "\t");
         }
     }

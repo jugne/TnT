@@ -96,7 +96,8 @@ public class ScaleOperator extends TreeOperator {
             List<Node> logicalChildren = new ArrayList<>();
             Pitchforks.getGroupAndLogicalChildren(tree.getRoot(), rootGroup, logicalChildren);
             rootGroup.add(tree.getRoot());
-			if (Tools.getTransmissionHeights(transmissionTree).contains(tree.getRoot().getHeight()))
+			if (Tools.containsDoubleWithPrecision(Tools.getTransmissionHeights(transmissionTree),
+					tree.getRoot().getHeight()))
 				return Double.NEGATIVE_INFINITY;
 
             double newHeight = f*tree.getRoot().getHeight();
@@ -120,7 +121,7 @@ public class ScaleOperator extends TreeOperator {
             }
 			for (int nodeNr = tree.getLeafNodeCount(); nodeNr < tree.getNodeCount(); nodeNr++) {
                 Node node = tree.getNode(nodeNr);
-                if (node.isRoot() || node.getHeight() < node.getParent().getHeight())
+				if (node.isRoot() || Tools.greaterWithPrecision(node.getParent().getHeight(), node.getHeight()))
                     logHR += logf;
             }
         }

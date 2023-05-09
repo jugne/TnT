@@ -23,6 +23,7 @@ import static pitchfork.Pitchforks.isPolytomy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import beast.core.Description;
 import beast.core.Input;
@@ -38,7 +39,7 @@ import tnt.util.Tools;
 
 @Description("SPR operator for trees with polytomies and multiple mergers.")
 // In this version we will assume that all three variants of attachement have equal probability
-public class SPROperatorChanged extends TreeOperator {
+public class SPROperator extends TreeOperator {
 
 	public Input<Double> rootAttachLambdaInput = new Input<>(
 			"rootAttachLambda",
@@ -59,7 +60,7 @@ public class SPROperatorChanged extends TreeOperator {
 
     Tree tree;
 	Double rootAttachLambda, probBottleneck;
-	HashMap<Integer, Integer> geneNodeAssignment;
+	Integer[] geneNodeAssignment;
 	GeneTreeIntervals intervals;
 	SpeciesTreeInterface transmissionTree;
 
@@ -78,6 +79,7 @@ public class SPROperatorChanged extends TreeOperator {
 
 		boolean bottleneck = false;
 		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
+		//final Tree treebf = tree.copy();
 
 		// Get list of nodes below finite-length edges
 		List<Node> trueNodes = getTrueNodes(tree);
@@ -107,7 +109,7 @@ public class SPROperatorChanged extends TreeOperator {
 		// TransmissionAttach
 																							// operator for that.
 
-		int trNodeNr = geneNodeAssignment.get(srcNode.getNr());
+		int trNodeNr = geneNodeAssignment[srcNode.getNr()];
 		List<Integer> possibleAssignments = new ArrayList<>();
 		possibleAssignments.add(trNodeNr);
 		possibleAssignments.addAll(Tools.getAllParentNrs(transmissionTree.getNode(trNodeNr)));
@@ -135,7 +137,6 @@ public class SPROperatorChanged extends TreeOperator {
 			srcNodeGrandparent = srcNodeParent.getParent();
 			srcNodeGrandparent.removeChild(srcNodeParent);
 			srcNodeGrandparent.addChild(srcNodeSister);
-			srcNodeGrandparent.makeDirty(Tree.IS_FILTHY);
 		}
 
 		srcNodeParent.setParent(null);
@@ -153,22 +154,41 @@ public class SPROperatorChanged extends TreeOperator {
 			return Double.NEGATIVE_INFINITY; // no nodes to choose from
 //		List<Node> innerNodes = Pitchforks.getTrueInternalNodes(tree);
 
-		List<Node> subtreeNodesAtTransmission = Tools.getGeneNodesAtTransmission(subtreeNodes,
+		List<Node> subtreeNodesAtTransmission = Tools.getGeneNodesAtTransmissionWithPrecision(subtreeNodes,
 				trHeights);
 		
 //		if (Tools.listEqualsIgnoreOrder(subtreeNodes, subtreeNodesAtTransmission)) {
 //			return Double.NEGATIVE_INFINITY;
 //		}
 
-		List<Node> subtreeNodesBottlenecHeight = new ArrayList<Node>();
+		HashMap<Node, List<Node>> fitNodes2 = new HashMap<Node, List<Node>>();
+//		List<Node> fitNodes2 = new ArrayList<Node>();
+//		List<Node> subtreeNodesBottlenecHeight = new ArrayList<Node>();
 		for (Node n : subtreeNodes) {
-			if (!subtreeNodesAtTransmission.contains(n) && n.getHeight() > srcNode.getHeight() && !n.isLeaf()) {
-				subtreeNodesBottlenecHeight.add(n);
+			if (!subtreeNodesAtTransmission.contains(n) && Tools.greaterWithPrecision(n.getHeight(), srcNode.getHeight())
+					&& !n.isLeaf()) {
+//				subtreeNodesBottlenecHeight.add(n);
+				for (Node nn : subtreeNodes) {
+					if (Tools.greaterOrEqualWithPrecision(n.getHeight(), nn.getHeight())
+							&& (nn.isRoot() || Pitchforks.getLogicalParent(nn).getHeight() > n.getHeight())) {
+						Node s = null;
+						if (!fitNodes2.keySet().isEmpty()) {
+							s = getNodeWithHeight(fitNodes2.keySet(), n.getHeight());
+						}
+						if (s != null) {
+							fitNodes2.get(s).add(nn);
+						} else {
+							List<Node> tmp = new ArrayList<Node>();
+							tmp.add(nn);
+							fitNodes2.put(n, tmp);
+						}
+					}
+				}
 			}
 		}
 
-		Node heightNode;
-		heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
+
+
 
 
 
@@ -176,55 +196,64 @@ public class SPROperatorChanged extends TreeOperator {
 		Double newHeight = null;
 		Node heightNodeBot = null;
 
-		List<Node> fitNodes = new ArrayList<Node>();
-		List<Node> atSameHeight = new ArrayList<Node>();
+//		List<Node> fitNodes = new ArrayList<Node>();
+//		List<Node> atSameHeight = new ArrayList<Node>();
 
-		if (subtreeNodesBottlenecHeight.size() > 0) {
-			heightNodeBot = subtreeNodesBottlenecHeight
-					.get(Randomizer.nextInt(subtreeNodesBottlenecHeight.size()));
-			newHeight = heightNodeBot.getHeight();
+//		if (subtreeNodesBottlenecHeight.size() > 0) {
+//			heightNodeBot = subtreeNodesBottlenecHeight
+//					.get(Randomizer.nextInt(subtreeNodesBottlenecHeight.size()));
+//			newHeight = heightNodeBot.getHeight();
+//
+//			for (Node n : subtreeNodes) {
+//				if (!subtreeNodesAtTransmission.contains(n)) { // do not allow exact height
+//			// to be transmission height
+//					if (Tools.equalWithPrecisionDouble(n.getHeight(), newHeight)
+//							&& subtreeNodesBottlenecHeight.contains(n))
+//					atSameHeight.add(n);
+//				if (Tools.greaterOrEqualDouble(newHeight, n.getHeight())
+//							&& (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > newHeight)) {
+//					fitNodes.add(n);
+//				}
+//		}
+//			}
+//		} else {
+//			bottleneck = false;
+//		}
 
-			for (Node n : subtreeNodes) {
-				if (!subtreeNodesAtTransmission.contains(n)) { // do not allow exact height
-			// to be transmission height
-					if (n.getHeight() == newHeight && subtreeNodesBottlenecHeight.contains(n))
-					atSameHeight.add(n);
-					if (n.getHeight() <= newHeight
-							&& (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > newHeight)) {
-					fitNodes.add(n);
-				}
-		}
-			}
-		} else {
-			bottleneck = false;
-		}
-
-		if (fitNodes.size() == 0 || heightNodeBot.isLeaf() || newHeight <= srcNode.getHeight())
+		if (fitNodes2.size() == 0)
 			bottleneck = false;
 		else {
 			if (Randomizer.nextDouble() < probBottleneck) {
 				bottleneck = true;
 				logHR -= Math.log(probBottleneck);
+
 			} else {
 				logHR -= Math.log(1 - probBottleneck);
 
 			}
 		}
 
+		List<Node> heightNodes = new ArrayList<Node>(fitNodes2.keySet());
 		if (bottleneck) {
 			// select a new attachment node
-			newAttachNode = fitNodes.get(Randomizer.nextInt(fitNodes.size()));
+			heightNodeBot = heightNodes.get(Randomizer.nextInt(heightNodes.size()));
 			// account for its probability
-			logHR -= Math.log(1.0 / fitNodes.size());
+			logHR -= Math.log(1.0 / heightNodes.size());
+			newAttachNode = fitNodes2.get(heightNodeBot).get(Randomizer.nextInt(fitNodes2.get(heightNodeBot).size()));
+			logHR -= Math.log(1.0 / fitNodes2.get(heightNodeBot).size());
+			newHeight = heightNodeBot.getHeight();
+
 			// account for probability to pick this specific height:
 			// nodes at the same height / all possible nodes
-			logHR -= Math.log(atSameHeight.size() / (double) subtreeNodesBottlenecHeight.size()); // (subtreeNodes.size()
+//			logHR -= Math.log(atSameHeight.size() / (double) subtreeNodesBottlenecHeight.size()); // (subtreeNodes.size()
 																											// -
 																											// subtreeNodesAtTransmission.size()));
 		} else {
 			// if attaching at uniform height, we do not care about transmission heights,
 			// since the probability of picking them is vanishing
 			logHR -= Math.log(1.0 / (subtreeNodes.size()));
+			Node heightNode;
+			heightNode = subtreeNodes.get(Randomizer.nextInt(subtreeNodes.size()));
 			newAttachNode = heightNode;
 
 			// pick new height and account for its probability
@@ -252,29 +281,37 @@ public class SPROperatorChanged extends TreeOperator {
 		}
 
 		// Incorporate probability of existing attachment point into HR
-		List<Node> origFitNodes = new ArrayList<Node>();
+		List<Node> origFitNodes2 = new ArrayList<Node>();
 		List<Node> origAtSameHeight = new ArrayList<Node>();
-		for (Node n : subtreeNodes) {
-			if (!subtreeNodesAtTransmission.contains(n)) {
-				if (n.getHeight() == oldParentHeight && subtreeNodesBottlenecHeight.contains(n))
-					origAtSameHeight.add(n);
-				if (n.getHeight() <= oldParentHeight
-						&& (n.isRoot() || Pitchforks.getLogicalParent(n).getHeight() > oldParentHeight)) {
-					origFitNodes.add(n);
-				}
-			}
-		}
+
+//		for (Node n : subtreeNodes) {
+//			if (!subtreeNodesAtTransmission.contains(n)) {
+//				if (Tools.equalWithPrecisionDouble(n.getHeight(), oldParentHeight)
+//						&& subtreeNodesBottlenecHeight.contains(n))
+//					origAtSameHeight.add(n);
+//				if (Tools.greaterOrEqualDouble(oldParentHeight, n.getHeight())
+//						&& (n.isRoot()
+//								|| Tools.greaterDouble(Pitchforks.getLogicalParent(n).getHeight(), oldParentHeight))) {
+//					origFitNodes.add(n);
+//				}
+//			}
+//		}
 
 		if (origAttachWasBottleneck) {
 			logHR += Math.log(probBottleneck);
-			logHR += Math.log(1.0 / origFitNodes.size());
-			logHR += Math
-					.log(origAtSameHeight.size() / (double) subtreeNodesBottlenecHeight.size()); // (subtreeNodes.size()
+			Node n = getNodeWithHeight(fitNodes2.keySet(), oldParentHeight);
+			logHR += Math.log(1.0 / fitNodes2.keySet().size());
+			logHR += Math.log(1.0 / fitNodes2.get(n).size());
+
+
+//			logHR += Math.log(probBottleneck);
+//			logHR += Math.log(1.0 / origFitNodes.size());
+//			logHR += Math
+//					.log(origAtSameHeight.size() / (double) subtreeNodesBottlenecHeight.size()); // (subtreeNodes.size()
 																											// -
 																											// subtreeNodesAtTransmission.size()));
 		} else {
-			if ((origFitNodes.size() == 1 && !srcNodeSister.isLeaf())
-					|| (origFitNodes.size() > 1) && oldParentHeight > srcNode.getHeight()) {
+			if (fitNodes2.size() != 0) {
 				logHR += Math.log(1 - probBottleneck);
 			} else {
 
@@ -304,7 +341,6 @@ public class SPROperatorChanged extends TreeOperator {
 		// Reconnect subtree
 
 		srcNodeParent.setHeight(newHeight);
-		srcNodeParent.makeDirty(Tree.IS_FILTHY);
 
 		if (newAttachNode.isRoot()) {
 			srcNodeParent.addChild(newAttachNode);
@@ -313,7 +349,6 @@ public class SPROperatorChanged extends TreeOperator {
 			oldParent.removeChild(newAttachNode);
 			oldParent.addChild(srcNodeParent);
 			srcNodeParent.addChild(newAttachNode);
-			oldParent.makeAllDirty(Tree.IS_FILTHY);
 		}
 
 		// Ensure correct root if set if this has been modified:
@@ -358,7 +393,7 @@ public class SPROperatorChanged extends TreeOperator {
 		List<Node> nodeList = new ArrayList<>();
 
 		if (subtreeRoot.isRoot() || (subtreeRoot.getParent().getHeight() > subtreeRoot.getHeight())
-				&& possibleAssignments.contains(geneNodeAssignment.get(subtreeRoot.getParent().getNr())))
+				&& possibleAssignments.contains(geneNodeAssignment[subtreeRoot.getParent().getNr()]))
 			nodeList.add(subtreeRoot);
 
 		if (subtreeRoot.getHeight() > minAge) {
@@ -392,6 +427,22 @@ public class SPROperatorChanged extends TreeOperator {
 			}
 		}
 		return heights;
+	}
+
+	private Node getNodeWithHeight(Set<Node> set, Double height) {
+		for (Node s : set) {
+			if (Tools.equalWithPrecision(s.getHeight(), height))
+				return s;
+		}
+		return null;
+	}
+
+	private boolean containsNodeWithHeight(Set<Node> set, Double height) {
+		for (Node s : set) {
+			if (Tools.equalWithPrecision(s.getHeight(), height))
+				return true;
+		}
+		return false;
 	}
 
 

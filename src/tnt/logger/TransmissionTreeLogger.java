@@ -14,6 +14,7 @@ import beast.core.Input.Validate;
 import beast.core.Loggable;
 import beast.core.StateNode;
 import beast.core.parameter.Parameter;
+import beast.core.parameter.RealParameter;
 import beast.evolution.branchratemodel.BranchRateModel;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
@@ -29,6 +30,13 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
 			"Gene tree within the species tree.", new ArrayList<>());
     final public Input<PopulationModel> populationModelInput = new Input<>("populationmodel", "population sizes to be logged with branches of the tree");
     // TODO: make this input a list of valuables
+
+	final public Input<RealParameter> populationSizesInput = new Input<>("populationSizes",
+			"per branch population sizes to be logged with branches of the tree");
+
+	final public Input<RealParameter> originInput = new Input<>("origin",
+			"Origin only needed when per branch populations sizes are logged");
+	// TODO: make this input a list of valuables
     final public Input<List<Function>> parameterInput = new Input<>("metadata", "meta data to be logged with the tree nodes",new ArrayList<>());
     final public Input<BranchRateModel> clockModelInput = new Input<>("branchratemodel", "rate to be logged with branches of the tree");
     final public Input<Boolean> substitutionsInput = new Input<>("substitutions", "report branch lengths as substitutions (branch length times clock rate for the branch)", false);
@@ -45,12 +53,19 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
     @Override
     public void initAndValidate() {
 		if (parameterInput.get().size() == 0 && clockModelInput.get() == null && populationModelInput.get() == null
-				&& !logOrientationInput.get()) {
+				&& !logOrientationInput.get() && populationSizesInput.get() == null) {
             someMetaDataNeedsLogging = false;
             return;
             //throw new IllegalArgumentException("At least one of the metadata and branchratemodel inputs must be defined");
+		}
+		someMetaDataNeedsLogging = true;
+
+		if (populationSizesInput.get() != null && originInput.get() == null) {
+			System.err.println(
+					"Please provide origin to the TransmissionTreeLogger if you want population sizes to be logged.");
+			System.exit(0);
         }
-        someMetaDataNeedsLogging = true;
+
         // without substitution model, reporting substitutions == reporting branch lengths 
         if (clockModelInput.get() != null) {
             substitutions = substitutionsInput.get();
@@ -87,10 +102,12 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
         }
         BranchRateModel branchRateModel = clockModelInput.get();
         PopulationModel populationModel = populationModelInput.get();
+		RealParameter populationSizes = populationSizesInput.get();
+		RealParameter origin = originInput.get();
         // write out the log tree with meta data
         out.print("tree STATE_" + nSample + " = ");
 //        tree.getRoot().sort();
-        out.print(toNewick(tree.getRoot(), metadata, branchRateModel, populationModel));
+		out.print(toNewick(tree.getRoot(), metadata, branchRateModel, populationModel, populationSizes, origin));
         //out.print(tree.getRoot().toShortNewick(false));
         out.print(";");
     }
@@ -111,24 +128,18 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
         }
     }
 
-    String toNewick(Node node, List<Function> metadataList, BranchRateModel branchRateModel, PopulationModel populationModel) {
+	String toNewick(Node node, List<Function> metadataList, BranchRateModel branchRateModel, PopulationModel populationModel, RealParameter populationSizes, RealParameter origin) {
         StringBuffer buf = new StringBuffer();
         if (node.getLeft() != null) {
             buf.append("(");
-            buf.append(toNewick(node.getLeft(), metadataList, branchRateModel, populationModel));
+            buf.append(toNewick(node.getLeft(), metadataList, branchRateModel, populationModel, populationSizes, origin));
             if (node.getRight() != null) {
                 buf.append(',');
-                buf.append(toNewick(node.getRight(), metadataList, branchRateModel, populationModel));
+                buf.append(toNewick(node.getRight(), metadataList, branchRateModel, populationModel, populationSizes, origin));
             }
             buf.append(")");
         } else {
-			if (node.getID() == null) {
-				buf.append(node.getNr() + 1);
-			} else {
-				buf.append(node.getNr() + 1);
-				buf.append("_");
-				buf.append(node.getID());
-			}
+			buf.append(node.getNr() + 1);
         }
         if (someMetaDataNeedsLogging) {
 			if (node.getID() == null) {
@@ -168,13 +179,30 @@ public class TransmissionTreeLogger extends BEASTObject implements Loggable {
             if (branchRateModel != null) {
                 buf.append("rate=");
                 appendDouble(buf, branchRateModel.getRateForBranch(node));
-				if (populationModel != null || logOrientationInput.get()) {
+				if (populationModel != null || logOrientationInput.get() || populationSizes!=null) {
                     buf.append(",");
                 }
             }
 
             if (populationModel != null) {
                 populationModel.serialize(node, buf, df);
+				if (logOrientationInput.get()) {
+					buf.append(",");
+				}
+			}
+            
+            if (populationSizes != null) {
+            	buf.append("popSize={");
+            	
+            	if (node.getHeight()>origin.getArrayValue(0)) {
+					buf.append(populationSizes.getArrayValue(populationSizes.getDimension() - 1));
+            	} else if (populationSizes.getDimension()==2) {
+					buf.append(populationSizes.getArrayValue(0));
+            	} else {
+					buf.append(populationSizes.getArrayValue(node.getNr()));
+            	}
+            	buf.append("}");
+
 				if (logOrientationInput.get()) {
 					buf.append(",");
 				}

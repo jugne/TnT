@@ -50,6 +50,7 @@ public class CoordinatedUniform extends CoordinatedOperator {
     public double proposal() {
         final double fLogHastingsRatio = 0.0; // this move is uniform in both directions
 
+
         // don't operate on sampled ancestor nodes
         // TODO make it work
         final int nLeaves = speciesTree.getLeafNodeCount();
@@ -93,38 +94,85 @@ public class CoordinatedUniform extends CoordinatedOperator {
         final double uniformShift = (Randomizer.nextDouble() * (twf + rwf)) - twf;
 
         speciesTreeNode.setHeight(speciesTreeNode.getHeight() + uniformShift);
+		speciesTreeNode.makeDirty(Tree.IS_FILTHY);
 		Set<Node> group = new HashSet<>();
-		Set<Node> logical = new HashSet<>();
 		for (Node geneTreeNode : connectingNodes.values()) {
-			if (group.addAll(Pitchforks.getGroup(geneTreeNode)))
-				logical.add(geneTreeNode);
+			group.add(Pitchforks.getLogicalNode(geneTreeNode));
+			group.addAll(Pitchforks.getGroup(Pitchforks.getLogicalNode(geneTreeNode)));
 		}
 
-//		System.out.println(geneTreeInput.get().get(0));
+//		int p_bf = getPolytomyCount(geneTreeInput.get().get(0));
+//		int m_bf = updateMultiMergeCount(geneTreeInput.get().get(0));
+//		final Tree treebf = geneTreeInput.get().get(0).copy();
+
 
 			for (Node n : group) {
+				if (!connectingNodes.values().contains(n)) {
+					return Double.NEGATIVE_INFINITY;
+				}
 				n.setHeight(n.getHeight() + uniformShift);
-
 			}
+
+
 
 		for (Node geneTreeNode : connectingNodes.values()) {
-//	        	if (skip.contains(geneTreeNode))
-//	        		continue;
-//				List<Node> group = new ArrayList<>();
 			if (!group.contains(geneTreeNode)) {
-//					group = Pitchforks.getGroup(geneTreeNode);
-//					skip.addAll(group);
-
 				geneTreeNode.setHeight(geneTreeNode.getHeight() + uniformShift);
+				geneTreeNode.makeDirty(Tree.IS_FILTHY);
 			}
 		}
-
-//		System.out.println("twf: " + twf + " rwf: " + rwf);
-//		System.out.println(geneTreeInput.get().get(0));
+//		int p_af = getPolytomyCount(geneTreeInput.get().get(0));
+//		int m_af = updateMultiMergeCount(geneTreeInput.get().get(0));
+//		final Tree treeaf = geneTreeInput.get().get(0);
+//
+//		if (p_bf != p_af) {
+//			System.out.println();
+//		}
+//		if (m_bf != m_af) {
+//			return Double.NEGATIVE_INFINITY;
+//		}
 
         return fLogHastingsRatio;
     }
     
+//	private int updateMultiMergeCount(Tree tree) {
+//		// Zero entries
+//		int nMultiMerge = 0;
+//
+//		// Compute histogram
+//		List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
+//		HashMap<Double, Integer> mergerMap = new HashMap<Double, Integer>();
+//
+//		for (Node node : trueNodes) {
+//			if (!mergerMap.keySet().contains(node.getHeight())) {
+//				mergerMap.put(node.getHeight(), 0);
+//			} else
+//				mergerMap.put(node.getHeight(), mergerMap.get(node.getHeight()) + 1);
+//		}
+//
+//		for (Double key : mergerMap.keySet()) {
+//			if (mergerMap.get(key) > 0)
+//				nMultiMerge += 1;
+//		}
+//		return nMultiMerge;
+//	}
+
+//	private int getPolytomyCount(Tree tree) {
+//		int count = 0;
+//
+//		List<Node> trueNodes = new ArrayList<>();
+//		for (Node node : tree.getNodesAsArray())
+//			if (node.isRoot() || node.getParent().getHeight() > node.getHeight())
+//				trueNodes.add(node);
+//
+//		for (Node node : trueNodes) {
+//			if (!node.isLeaf() && (node.getChildren().get(0).getHeight() == node.getHeight()
+//					|| node.getChildren().get(1).getHeight() == node.getHeight()))
+//				count += 1;
+//		}
+//
+//		return count;
+//	}
 
     // identify gene tree nodes which descend through both (and also descend exclusively through)
     // the left and right children of the species tree node of interest
@@ -133,6 +181,7 @@ public class CoordinatedUniform extends CoordinatedOperator {
         final Node rightChildNode = speciesTreeNode.getRight();
         final int leftChildNodeNumber = leftChildNode.getNr();
         final int rightChildNodeNumber = rightChildNode.getNr();
+		// find descendants gets only leaf decendants
         final Set<String> leftChildDescendants = findDescendants(leftChildNode, leftChildNodeNumber);
         final Set<String> rightChildDescendants = findDescendants(rightChildNode, rightChildNodeNumber);
 
@@ -141,18 +190,22 @@ public class CoordinatedUniform extends CoordinatedOperator {
 		final List<Double> trHeights = Tools.getTransmissionHeights(speciesTree);
         for (int j = 0; j < nGeneTrees; j++) {
             final Tree geneTree = geneTrees.get(j);
+			final List<Node> logical = Pitchforks.getTrueNodes(geneTree);
             final Node geneTreeRootNode = geneTree.getRoot();
             final Set<Node> jConnectingNodes = new HashSet<Node>();
             findConnectingNodes(geneTreeRootNode, jConnectingNodes, leftChildDescendants, rightChildDescendants, tipwardFreedom, rootwardFreedom);
 			// this for loop is the only change necessary for TNT
 			for (Node n : geneTree.getNodesAsArray()) {
-				if (jConnectingNodes.contains(n) && trHeights.contains(n.getHeight())
-						&& n.getHeight() != speciesTreeNode.getHeight())
+				if (jConnectingNodes.contains(n) && Tools.containsDoubleWithPrecision(trHeights, n.getHeight())
+						&& !Tools.equalHeightWithPrecision(n, speciesTreeNode))
 					return HashMultimap.create();
 //					jConnectingNodes.remove(n);
-				else if (!n.isLeaf() && n.getHeight() == speciesTreeNode.getHeight() && !jConnectingNodes.contains(n)) {
+				else if (!n.isLeaf() && Tools.equalHeightWithPrecision(n, speciesTreeNode)
+						&& !jConnectingNodes.contains(n)) {
 					return HashMultimap.create();
 //					jConnectingNodes.add(n);
+				} else if (jConnectingNodes.contains(n) && Tools.isMultiMerger(logical, n)) {
+					return HashMultimap.create();
 				}
 			}
             allConnectingNodes.putAll(j, jConnectingNodes);
@@ -194,28 +247,24 @@ public class CoordinatedUniform extends CoordinatedOperator {
         if (leftDescent == descendsThrough.BOTH) { // the gene tree node left child is a member of a connected component
             if (rightDescent == descendsThrough.NEITHER) { // the gene tree node left child is the root node of a connected component
 				final double connectedComponentRootFreedom = geneTreeNodeHeight - leftChild.getHeight();
-//				if (connectedComponentRootFreedom != 0)
-					rootwardFreedom.set(connectedComponentRootFreedom);
+				rootwardFreedom.set(connectedComponentRootFreedom);
                 return descendsThrough.NEITHER;
             } else { // the gene tree node right child descends exclusively through the left XOR right child of the species tree node of interest
                 // so the current gene tree node is part of a connected component but the right child is not
                 final double connectedComponentDescendantBranchLength = geneTreeNodeHeight - rightChild.getHeight();
-//				if (connectedComponentDescendantBranchLength != 0)
-					tipwardFreedom.set(connectedComponentDescendantBranchLength);
+				tipwardFreedom.set(connectedComponentDescendantBranchLength);
 				connectingNodes.add(geneTreeNode);
                 return descendsThrough.BOTH;
 			}
         } else if (rightDescent == descendsThrough.BOTH) { // the gene tree node right child is a member of a connected component
             if (leftDescent == descendsThrough.NEITHER) { // the gene tree node right child is the root node of a connected component
 				final double connectedComponentRootFreedom = geneTreeNodeHeight - rightChild.getHeight();
-//				if (connectedComponentRootFreedom != 0)
-					rootwardFreedom.set(connectedComponentRootFreedom);
+				rootwardFreedom.set(connectedComponentRootFreedom);
                 return descendsThrough.NEITHER;
             } else { // the gene tree node left child descends exclusively through the left XOR right child of the species tree node of interest
 // so the current gene tree node is part of a connected component but the left child is not
                 final double connectedComponentTipFreedom = geneTreeNodeHeight - leftChild.getHeight();
-//				if (connectedComponentTipFreedom != 0)
-					tipwardFreedom.set(connectedComponentTipFreedom);
+				tipwardFreedom.set(connectedComponentTipFreedom);
 				connectingNodes.add(geneTreeNode);
                 return descendsThrough.BOTH;
             }
@@ -223,11 +272,9 @@ public class CoordinatedUniform extends CoordinatedOperator {
             return descendsThrough.NEITHER; // the current gene tree node does not descend exclusively through the species tree node of interest
         } else { // this is a tip node of a connected component
             final double leftChildBranchLength = geneTreeNodeHeight - leftChild.getHeight();
-            final double rightChildBranchLength = geneTreeNodeHeight - rightChild.getHeight();
-//			if (leftChildBranchLength != 0)
-				tipwardFreedom.set(leftChildBranchLength);
-//			if (rightChildBranchLength != 0)
-				tipwardFreedom.set(rightChildBranchLength);
+			final double rightChildBranchLength = geneTreeNodeHeight - rightChild.getHeight();
+			tipwardFreedom.set(leftChildBranchLength);
+			tipwardFreedom.set(rightChildBranchLength);
 			connectingNodes.add(geneTreeNode);
             return descendsThrough.BOTH;
         }

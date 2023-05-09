@@ -40,6 +40,10 @@ public class SimulatedGeneTreeInit extends Tree {
 			"Fully labeled transmission tree on which to simulate gene trees",
             Input.Validate.REQUIRED);
 
+	public Input<TaxonSet> taxonSetInput = new Input<>(
+			"taxonSet",
+			"TaxonSet of the gene tree.");
+
     public Input<TraitSet> sampleCountsInput = new Input<>(
             "sampleCounts",
             "TraitSet defining number of  samples per node in species tree.",
@@ -72,6 +76,9 @@ public class SimulatedGeneTreeInit extends Tree {
 
 	public Input<Boolean> hiddenKnownInput = new Input<>("complete",
 			"Simulate hidden bottlenecks", false);
+	public Input<Function> finalSampleOffsetInput = new Input<>("finalSampleOffset",
+			"If provided, the difference in time between the final sample and the end of the BD process.",
+			new RealParameter("0.0"));
 
 
 	public TransmissionTree transmissionTree;
@@ -90,7 +97,7 @@ public class SimulatedGeneTreeInit extends Tree {
 
 	private double samplingExtantRate;
 
-	TaxonSet taxonSupperSet;
+	List<String> taxonSet;
 
 	Multimap<Integer, String> numberTipMap;
 
@@ -107,7 +114,7 @@ public class SimulatedGeneTreeInit extends Tree {
     public void initAndValidate() {
 
 		transmissionTree = transmissionTreeInput.get();
-		taxonSupperSet = transmissionTree.getTaxonset();
+		taxonSet = taxonSetInput.get().asStringList();
 		orientateTreeAtFakeNodes(transmissionTree.getRoot());
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
@@ -149,7 +156,8 @@ public class SimulatedGeneTreeInit extends Tree {
 		System.out.println(transmissionTree.getRoot().toNewick());
 			System.out.println(tree.getRoot().toNewick());
 
-					assignFromWithoutID(tree);
+//					assignFromWithoutID(tree);
+			assignFrom(tree);
 //					break;
 //				}
 //			}
@@ -278,11 +286,11 @@ public class SimulatedGeneTreeInit extends Tree {
 							double timeToNextCoalOrig = Randomizer
 									.nextExponential(0.5 * k * (k - 1) * 1.0 / NeAbove);
 
-							if (t < originInput.get().getArrayValue(0))
+							if (getAgeWithOffset(t) < originInput.get().getArrayValue(0))
 								timeToNextCoalOrig += originInput.get().getArrayValue(0) - t;
 							double timeToNextCoalBefore = Randomizer
 									.nextExponential(0.5 * k * (k - 1) * 1.0 / Ne);
-							if (t + timeToNextCoalBefore > originInput.get().getArrayValue(0))
+							if (getAgeWithOffset(t + timeToNextCoalBefore) > originInput.get().getArrayValue(0))
 								timeToNextCoalBefore = Double.POSITIVE_INFINITY;
 
 							double timeNextCoalMin = Math.min(timeToNextCoalOrig, timeToNextCoalBefore);
@@ -294,7 +302,7 @@ public class SimulatedGeneTreeInit extends Tree {
 
 						}
 					} else {
-						if (t > originInput.get().getArrayValue(0)) {
+						if (getAgeWithOffset(t) > originInput.get().getArrayValue(0)) {
 							Ne = popSize.get(aboveOrigin);
 						}
 						if (k > 1) {
@@ -327,9 +335,10 @@ public class SimulatedGeneTreeInit extends Tree {
 //						double timeToNextNonObsTr = soveForTime(0,
 //								birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
 //								samplingRateInput.get().getArrayValue(0), endTime - t);
-						double timeToNextNonObsTr = soveForTime(t,
+						double timeToNextNonObsTr = soveForTime(getAgeWithOffset(t),
 								birthRateInput.get().getArrayValue(0), deathRateInput.get().getArrayValue(0),
-								samplingRateInput.get().getArrayValue(0), endTime) - t;
+								samplingRateInput.get().getArrayValue(0), getAgeWithOffset(endTime))
+								- getAgeWithOffset(t);
 //						double timeToNextNonObsTr = Double.POSITIVE_INFINITY;
 //						if (transmissionNode.isRoot())
 //							timeToNextNonObsTr = Randomizer
@@ -346,7 +355,7 @@ public class SimulatedGeneTreeInit extends Tree {
 //											deathRateInput.get().getArrayValue(0),
 //											samplingRateInput.get().getArrayValue(0)));
 
-						if (timeToNextNonObsTr + t < originInput.get().getArrayValue(0)
+						if (getAgeWithOffset(timeToNextNonObsTr + t) < originInput.get().getArrayValue(0)
 								&& timeToNextNonObsTr < minNonObsTrTime) {
 							minNonObsTrTime = timeToNextNonObsTr;
 							minNonObsTr = transmissionNode;
@@ -368,9 +377,8 @@ public class SimulatedGeneTreeInit extends Tree {
 				    // Sample
 
 					int count = (int) Math.round(sampleCounts.getValue(transmissionNode.getID()));
-					Object[] geneSamples = numberTipMap.get(transmissionNode.getNr()).toArray();
                     for (int i=0; i<count; i++) {
-						Node geneTreeSampleNode = new Node(geneSamples[i].toString());
+						Node geneTreeSampleNode = new Node(taxonSet.get(nextLeafNodeNr));
                         geneTreeSampleNode.setNr(nextLeafNodeNr++);
 						geneTreeSampleNode.setHeight(transmissionNode.getHeight());
 						activeLineages.get(transmissionNode).add(geneTreeSampleNode);
@@ -606,6 +614,17 @@ public class SimulatedGeneTreeInit extends Tree {
 			orientateTreeAtFakeNodes(subRoot.getChild(1));
 
 		}
+	}
+
+	/**
+	 * Return the age corresponding to the given time relative to the most recent
+	 * sample.
+	 *
+	 * @param time time to query age for
+	 * @return age corresponding to time
+	 */
+	public double getAgeWithOffset(double time) {
+		return time + finalSampleOffsetInput.get().getArrayValue(0);
 	}
 
 }
