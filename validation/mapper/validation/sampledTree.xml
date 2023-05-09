@@ -1,0 +1,72 @@
+<beast version="2.0"
+	namespace="beast.core
+                 :beast.core.util
+                 :beast.core.parameter
+                 :beast.evolution.alignment
+                 :beast.evolution.likelihood
+                 :beast.evolution.tree
+                 :beast.evolution.tree.coalescent
+                 :beast.evolution.sitemodel
+                 :beast.evolution.substitutionmodel
+                 :beast.evolution.operators
+                 :beast.math.distributions
+                 :feast.simulation
+                 :bdmmprime.distribution
+                 :bdmmprime.parameterization
+                 :tnt.simulator">
+
+	<sampledTree spec="SampledTree" id="sampledTree">
+
+		<finalSampleOffset id="finalSampleOffset"
+			spec="RealParameter" value="0" /> <!-- Will be set by simulation -->
+		<nHiddenEvents id="nHiddenEvents"
+			spec="RealParameter" value="0" /> <!-- Will be set by simulation -->
+		<parameterization spec="CanonicalParameterization">
+			<typeSet id="typeSet"
+				spec="bdmmprime.parameterization.TypeSet" value="0" />
+			<origin id="origin" spec="RealParameter" value="1.0" /> <!-- Length of simulation -->
+			<birthRate spec="SkylineVectorParameter" typeSet="@typeSet">
+				<skylineValues spec="RealParameter"
+					value="3.57383023240944" />
+			</birthRate>
+			<deathRate spec="SkylineVectorParameter" typeSet="@typeSet">
+				<skylineValues spec="RealParameter"
+					value="1.12242310452165" />
+			</deathRate>
+			<samplingRate spec="SkylineVectorParameter"
+				typeSet="@typeSet">
+				<skylineValues spec="RealParameter"
+					value="3.41495738932089" />
+			</samplingRate>
+			<removalProb spec="SkylineVectorParameter"
+				typeSet="@typeSet">
+				<skylineValues spec="RealParameter" value="0.0" />
+			</removalProb>
+			<!-- <rhoSampling spec="TimedParameter" typeSet="@typeSet"> -->
+			<!-- <times spec="RealParameter" value="4.0 5.0"/> -->
+			<!-- <values spec="RealParameter" value="0.5 0.5"/> -->
+			<!-- </rhoSampling> -->
+		</parameterization>
+
+
+		<tree id="fullTree" spec="beast.util.TreeParser" adjustTipHeights="false" IsLabelledNewick="true" 
+		newick="(1_:0.04768782442891922,((((2_:0.2061257773559838,11_:0.2061257773559838)2_:0.291931595911611,7_:0.49805737326759447)2_:0.14205739567,(5_:0.10218146440144005,(6_:0.26174302079,(9_:0.13351254544985058,((12_:0.0897259739601548,15_:0.08972597396)12_:0.02494908644528726,13_:0.11467506040544206)12_:0.01883748504440852)9_:0.12823047534)6_:0.16128498418844617)5_:0.21708676395299803)2_:0.018973582666642785,(3_:0.04484617926873419,((4_:0.18779094173,(10_:0.12081283674767396,14_:0.12081283674767396)10_:0.06697810499)4_:0.22094895882980958,8_:0.18575339299)4_:0.22954443596)3_:0.020804015073384197)2_:0.1970475552819936)1_:0.0;"/>
+
+	</sampledTree>
+
+
+	<run spec="GPSimulator" nSims="10000">
+
+		<simulationObject idref="sampledTree" />
+
+		<logger spec="Logger" logEvery="1" mode="tree"
+			fileName="$(filebase).trees">
+			<log idref="sampledTree" />
+		</logger>
+
+		<logger spec="Logger" logEvery="1" fileName="$(filebase).log">
+			<log idref="finalSampleOffset" />
+			<log idref="nHiddenEvents"/>
+		</logger>
+	</run>
+</beast>

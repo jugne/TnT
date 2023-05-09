@@ -40,7 +40,7 @@ public class CreateMergersOrReheight extends TreeOperator {
     public Input<Boolean> scaleRootInput = new Input<>(
             "scaleRoot",
             "Whether to scale the age of the root node.",
-            true);
+			false);
 
 
     public Input<Double> scaleFactorInput = new Input<>(
@@ -49,7 +49,7 @@ public class CreateMergersOrReheight extends TreeOperator {
             0.8);
 
 	public Input<SpeciesTreeInterface> transmissionTreeInput = new Input<>("transmissionTree",
-			"Fully labeled transmission tree on which to simulate gene trees", Validate.REQUIRED);
+			"Fully labeled transmission tree", Validate.REQUIRED);
 
 	public Input<Double> mergerProbInput = new Input<>(
 			"mergerProb",
@@ -80,8 +80,9 @@ public class CreateMergersOrReheight extends TreeOperator {
 		boolean makeMerger = Randomizer.nextDouble() < mergerProb;
 		List<Node> trueNodes = getTrueInternalNodes(tree);
 		List<Double> trHeights = Tools.getTransmissionHeights(transmissionTree);
-		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmission(trueNodes,
+		List<Node> trueNodesAtTransmission = Tools.getGeneNodesAtTransmissionWithPrecision(trueNodes,
 				trHeights);
+
 
 		if (Tools.listEqualsIgnoreOrder(trueNodes, trueNodesAtTransmission))
 			return Double.NEGATIVE_INFINITY; // nothing to choose from
@@ -99,7 +100,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 			do {
 				srcNode = trueNodes.get(Randomizer.nextInt(nTrueInnerNodes));
 			} while (srcNode.isRoot() || trueNodesAtTransmission.contains(srcNode));
-			logHR -= Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
+			logHR -= Math.log(1.0 / (nTrueInnerNodes - trueNodesAtTransmission.size()));
 
 			Node trueParent = Pitchforks.getLogicalParent(srcNode);
 			double maxHeight = trueParent.getHeight();
@@ -114,13 +115,14 @@ public class CreateMergersOrReheight extends TreeOperator {
 			for (Node n : trueNodes) {
 				if (trueNodesAtTransmission.contains(n))
 					continue;
-				if (n.getHeight() == srcNode.getHeight() && n.getNr() != srcNode.getNr())
+				if (Tools.equalHeightWithPrecision(n, srcNode) && n.getNr() != srcNode.getNr())
 					wasSrcNodeInMerger = true;
 				else if (!n.isRoot() && n.getNr() != srcNode.getNr() && n.getHeight() > minHeight
 						&& n.getHeight() < maxHeight && !possibleMergerHeights.contains(n.getHeight())) {
 					possibleMergerHeights.add(n.getHeight());
 				}
 			}
+
 			int nNewMergerHeights = possibleMergerHeights.size();
 			if (nNewMergerHeights == 0)
 				return Double.NEGATIVE_INFINITY; // no nodes to choose from
@@ -138,7 +140,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 				double L = maxHeight - minHeight;
 				logHR += Math.log(1.0 / L);
 				if (scaleRoot || trueNodesAtTransmission.contains(tree.getRoot()))
-					logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
+					logHR += Math.log(1.0 / (nTrueInnerNodes - trueNodesAtTransmission.size()));
 				else
 					logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size())); // srcNode could
 																										// not
@@ -165,7 +167,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 
 			// account for choosing a node
 			if (scaleRoot || trueNodesAtTransmission.contains(tree.getRoot()))
-				logHR -= Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
+				logHR -= Math.log(1.0 / (nTrueInnerNodes - trueNodesAtTransmission.size()));
 			else
 				logHR -= Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
 
@@ -186,7 +188,8 @@ public class CreateMergersOrReheight extends TreeOperator {
 				if (newHeight < minHeight)
 					return Double.NEGATIVE_INFINITY;
 
-				logHR = -Math.log(f);
+				logHR -= Math.log(f);
+				logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
 //				logHR += Math.log(1.0 / nTrueInnerNodes);
 			} else {
 				Node parent = srcNode.getParent();
@@ -201,11 +204,14 @@ public class CreateMergersOrReheight extends TreeOperator {
 				for (Node n : trueNodes) {
 					if (trueNodesAtTransmission.contains(n)) // do not add the nodes that are at transmission heights
 						continue;
-					if (n.getHeight() == srcNode.getHeight() && n.getNr() != srcNode.getNr()) {
+					if (Tools.equalHeightWithPrecision(n, srcNode) && n.getNr() != srcNode.getNr()) {
 						wasSrcNodeInMerger = true;
+					} else if (!n.isRoot() && n.getNr() != srcNode.getNr() && n.getHeight() > minHeight
+							&& n.getHeight() < maxHeight && !possibleMergerHeights.contains(n.getHeight())) {
 						possibleMergerHeights.add(n.getHeight());
 					}
 				}
+
 				if (wasSrcNodeInMerger) {
 					int nNewMergerHeights = possibleMergerHeights.size();
 					logHR += Math.log(1.0 / nNewMergerHeights);
@@ -218,7 +224,7 @@ public class CreateMergersOrReheight extends TreeOperator {
 					logHR += Math.log(1.0 / L);
 					logHR += Math.log(1.0 - mergerProb);
 					if (scaleRoot || trueNodesAtTransmission.contains(tree.getRoot()))
-						logHR += Math.log(1.0 / nTrueInnerNodes - trueNodesAtTransmission.size());
+						logHR += Math.log(1.0 / (nTrueInnerNodes - trueNodesAtTransmission.size()));
 					else
 						logHR += Math.log(1.0 / (nTrueInnerNodes - 1 - trueNodesAtTransmission.size()));
 				}

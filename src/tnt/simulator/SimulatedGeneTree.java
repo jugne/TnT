@@ -69,12 +69,15 @@ public class SimulatedGeneTree extends Tree {
 	public Input<Boolean> hiddenKnownInput = new Input<>("complete",
 			"Simulate hidden bottlenecks", false);
 
+	public Input<Function> finalSampleOffsetInput = new Input<>("finalSampleOffset",
+			"If provided, the difference in time between the final sample and the end of the BD process.",
+			new RealParameter("0.0"));
+
 
 	public Tree transmissionTree;
     public TraitSet sampleCounts;
 	private int transmissionNodeCount;
 
-	private double bottleneckStrength;
 	private double maxBound;
 
 	public int hiddenNodes;
@@ -102,7 +105,7 @@ public class SimulatedGeneTree extends Tree {
 		orientateTreeAtFakeNodes(transmissionTree.getRoot());
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);
-		bottleneckStrength = bottleneckStrengthInput.get().getArrayValue(0);
+		bottleneckStrengthInput.get().setDimension(transmissionNodeCount);
 		maxBound = maxBoundInput.get() != null ? maxBoundInput.get().getArrayValue(0) : 10000;
 
 		samplingExtantRate = samplingExtantRateInput.get() == null ? 1 : samplingExtantRateInput.get().getArrayValue(0);
@@ -232,6 +235,7 @@ public class SimulatedGeneTree extends Tree {
 
         Map<Node,List<Node>> activeLineages = new HashMap<>();
 		Map<Node, Double> popSize = new HashMap<>();
+		Map<Node, Double> bottleneckStrength = new HashMap<>();
         int nextLeafNodeNr = 0;
         int nextIntNodeNr = getTotalSampleCount();
         double t = 0.0;
@@ -239,6 +243,7 @@ public class SimulatedGeneTree extends Tree {
 		int ind = 0;
 		for (Node transmissionNode : sortedTransmissionTreeNodes) {
 			popSize.put(transmissionNode, popSizesInput.get().getArrayValue(ind));
+			bottleneckStrength.put(transmissionNode, bottleneckStrengthInput.get().getArrayValue(ind));
 			ind++;
 		}
 		Node aboveOrigin = new Node();
@@ -265,11 +270,11 @@ public class SimulatedGeneTree extends Tree {
 							double timeToNextCoalOrig = Randomizer
 									.nextExponential(0.5 * k * (k - 1) * 1.0 / NeAbove);
 
-							if (t < originInput.get().getArrayValue(0))
-								timeToNextCoalOrig += originInput.get().getArrayValue(0) - t;
+							if (getAgeWithOffset(t) < originInput.get().getArrayValue(0))
+								timeToNextCoalOrig += originInput.get().getArrayValue(0) - getAgeWithOffset(t);
 							double timeToNextCoalBefore = Randomizer
 									.nextExponential(0.5 * k * (k - 1) * 1.0 / Ne);
-							if (t + timeToNextCoalBefore > originInput.get().getArrayValue(0))
+							if (getAgeWithOffset(t + timeToNextCoalBefore) > originInput.get().getArrayValue(0))
 								timeToNextCoalBefore = Double.POSITIVE_INFINITY;
 
 							double timeNextCoalMin = Math.min(timeToNextCoalOrig, timeToNextCoalBefore);
@@ -281,7 +286,7 @@ public class SimulatedGeneTree extends Tree {
 
 						}
 					} else {
-						if (t > originInput.get().getArrayValue(0)) {
+						if (getAgeWithOffset(t) > originInput.get().getArrayValue(0)) {
 							Ne = popSize.get(aboveOrigin);
 						}
 						if (k > 1) {
@@ -333,7 +338,7 @@ public class SimulatedGeneTree extends Tree {
 //											deathRateInput.get().getArrayValue(0),
 //											samplingRateInput.get().getArrayValue(0)));
 
-						if (timeToNextNonObsTr + t < originInput.get().getArrayValue(0)
+						if (getAgeWithOffset(timeToNextNonObsTr + t) < originInput.get().getArrayValue(0)
 								&& timeToNextNonObsTr < minNonObsTrTime) {
 							minNonObsTrTime = timeToNextNonObsTr;
 							minNonObsTr = transmissionNode;
@@ -376,12 +381,13 @@ public class SimulatedGeneTree extends Tree {
 					}
 					List<Node> recipientLineages = activeLineages.get(recipient);
 					double recipientNe = popSize.get(recipient);
+					double recipientTau = bottleneckStrength.get(recipient);
 
 					// From Tim: Can this be extracted to a method?  More-or-less duplicated below.
-					if  (bottleneckStrength > 0 && recipientLineages.size() > 1 &&
-								 !recipient.isDirectAncestor()) {
+					if (recipientTau > 0 && recipientLineages.size() > 1 &&
+							!recipient.isDirectAncestor()) {
 						double duplicateTime = t;
-						double stopTime = t + bottleneckStrength;
+						double stopTime = t + recipientTau;
 						while (duplicateTime < stopTime) {
 							int nrLineages = recipientLineages.size();
 							double deltaT = Randomizer
@@ -402,7 +408,7 @@ public class SimulatedGeneTree extends Tree {
 								recipientLineages.remove(node1);
 								recipientLineages.remove(node2);
 								recipientLineages.add(parent);
-								
+
 								geneTreeEventAssignment.put(parent.getID(), recipient);
 							} else {
 								break;
@@ -457,11 +463,12 @@ public class SimulatedGeneTree extends Tree {
 
 					List<Node> lineageList = activeLineages.get(minNonObsTr);
 					double Ne = popSize.get(minNonObsTr);
+					double tau = bottleneckStrength.get(minNonObsTr);
 
 					// Duplicate of above code
-					if (bottleneckStrength > 0 && lineageList.size() > 1) {
+					if (tau > 0 && lineageList.size() > 1) {
 						double duplicateTime = t;
-						double stopTime = t + bottleneckStrength;
+						double stopTime = t + tau;
 						while (duplicateTime < stopTime) {
 							int nrLineages = lineageList.size();
 							double deltaT = Randomizer
@@ -593,6 +600,10 @@ public class SimulatedGeneTree extends Tree {
 			orientateTreeAtFakeNodes(subRoot.getChild(1));
 
 		}
+	}
+
+	public double getAgeWithOffset(double time) {
+		return time + finalSampleOffsetInput.get().getArrayValue(0);
 	}
 
 }

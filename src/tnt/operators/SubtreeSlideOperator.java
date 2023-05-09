@@ -19,7 +19,6 @@ package tnt.operators;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,7 +56,7 @@ public class SubtreeSlideOperator extends TreeOperator {
 	double probCoalAttach, relSize, probMultiMerger;
 	double[] probArray;
 	GeneTreeIntervals intervals;
-	HashMap<Integer, Integer> geneTreeNodeAssignment;
+	Integer[] geneTreeNodeAssignment;
 	List<Node> geneTreeInternalNodesList;
 	SpeciesTreeInterface transmissionTree;
 	Node multiMergerSibling;
@@ -265,7 +264,7 @@ public class SubtreeSlideOperator extends TreeOperator {
 					break;
 				} else if (s == 1) {
 					Node trNode = intervals.transmissionTreeInput.get()
-							.getNode(geneTreeNodeAssignment.get(ap.attachmentEdgeBase.getNr()));
+							.getNode(geneTreeNodeAssignment[ap.attachmentEdgeBase.getNr()]);
 					List<Node> possibleTrNodes = new ArrayList<Node>();
 					Node trParent = trNode;
 					possibleTrNodes.add(trParent);
@@ -334,7 +333,7 @@ public class SubtreeSlideOperator extends TreeOperator {
 			if (geneNode.isFake() || geneNode.isLeaf())
 				continue;
 			Node trNode = intervals.transmissionTreeInput.get()
-					.getNode(geneTreeNodeAssignment.get(geneNode.getNr()));
+					.getNode(geneTreeNodeAssignment[geneNode.getNr()]);
 
 			if (up && geneNode.getAllChildNodesAndSelf().indexOf(attachmentEdgeBase) == -1
 					&& trNodeList.indexOf(trNode) != -1) {
@@ -416,7 +415,7 @@ public class SubtreeSlideOperator extends TreeOperator {
 				}
 				if (s == 1) {
 					Node trNode = intervals.transmissionTreeInput.get()
-							.getNode(geneTreeNodeAssignment.get(ap.attachmentEdgeBase.getNr()));
+							.getNode(geneTreeNodeAssignment[ap.attachmentEdgeBase.getNr()]);
 					List<Node> possibleTrNodes = elidgibleTrNodesDown(trNode);
 					multiMergerSibling = findMultiMergerCandidate(ap.attachmentEdgeBase, possibleTrNodes, false);
 					if (multiMergerSibling == null)
@@ -454,7 +453,7 @@ public class SubtreeSlideOperator extends TreeOperator {
 //                }
 			} else if (Randomizer.nextDouble() < probMultiMerger) {
 				Node trNode = intervals.transmissionTreeInput.get()
-						.getNode(geneTreeNodeAssignment.get(ap.attachmentEdgeBase.getNr()));
+						.getNode(geneTreeNodeAssignment[ap.attachmentEdgeBase.getNr()]);
 				List<Node> possibleTrNodes = elidgibleTrNodesDown(trNode);
 				multiMergerSibling = findMultiMergerCandidate(ap.attachmentEdgeBase, possibleTrNodes, false);
 				if (multiMergerSibling == null)

@@ -1,0 +1,1 @@
+This folder contains testing and validation for the mapping of hidden host switch events that changes the host on a branch.

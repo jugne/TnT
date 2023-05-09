@@ -59,7 +59,7 @@ public class ExpandCollapseOperator extends TreeOperator {
 	/**
 	 * The gene node assignment (gene tree node Nr -> transmission tree node Nr).
 	 */
-	HashMap<Integer, Integer> geneNodeAssignment;
+	Integer[] geneNodeAssignment;
 
 	/** The gene tree intervals. */
 	GeneTreeIntervals intervals;
@@ -91,8 +91,13 @@ public class ExpandCollapseOperator extends TreeOperator {
         double logHR = 0.0;
 		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
 		trHeights = Tools.getTransmissionHeights(intervals.transmissionTreeInput.get());
+		boolean which = Randomizer.nextBoolean();
 
-        if (Randomizer.nextBoolean()) {
+		int p_bf = getPolytomyCount(tree);
+		int m_bf = updateMultiMergeCount(tree);
+		final Tree treeaf = tree.copy();
+
+		if (which) {
             // Collapse
 
             List<Node> collapsableEdges = getCollapsableEdges(tree);
@@ -158,7 +163,8 @@ public class ExpandCollapseOperator extends TreeOperator {
             }
             nodeToMove.setParent(null);
 
-            if (nodeToMove == logicalParent)
+
+			if (nodeToMove.getNr() == logicalParent.getNr())
                 logicalParent = sisterNode;
 
             // Attach edge
@@ -178,17 +184,68 @@ public class ExpandCollapseOperator extends TreeOperator {
                 }
             }
 
-            // Set new node height
-            nodeToMove.setHeight(newHeight);
+			// Set new node height
+			nodeToMove.setHeight(newHeight);
 
             // Complete HR calculation
+			List<Node> colAfter = getCollapsableEdges(tree);
 
-            logHR += Math.log(1.0/getCollapsableEdges(tree).size());
+			logHR += Math.log(1.0 / colAfter.size());
         }
+
+
+		int p_af = getPolytomyCount(tree);
+		int m_af = updateMultiMergeCount(tree);
+
+//		if (Math.abs(p_bf - p_af) != 1 && Math.abs(p_bf - p_af) != 0) {
+//			System.out.println();
+//		}
+//		if (m_bf != m_af) {
+//			System.out.println();
+//		}
 
 
         return logHR;
     }
+
+	private int updateMultiMergeCount(Tree tree) {
+		// Zero entries
+		int nMultiMerge = 0;
+
+		// Compute histogram
+		List<Node> trueNodes = Pitchforks.getTrueInternalNodes(tree);
+		HashMap<Double, Integer> mergerMap = new HashMap<Double, Integer>();
+
+		for (Node node : trueNodes) {
+			if (!mergerMap.keySet().contains(node.getHeight())) {
+				mergerMap.put(node.getHeight(), 0);
+			} else
+				mergerMap.put(node.getHeight(), mergerMap.get(node.getHeight()) + 1);
+		}
+
+		for (Double key : mergerMap.keySet()) {
+			if (mergerMap.get(key) > 0)
+				nMultiMerge += 1;
+		}
+		return nMultiMerge;
+	}
+
+	private int getPolytomyCount(Tree tree) {
+		int count = 0;
+
+		List<Node> trueNodes = new ArrayList<>();
+		for (Node node : tree.getNodesAsArray())
+			if (node.isRoot() || node.getParent().getHeight() > node.getHeight())
+				trueNodes.add(node);
+
+		for (Node node : trueNodes) {
+			if (!node.isLeaf() && (node.getChildren().get(0).getHeight() == node.getHeight()
+					|| node.getChildren().get(1).getHeight() == node.getHeight()))
+				count += 1;
+		}
+
+		return count;
+	}
 
 	/**
 	 * Gets the collapsable edges.
@@ -207,7 +264,7 @@ public class ExpandCollapseOperator extends TreeOperator {
 
 
 		for (Node node : noTrParentNodes) {
-			int trNodeNr = geneNodeAssignment.get(node.getNr());
+			int trNodeNr = geneNodeAssignment[node.getNr()];
 			List<Integer> possibleAssignments = new ArrayList<>();
 			possibleAssignments.add(trNodeNr);
 			possibleAssignments.addAll(Tools.getAllParentNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
@@ -218,8 +275,8 @@ public class ExpandCollapseOperator extends TreeOperator {
                     continue;
 
             Node sister = getOtherChild(node.getParent(), node);
-			int trNodeSisterNr = geneNodeAssignment.get(sister.getNr());
-			if (sister.getHeight() <= node.getHeight() || sister.isLeaf()
+			int trNodeSisterNr = geneNodeAssignment[sister.getNr()];
+			if (Tools.greaterOrEqualHeightWithPrecision(node, sister) || sister.isLeaf()
 					|| !possibleAssignments.contains(trNodeSisterNr))
                 continue;
 

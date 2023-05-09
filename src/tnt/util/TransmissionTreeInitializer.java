@@ -6,6 +6,7 @@ import static java.lang.Math.min;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -29,11 +30,11 @@ import beast.evolution.alignment.distance.Distance;
 import beast.evolution.alignment.distance.JukesCantorDistance;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.RandomTree;
-import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.evolution.tree.coalescent.ConstantPopulation;
 import beast.math.distributions.MRCAPrior;
 import beast.util.ClusterTree;
+import beast.util.Randomizer;
 import beast.util.TreeParser;
 import starbeast2.PopulationModel;
 import starbeast2.SpeciesTreeInterface;
@@ -41,7 +42,7 @@ import tnt.transmissionTree.TransmissionTree;
 
 /**
  * Adapted by Ugne Stolz, to keep tree direction correct when parsing from
- * pre-defined newick string.
+ * pre-defined newick string and allow for same patient sampling over time.
  * 
  * @author Joseph Heled
  * @author Huw Ogilvie
@@ -69,12 +70,18 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
             "state or a point estimate based on alignments data (default point-estimate)",
             Method.POINT, Method.values());
 
-	final public Input<TransmissionTree> speciesTreeInput = new Input<>("speciesTree",
+	final public Input<TransmissionTree> transmissionTreeInput = new Input<>("transmissionTree",
 			"The species tree to initialize.",
 			Input.Validate.REQUIRED);
     final public Input<String> newickInput = new Input<>("newick", "Newick string for a custom initial species tree.");
 
-    final public Input<List<Tree>> genes = new Input<>("geneTree", "Gene trees to initialize", new ArrayList<>());
+	public Input<List<TaxonSet>> taxonsetsInput = new Input<>("patientTaxonSets",
+			"a separate list of taxa for samples collected from the same patient", new ArrayList<>());
+
+//    final public Input<List<Tree>> genes = new Input<>("geneTree", "Gene trees to initialize", new ArrayList<>());
+
+	final public Input<List<GeneTreeInitializer>> genesTreeInitializerInput = new Input<>("geneTreeInitializerList",
+			"New gene tree initializer for each tree", new ArrayList<>());
 
     final public Input<RealParameter> birthRate = new Input<>("birthRate",
             "Tree prior birth rate to initialize");
@@ -82,9 +89,9 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
     final public Input<Function> muInput = new Input<>("baseRate",
             "Main clock rate used to scale trees (default 1).");
     
-	public Input<TraitSet> sampleCountsInput = new Input<>(
-			"sampleCounts",
-			"TraitSet defining number of  samples per node in species tree.");
+//	public Input<TraitSet> sampleCountsInput = new Input<>(
+//			"sampleCounts",
+//			"TraitSet defining number of  samples per node in species tree.");
 
 	public Input<RealParameter> popSizesInput = new Input<RealParameter>("populationSizes",
 			"Constant per-branch effective population sizes.");
@@ -93,6 +100,9 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 	public Input<Function> deathRateInput = new Input<Function>("deathRate", "Death rate");
 	public Input<RealParameter> samplingRateInput = new Input<RealParameter>("samplingRate",
 			"Sampling rate per individual");
+
+	public Input<RealParameter> rhoInput = new Input<RealParameter>("rho",
+			"Sampling extant probability");
 
 	public Input<RealParameter> bottleneckStrengthInput = new Input<RealParameter>("bottleneckStrength",
 			"Strength of the bottleneck in scaled time");
@@ -106,11 +116,15 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 	private Set<String> allSpeciesNames;
 	private Set<String> allTipNames;
 
+
     @Override
     public void initStateNodes() {
-		final TransmissionTree transmissionTree = speciesTreeInput.get();
+		Log.info.println(
+				"TnT transmissionTree initialiser credits StarBEAST2 speciesTree initializer for most of its functionality!");
+
+		final TransmissionTree transmissionTree = transmissionTreeInput.get();
 		final TaxonSet taxonSuperSet = transmissionTree.getTaxonset();
-		final Set<BEASTInterface> treeOutputs = speciesTreeInput.get().getOutputs();
+		final Set<BEASTInterface> treeOutputs = transmissionTreeInput.get().getOutputs();
         final Method method = initMethod.get();
         final String newick = newickInput.get();
 
@@ -142,55 +156,63 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
             }
         }
 
-        final List<Tree> geneTrees = genes.get();
+		final List<GeneTreeInitializer> geneTrees = genesTreeInitializerInput.get();
         boolean userSpecifiedGeneTrees = false;
-        for (final Tree gtree : geneTrees) {
-            if (gtree instanceof beast.util.TreeParser) {
+		for (final GeneTreeInitializer gtree : geneTrees) {
+			if (gtree.getGeneTree() instanceof beast.util.TreeParser) {
                 userSpecifiedGeneTrees = true;
                 break;
             }
         }
 
+
+
         boolean geneTreesNeedInit = true;
         if (newick != null) {
-			Log.info.println("StarBEAST2: using newick string to initialize species tree.");
+			Log.info.println("TnT: using newick string to initialize transmission tree.");
 			final TreeParser parser = new TreeParser(newick);
 			copyTreeStructure(parser, transmissionTree);
+		} else if (!taxonsetsInput.get().isEmpty()) {
+			Log.info.println("TnT: using same patient sampling to initialize transmission tree.");
+			samePatientSamplingInit(transmissionTree);
         } else if (method == Method.ALL_RANDOM) {
-            Log.info.println("StarBEAST2: using randomInit to initialize species tree.");
+			Log.info.println("TnT: using randomInit to initialize transmission tree.");
 			randomInit(transmissionTree, calibrations);
         } else if (!checkSpeciesAlwaysRepresented())  {
-            Log.info.println("StarBEAST2: using randomInit to initialize species tree (required by missing data)).");
+			Log.info.println("TnT: using randomInit to initialize transmission tree (required by missing data)).");
 			randomInit(transmissionTree, calibrations);
         } else if (calibrations.size() > 0)  {
-            Log.info.println("StarBEAST2: using randomInit to initialize species tree (required by calibrations)).");
+			Log.info.println("TnT: using randomInit to initialize transmission tree (required by calibrations)).");
 			randomInit(transmissionTree, calibrations);
 		} else if (transmissionTree.hasDateTrait()) {
-            Log.info.println("StarBEAST2: using randomInit to initialize species tree (required by tip dates).");
+			Log.info.println("TnT: using randomInit to initialize transmission tree (required by tip dates).");
 			randomInit(transmissionTree, calibrations);
         } else if (userSpecifiedGeneTrees) {
-            Log.info.println("StarBEAST2: using randomInit to initialize species tree (required by user-specified gene trees).");
+			Log.info.println(
+					"TnT: using randomInit to initialize transmission tree (required by user-specified gene trees).");
 			randomInit(transmissionTree, calibrations);
         } else if (method == Method.POINT) {
-            Log.info.println("StarBEAST2: using fullInit to initialize all trees.");
+			Log.info.println("TnT: using fullInit to initialize all trees.");
 			fullInit(transmissionTree);
             geneTreesNeedInit = false;
         }
 
         if (geneTreesNeedInit) {
 			final double rootHeight = transmissionTree.getRoot().getHeight();
-            Log.info.println(String.format("StarBEAST2: initializing gene trees with random or user-specified topologies (%f).", rootHeight));
+			Log.info.println(String
+					.format("TnT: initializing gene trees with random or user-specified topologies (%f).", rootHeight));
 
-            for (final Tree gtree : geneTrees) {
-                if (gtree instanceof beast.util.TreeParser) {
+			for (final GeneTreeInitializer gtree : geneTrees) {
+				if (gtree.getGeneTree() instanceof beast.util.TreeParser) {
                     /* add the height of the species root node to all gene tree node height, to
                     ensure compatibility of the trees while preserving user-specified topologies */
-                    boostGeneTreeInternalNodeHeights(gtree, rootHeight);
-				} else if (bottleneckStrengthInput.get() != null && sampleCountsInput.get() != null) {
+					boostGeneTreeInternalNodeHeights(gtree.getGeneTree(), rootHeight);
+				} else if (bottleneckStrengthInput.get() != null && gtree.getSampleCounts() != null) {
 					final tnt.simulator.SimulatedGeneTreeInit geneTree = new tnt.simulator.SimulatedGeneTreeInit();
 					geneTree.setID("gene_tree_truth");
 					geneTree.initByName("transmissionTreeInput", transmissionTree,
-							"sampleCounts", sampleCountsInput.get(),
+							"taxonSet", gtree.getGeneTree().m_taxonset.get(),
+							"sampleCounts", gtree.getSampleCounts(),
 							"popSizeAboveOrigin",
 							new RealParameter(Double.toString(popSizesInput.get().getArrayValue(1))),
 							"populationSizes", new RealParameter(Double.toString(popSizesInput.get().getArrayValue(0))),
@@ -198,17 +220,18 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 							"birthRate", birthRate.get(),
 							"deathRate", deathRateInput.get(),
 							"samplingRate", samplingRateInput.get(),
+							"samplingExtantRate", rhoInput.get(),
 							"origin", originInput.get());
 
-//					final TreeParser parser = new TreeParser(geneTree.getSimulatedGeneTree().getRoot().toNewick());
-//					gtree.assignFromWithoutID(parser);
-					gtree.assignFromWithoutID(geneTree.getSimulatedGeneTree());
+					gtree.getGeneTree().assignFromWithoutID(geneTree);
+					System.out.println(gtree.getGeneTree().getRoot().toNewick());
 				} else {
-					gtree.makeCaterpillar(rootHeight, rootHeight / gtree.getInternalNodeCount(), true);
+					gtree.getGeneTree().makeCaterpillar(rootHeight,
+							rootHeight / gtree.getGeneTree().getInternalNodeCount(), true);
                 }
 				// make sure the heights of all gene tree tips is equal to the height of
 				// corresponding species tree tips
-				resetGeneTreeTipHeights(transmissionTree, gtree);
+				resetGeneTreeTipHeights(transmissionTree, gtree.getGeneTree());
             }
         }
 
@@ -221,8 +244,8 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
         final PopulationModel populationModel = populationFunctionInput.get();
         if (populationModel != null) populationModel.initPopSizes(averageBranchLength);
         
-        for (Tree geneTree: genes.get()) {
-        	for (Node geneNode: geneTree.getNodesAsArray()) {
+		for (GeneTreeInitializer geneTree : geneTrees) {
+			for (Node geneNode : geneTree.getGeneTree().getNodesAsArray()) {
         		if (geneNode.isLeaf()) {
         			final String tipName = geneNode.getID();
 					if (!allTipNames.contains(tipName)) {
@@ -245,13 +268,16 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
     }
 
     private boolean checkSpeciesAlwaysRepresented() {
-        for (Tree geneTree: genes.get()) {
-			final String[] allTipNames = geneTree.getTaxaNames();
+		for (GeneTreeInitializer geneTree : genesTreeInitializerInput.get()) {
+			final String[] allTipNames = geneTree.getGeneTree().getTaxaNames();
 
 			for (String speciesName : allSpeciesNames) {
 				boolean speciesRepresented = false;
-				for (String tipName : allTipNames)
+				for (String tipName : allTipNames) {
+					System.out.println(tipName);
 					speciesRepresented |= tipSpeciesMap.get(tipName).equals(speciesName);
+				}
+
 				if (!speciesRepresented)
 					return false;
 			}
@@ -318,30 +344,30 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
     }
 
 
-	private void fullInit(final TransmissionTree speciesTree) {
+	private void fullInit(final TransmissionTree transmissionTree) {
         // Build gene trees from  alignments
     	
 
         final Function muInput = this.muInput.get();
         final double mu =  (muInput != null )  ? muInput.getArrayValue() : 1;
 
-        final TaxonSet species = speciesTree.m_taxonset.get();
+        final TaxonSet species = transmissionTree.m_taxonset.get();
         final List<String> speciesNames = species.asStringList();
         final int speciesCount = speciesNames.size();
 
-        final List<Tree> geneTrees = genes.get();
+		final List<GeneTreeInitializer> geneTrees = genesTreeInitializerInput.get();
 
         //final List<Alignment> alignments = genes.get();
         //final List<Tree> geneTrees = new ArrayList<>(alignments.size());
         double maxNsites = 0;
         //for( final Alignment alignment : alignments)  {
-        for (final Tree gtree : geneTrees) {
+		for (final GeneTreeInitializer gtree : geneTrees) {
             //final Tree gtree = new Tree();
-            final Alignment alignment = gtree.m_taxonset.get().alignmentInput.get();
+			final Alignment alignment = gtree.getGeneTree().m_taxonset.get().alignmentInput.get();
 
             final ClusterTree ctree = new ClusterTree();
-            ctree.initByName("initial", gtree, "clusterType", "upgma", "taxa", alignment);
-            gtree.scale(1 / mu);
+			ctree.initByName("initial", gtree.getGeneTree(), "clusterType", "upgma", "taxa", alignment);
+			gtree.getGeneTree().scale(1 / mu);
 
             maxNsites = max(maxNsites, alignment.getSiteCount());
         }
@@ -360,7 +386,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
         final double[][] genesDmins = new double[geneTrees.size()][];
 
         for( int ng = 0; ng < geneTrees.size(); ++ng ) {
-            final Tree g = geneTrees.get(ng);
+			final Tree g = geneTrees.get(ng).getGeneTree();
             final double[] dmin = firstMeetings(g, geneTips2Species, speciesCount);
             genesDmins[ng] = dmin;
 
@@ -372,7 +398,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
                 	// distance between species-taxon 0 and the species-taxon with missing lineages,
                 	// so i < speciesCount - 1.
                 	// What if lineages for species-taxon 0 are missing? Then all entries will be 'infinite'.
-                	String id = (i < speciesCount - 1? speciesTree.getExternalNodes().get(i+1).getID() : "unknown taxon");
+                	String id = (i < speciesCount - 1? transmissionTree.getExternalNodes().get(i+1).getID() : "unknown taxon");
                 	if (i == 0) {
                 		// test that all entries are 'infinite', which implies taxon 0 has lineages missing 
                 		boolean b = true;
@@ -381,7 +407,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
                 		}
                 		if (b) {
                 			// if all entries have 'infinite' distances, it is probably the first taxon that is at fault
-                			id = speciesTree.getExternalNodes().get(0).getID();
+                			id = transmissionTree.getExternalNodes().get(0).getID();
                 		}
                 	}
                 	throw new RuntimeException("Gene tree " + g.getID() + " has no lineages for species taxon " + id + " ");
@@ -408,13 +434,13 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
                 return dg[i];
             }
         };
-        ctree.initByName("initial", speciesTree, "taxonset", species,"clusterType", "upgma", "distance", distance);
+        ctree.initByName("initial", transmissionTree, "taxonset", species,"clusterType", "upgma", "distance", distance);
 
         final Map<String, Integer> sptips2SpeciesIndex = new LinkedHashMap<>();
         for(int i = 0; i < speciesNames.size(); ++i) {
             sptips2SpeciesIndex.put(speciesNames.get(i), i);
         }
-        final double[] spmin = firstMeetings(speciesTree, sptips2SpeciesIndex, speciesCount);
+        final double[] spmin = firstMeetings(transmissionTree, sptips2SpeciesIndex, speciesCount);
 
         for( int ng = 0; ng < geneTrees.size(); ++ng ) {
             final double[] dmin = genesDmins[ng];
@@ -426,7 +452,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
                 }
             }
             if( ! compatible ) {
-                final Tree gtree = geneTrees.get(ng);
+				final Tree gtree = geneTrees.get(ng).getGeneTree();
                 final TaxonSet gtreeTaxa = gtree.m_taxonset.get();
                 final Alignment alignment = gtreeTaxa.alignmentInput.get();
                 final List<String> taxaNames = alignment.getTaxaNames();
@@ -467,7 +493,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 
             // only change lambda if it is to be estimated
             if (lambdaStateNode.isEstimatedInput.get()) {
-                final double rh = speciesTree.getRoot().getHeight();
+                final double rh = transmissionTree.getRoot().getHeight();
                 double l = 0;
                 for(int i = 2; i < speciesCount+1; ++i) l += 1./i;
                 lambda.setValue((1 / rh) * l);
@@ -475,7 +501,7 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
         }
     }
 
-	private void randomInit(final TransmissionTree speciesTree, List<MRCAPrior> calibrations) {
+	private void randomInit(final TransmissionTree transmissionTree, List<MRCAPrior> calibrations) {
     	final RealParameter birthRateParameter = birthRate.get();
     	final Double lambda = (birthRateParameter == null) ? 1.0 : birthRateParameter.getValue();
     	final Double initialPopSize = 1.0 / lambda; // scales coalescent tree height inverse to birth rate
@@ -484,8 +510,8 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
         pf.setInputValue("popSize", popSize);
 
         final RandomTree rnd = new RandomTree();
-        rnd.setInputValue("taxonset", speciesTree.getTaxonset());
-        if (speciesTree.hasDateTrait()) rnd.setInputValue("trait", speciesTree.getDateTrait());
+        rnd.setInputValue("taxonset", transmissionTree.getTaxonset());
+        if (transmissionTree.hasDateTrait()) rnd.setInputValue("trait", transmissionTree.getDateTrait());
 
         for (final MRCAPrior cal: calibrations) rnd.setInputValue("constraint", cal);
 
@@ -493,7 +519,112 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
         rnd.setInputValue("populationModel", pf);
         rnd.initAndValidate();
 
-		copyTreeStructure(rnd, speciesTree);
+		copyTreeStructure(rnd, transmissionTree);
+	}
+
+	private void samePatientSamplingInit(TransmissionTree transmissionTree) {
+		final RealParameter birthRateParameter = birthRate.get();
+		final Double lambda = (birthRateParameter == null) ? 1.0 : birthRateParameter.getValue();
+		final Double initialPopSize = 1.0 / lambda; // scales coalescent tree height inverse to birth rate
+		final RealParameter popSize = new RealParameter(initialPopSize.toString());
+		final ConstantPopulation pf = new ConstantPopulation();
+		pf.setInputValue("popSize", popSize);
+
+		final RandomTree rnd = new RandomTree();
+		rnd.setInputValue("taxonset", transmissionTree.getTaxonset());
+		if (transmissionTree.hasDateTrait())
+			rnd.setInputValue("trait", transmissionTree.getDateTrait());
+
+		rnd.setInputValue("populationModel", pf);
+		rnd.setInputValue("populationModel", pf);
+		rnd.initAndValidate();
+
+		/////////////
+
+		int nSets = taxonsetsInput.get().size();
+		int nSamples = transmissionTree.getLeafNodeCount();
+		List<List<Node>> taxonsets = new ArrayList<List<Node>>(nSets);
+		List<Node> singlePatientSamples = new ArrayList<Node>();
+		double maxHeight = Double.NEGATIVE_INFINITY;
+
+		// If there are same patient sampling over time supplied
+		if (nSets != 0) {
+			for (int i = 0; i < nSets; i++)
+				taxonsets.add(new ArrayList<Node>());
+
+			for (int idx = 0; idx < nSamples; idx++) {
+				Node leaf = rnd.getNode(idx);
+				if (leaf.getParent() != null)
+					leaf.getParent().removeAllChildren(false);
+				int i = 0;
+				for (TaxonSet t : taxonsetsInput.get()) {
+					List<String> tmp = t.asStringList();
+					if (tmp.contains(leaf.getID())) {
+						taxonsets.get(i).add(leaf);
+						break;
+					} else {
+						i += 1;
+					}
+				}
+				singlePatientSamples.add(leaf);
+				if (leaf.getHeight() > maxHeight)
+					maxHeight = leaf.getHeight();
+			}
+
+			for (int ii = 0; ii < nSets; ii++) {
+				taxonsets.get(ii).sort(Comparator.comparing(Node::getHeight));
+			}
+		}
+
+		int id = nSamples;
+		for (int s = 0; s < nSets; s++) {
+			Node[] tmp = new Node[taxonsets.get(s).size()];
+			tmp = taxonsets.get(s).toArray(tmp);
+			int nNodes = tmp.length;
+			for (int n = 0; n < nNodes - 1; n++) {
+				Node parent = new Node();
+				parent.setID(Integer.toString(id));
+				parent.setNr(id);
+				id += 1;
+
+				parent.addChild(tmp[n]);
+				parent.addChild(tmp[n + 1]);
+				singlePatientSamples.remove(tmp[n]);
+				singlePatientSamples.remove(tmp[n + 1]);
+				parent.setHeight(tmp[n + 1].getHeight());
+				tmp[n] = null;
+				tmp[n + 1] = parent;
+			}
+			singlePatientSamples.add(tmp[nNodes - 1]);
+			if (tmp[nNodes - 1].getHeight() > maxHeight)
+				maxHeight = tmp[nNodes - 1].getHeight();
+		}
+
+		while (singlePatientSamples.size() > 1) {
+			Node node1 = singlePatientSamples.get(Randomizer.nextInt(singlePatientSamples.size()));
+			singlePatientSamples.remove(node1);
+			Node node2 = singlePatientSamples.get(Randomizer.nextInt(singlePatientSamples.size()));
+			singlePatientSamples.remove(node2);
+
+			double deltaT = Randomizer.nextExponential(
+					(singlePatientSamples.size() + 2) * (singlePatientSamples.size() + 1) * 0.5 * 1.0 / initialPopSize);
+			double coalTime = maxHeight + deltaT;
+
+			Node parent = new Node();
+			parent.setID(Integer.toString(id));
+			parent.setNr(id);
+			id += 1;
+			parent.setHeight(coalTime);
+			parent.addChild(node1);
+			parent.addChild(node2);
+
+			singlePatientSamples.add(parent);
+			maxHeight = coalTime;
+		}
+
+		Node root = singlePatientSamples.get(0);
+
+		copyTreeStructure(new Tree(root), transmissionTree);
 	}
 
 	// copy the structure of the source tree to the destination tree
@@ -577,10 +708,10 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 
     @Override
     public void getInitialisedStateNodes(final List<StateNode> stateNodes) {
-		stateNodes.add(speciesTreeInput.get());
+		stateNodes.add(transmissionTreeInput.get());
 
-        for (final Tree g : genes.get()) {
-            stateNodes.add(g);
+		for (final GeneTreeInitializer g : genesTreeInitializerInput.get()) {
+			stateNodes.add(g.getGeneTree());
         }
 
         final RealParameter brate = birthRate.get();

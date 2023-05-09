@@ -1,10 +1,7 @@
 package tnt.operators;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import beast.core.Input;
 import beast.core.Input.Validate;
@@ -13,10 +10,7 @@ import beast.evolution.operators.TreeOperator;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
-import pitchfork.Pitchforks;
-import tnt.distribution.GeneTreeEvent;
 import tnt.distribution.GeneTreeIntervals;
-import tnt.transmissionTree.TransmissionTree;
 import tnt.util.Tools;
 
 /**
@@ -28,6 +22,11 @@ public class SAWilsonBalding extends TreeOperator {
             new Input<RealParameter>("removalProbability", "The probability of an individual to become noninfectious immediately after the sampling");
 	public Input<List<GeneTreeIntervals>> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",
 			"intervals for a gene tree", new ArrayList<>(), Validate.REQUIRED);
+
+	public Input<Boolean> allowSACreationInput = new Input<Boolean>("allowSaCreation",
+			"If the operator should be able to create SA nodes. Default 'true'. "
+					+ "Only applicable if removalProbability >0.",
+			true);
 
     @Override
     public void initAndValidate() {
@@ -41,13 +40,15 @@ public class SAWilsonBalding extends TreeOperator {
 
         Tree tree = treeInput.get(this);
 
+		int oldSACount = tree.getDirectAncestorNodeCount();
+
         //double x0 = 10;
 
         double oldMinAge, newMinAge, newRange, oldRange, newAge, fHastingsRatio, DimensionCoefficient;
         int newDimension, oldDimension;
 
-		// get fit nodes as lis
-        Integer[] fitNodesNrs = getTrNodeNrsNotTransmissionOnGenes(tree);
+		// get fit nodes as list
+		Integer[] fitNodesNrs = Tools.getTrNodeNrsNotTransmissionOnGenes(tree, geneTreeIntervalsInput.get(), true);
         
 //		Integer[] fitNodesNrs2 = getTrNodeNrsNotTransmissionOnGenesAfter(tree);
 
@@ -77,7 +78,7 @@ public class SAWilsonBalding extends TreeOperator {
         }
 
         // make sure that there is at least one candidate edge to attach node iP to
-        if (iP.getParent() == null && CiP.getHeight() <= i.getHeight()) {
+		if (iP.getParent() == null && Tools.greaterOrEqualHeightWithPrecision(i, CiP)) {
             return Double.NEGATIVE_INFINITY;
         }
 
@@ -101,8 +102,8 @@ public class SAWilsonBalding extends TreeOperator {
         do {
             adjacentEdge = false;
             //adjacentLeaf = false;
-            nodeNumber = Randomizer.nextInt(nodeCount + leafNodeCount);
-            if (nodeNumber < nodeCount) {
+			nodeNumber = Randomizer.nextInt(nodeCount + leafNodeCount);
+			if (nodeNumber < nodeCount) {
                 j = tree.getNode(nodeNumber);
                 jP = j.getParent();
                 if (jP != null)
@@ -112,13 +113,15 @@ public class SAWilsonBalding extends TreeOperator {
                     adjacentEdge = (CiP.getNr() == j.getNr() || iP.getNr() == j.getNr());
                 attachingToLeaf = false;
             } else {
-                j = tree.getExternalNodes().get(nodeNumber - nodeCount);
+//				j = tree.getNode(nodeNumber);
+				j = tree.getExternalNodes().get(nodeNumber - nodeCount);
                 jP = j.getParent();
                 newParentHeight = j.getHeight();
                 attachingToLeaf = true;
                 //adjacentLeaf = (iP.getNr() == j.getNr());
             }
-        } while (j.isDirectAncestor() || (newParentHeight <= i.getHeight()) || (i.getNr() == j.getNr()) || adjacentEdge /*|| adjacentLeaf */);
+		} while (j.isDirectAncestor() || (Tools.greaterOrEqualWithPrecision(i.getHeight(), newParentHeight))
+				|| (i.getNr() == j.getNr()) || adjacentEdge /* || adjacentLeaf */);
 
 
         if (attachingToLeaf && iP.getNr() == j.getNr()) {
@@ -201,7 +204,8 @@ public class SAWilsonBalding extends TreeOperator {
             }
 
             if (jP != null) {
-				replace(jP, j, iP);
+                Tools.replaceNodeKeepDirection(jP,j,iP);
+//				replace(jP, j, iP);
 
 //                jP.removeChild(j);  // remove <jP, j>
 //                jP.addChild(iP);   // add <jP, iP>
@@ -229,6 +233,11 @@ public class SAWilsonBalding extends TreeOperator {
             return Double.NEGATIVE_INFINITY;
         }
 
+		int newSACount = tree.getDirectAncestorNodeCount();
+		if (!allowSACreationInput.get() && oldSACount != newSACount) {
+			return Double.NEGATIVE_INFINITY;
+		}
+
 //		newDimension = nodeCountFrom - tree.getDirectAncestorNodeCount() - 1;
 //		if (nodeCountFrom != getTrNodeNrsNotTransmissionOnGenesAfter(tree).length)
 //			System.out.println();
@@ -243,65 +252,66 @@ public class SAWilsonBalding extends TreeOperator {
 
     }
 
-	private Integer[] getTrNodeNrsNotTransmissionOnGenes(Tree transmissionTree) {
-		Set<Integer> fitNodeNrs = new HashSet<Integer>();
-		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
+//	private Integer[] getTrNodeNrsNotTransmissionOnGenes(Tree transmissionTree) {
+//		Set<Integer> fitNodeNrs = new HashSet<Integer>();
+//		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
+//
+//		for (Node n : transmissionTree.getNodesAsArray()) {
+//			if (n.isRoot()) {
+//				fitNodeNrs.add(n.getNr());
+//				continue;
+//			}
+//
+//			int recipientNr = n.getParent().getChild(1).getNr();
+//			boolean addToFit = true;
+//
+//			for (GeneTreeIntervals intervals : intervalsLis) {
+//				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
+//				List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
+//				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
+//
+//				if (!n.getParent().isFake()
+//						&& Tools.equalWithPrecisionDouble(n.getParent().getHeight(), lastEvent.time)) {
+//					addToFit = false;
+//					break;
+//				}
+//			}
+//
+//			if (addToFit) {
+//				fitNodeNrs.add(recipientNr);
+//				fitNodeNrs.add(n.getParent().getChild(0).getNr());
+//			}
+//		}
+//
+//		return fitNodeNrs.toArray(new Integer[0]);
+//	}
 
-		for (Node n : transmissionTree.getNodesAsArray()) {
-			if (n.isRoot()) {
-				fitNodeNrs.add(n.getNr());
-				continue;
-			}
-
-			int recipientNr = n.getParent().getChild(1).getNr();
-			boolean addToFit = true;
-
-			for (GeneTreeIntervals intervals : intervalsLis) {
-				HashMap<Integer, List<GeneTreeEvent>> eventList = intervals.getGeneTreeEventList();
-				List<GeneTreeEvent> eventsPerTrNode = eventList.get(recipientNr);
-				GeneTreeEvent lastEvent = eventsPerTrNode.get(eventsPerTrNode.size() - 1);
-
-				if (!n.getParent().isFake() && n.getParent().getHeight() == lastEvent.time) {
-					addToFit = false;
-					break;
-				}
-			}
-
-			if (addToFit) {
-				fitNodeNrs.add(recipientNr);
-				fitNodeNrs.add(n.getParent().getChild(0).getNr());
-			}
-		}
-
-		return fitNodeNrs.toArray(new Integer[0]);
-	}
-
-	private Integer[] getTrNodeNrsNotTransmissionOnGenesAfter(Tree transmissionTree) {
-		Set<Double> unfitHeights = new HashSet<Double>();
-		final List<Double> trHeights = Tools.getTransmissionHeights((TransmissionTree) transmissionTree);
-		Double trRootHeight = transmissionTree.getRoot().getHeight();
-		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
-
-		for (GeneTreeIntervals intervals : intervalsLis) {
-			List<Node> nodes = Pitchforks.getTrueInternalNodes(intervals.geneTreeInput.get());
-			for (Node n : nodes) {
-				if (!n.isLeaf() && trHeights.contains(n.getHeight())) {
-					unfitHeights.add(n.getHeight());
-				}
-			}
-		}
-
-//		unfitHeights.remove(trRootHeight);
-		Set<Integer> fitNodeNrs = new HashSet<Integer>();
-		for (Node trNode : transmissionTree.getNodesAsArray()) {
-			if (trNode.isRoot())
-				fitNodeNrs.add(trNode.getNr());
-			else if (trNode.getParent().isFake() || !unfitHeights.contains(trNode.getParent().getHeight()))
-				fitNodeNrs.add(trNode.getNr());
-		}
-
-		return fitNodeNrs.toArray(new Integer[0]);
-	}
+//	private Integer[] getTrNodeNrsNotTransmissionOnGenesAfter(Tree transmissionTree) {
+//		Set<Double> unfitHeights = new HashSet<Double>();
+//		final List<Double> trHeights = Tools.getTransmissionHeights((TransmissionTree) transmissionTree);
+//		Double trRootHeight = transmissionTree.getRoot().getHeight();
+//		final List<GeneTreeIntervals> intervalsLis = geneTreeIntervalsInput.get();
+//
+//		for (GeneTreeIntervals intervals : intervalsLis) {
+//			List<Node> nodes = Pitchforks.getTrueInternalNodes(intervals.geneTreeInput.get());
+//			for (Node n : nodes) {
+//				if (!n.isLeaf() && trHeights.contains(n.getHeight())) {
+//					unfitHeights.add(n.getHeight());
+//				}
+//			}
+//		}
+//
+////		unfitHeights.remove(trRootHeight);
+//		Set<Integer> fitNodeNrs = new HashSet<Integer>();
+//		for (Node trNode : transmissionTree.getNodesAsArray()) {
+//			if (trNode.isRoot())
+//				fitNodeNrs.add(trNode.getNr());
+//			else if (trNode.getParent().isFake() || !unfitHeights.contains(trNode.getParent().getHeight()))
+//				fitNodeNrs.add(trNode.getNr());
+//		}
+//
+//		return fitNodeNrs.toArray(new Integer[0]);
+//	}
 
 
 }

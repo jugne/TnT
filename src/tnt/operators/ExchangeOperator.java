@@ -18,7 +18,6 @@
 package tnt.operators;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import beast.core.Description;
@@ -51,16 +50,11 @@ public class ExchangeOperator extends TreeOperator {
 	/**
 	 * The gene node assignment (gene tree node Nr -> transmission tree node Nr).
 	 */
-	HashMap<Integer, Integer> geneNodeAssignment;
+	Integer[] geneNodeAssignment;
 
 	/** The gene tree intervals. */
 	GeneTreeIntervals intervals;
 
-	/**
-	 * The transmission node heights on the transmission tree (bifurcating node
-	 * heights).
-	 */
-	List<Double> trHeights;
 
     @Override
     public void initAndValidate() {
@@ -73,7 +67,6 @@ public class ExchangeOperator extends TreeOperator {
     public double proposal() {
 
 		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
-		trHeights = Tools.getTransmissionHeights(intervals.transmissionTreeInput.get());
 
         if (isNarrow) {
             List<Node> trueNodes = Pitchforks.getTrueNodes(tree);
@@ -103,8 +96,6 @@ public class ExchangeOperator extends TreeOperator {
                 destNode = possibleDestNodes.get(Randomizer.nextInt(possibleDestNodes.size()));
             } while (destNode == srcNodeLogicalParent);
             destNodeParent = destNode.getParent();
-			if (destNodeParent.isLeaf())
-				System.out.println();
 
             // Reject if substitution would result in negative edge length:
 			if (destNode.getHeight() >= srcNodeParent.getHeight()
@@ -128,15 +119,15 @@ public class ExchangeOperator extends TreeOperator {
 	private List<Node> getPossibleDestNodes(Node srcNodeLogicalGrandparent, Node srcNodeLogicalParent, Node srcNode) {
 		List<Node> possibleDestNodes = Pitchforks.getLogicalChildren(srcNodeLogicalGrandparent);
 		List<Integer> possibleAssignments = new ArrayList<>();
-		int trNodeNr = geneNodeAssignment.get(srcNode.getNr());
+		int trNodeNr = geneNodeAssignment[srcNode.getNr()];
 		possibleAssignments.add(trNodeNr);
 		possibleAssignments.addAll(Tools.getAllParentNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
 		possibleAssignments.addAll(Tools.getChildNrs(intervals.transmissionTreeInput.get().getNode(trNodeNr)));
 		
 		List<Node> remove = new ArrayList<Node>();
 		for (Node n : possibleDestNodes) {
-			if (!possibleAssignments.contains(geneNodeAssignment.get(n.getNr()))
-					|| n.getHeight() == srcNodeLogicalParent.getHeight())
+			if (!possibleAssignments.contains(geneNodeAssignment[n.getNr()])
+					|| Tools.equalHeightWithPrecision(n, srcNodeLogicalParent))
 					remove.add(n);
 		}
 		
