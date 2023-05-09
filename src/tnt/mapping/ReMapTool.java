@@ -71,7 +71,8 @@ public class ReMapTool {
         String[] headerSplit = header.split("\\t");
         Pattern originPattern = Pattern.compile("origin");
         Pattern R0Pattern = Pattern.compile("R0");
-        Pattern deltaPattern = Pattern.compile("becominUninfectiousRate");
+        Pattern deltaPattern = Pattern.compile("becomeUninfectiousRate");
+        Pattern deltaPattern2 = Pattern.compile("becominUninfectiousRate");
         Pattern sPattern = Pattern.compile("samplingProportion");
         Pattern rPattern = Pattern.compile("removalProb");
         Pattern rhoPattern = Pattern.compile("rhoSampling");
@@ -91,6 +92,7 @@ public class ReMapTool {
             Matcher originMatcher = originPattern.matcher(param);
             Matcher R0Matcher = R0Pattern.matcher(param);
             Matcher deltaMatcher = deltaPattern.matcher(param);
+            Matcher deltaMatcher2 = deltaPattern2.matcher(param);
             Matcher sMatcher = sPattern.matcher(param);
             Matcher rMatcher = rPattern.matcher(param);
             Matcher rhoMatcher = rhoPattern.matcher(param);
@@ -101,10 +103,13 @@ public class ReMapTool {
                 R0 = R0Matcher.group(0);
             if (deltaMatcher.find())
                 delta = deltaMatcher.group(0);
+            else if (deltaMatcher2.find())
+                delta = deltaMatcher2.group(0);
             if (sMatcher.find())
                 s = sMatcher.group(0);
             if (rMatcher.find())
                 r = rMatcher.group(0);
+
             if (rhoMatcher.find())
                 rho = rhoMatcher.group(0);
         }
@@ -134,6 +139,11 @@ public class ReMapTool {
         }
 
         Element offset = (Element) tntXML.getElementsByTagName("finalSampleOffset").item(0);
+        Element samplingProp = (Element) tntXML.getElementsByTagName("samplingProportion").item(0);
+        boolean samplingTimesAreAges = samplingProp.getAttribute("timesAreAges").equals("true")? true:false;
+        Element samplingChangeTimes = (Element) samplingProp.getElementsByTagName("changeTimes").item(0);
+
+
 
         // retrieve the element 'run'
         Element run = (Element) tntXML.getElementsByTagName("run").item(0);
@@ -157,7 +167,7 @@ public class ReMapTool {
         // trace log state
         Element traceLogState = tntXML.createElement("logFileState");
         traceLogState.setAttribute("spec", TraceLogFileState.class.getCanonicalName());
-        traceLogState.setAttribute("logFileName", options.logFile.getName());
+        traceLogState.setAttribute("logFileName", options.logFile.getPath());
         feastRun.appendChild(traceLogState);
 
         Element originLogFileEntries = tntXML.createElement("logFileEntry");
@@ -230,7 +240,7 @@ public class ReMapTool {
         // network log state
         Element treeLogState = tntXML.createElement("logFileState");
         treeLogState.setAttribute("spec", TreeLogFileState.class.getCanonicalName());
-        treeLogState.setAttribute("logFileName", options.treeFile.getName());
+        treeLogState.setAttribute("logFileName", options.treeFile.getPath());
 
         Element tree = tntXML.createElement("tree");
         tree.setAttribute("spec", TransmissionTree.class.getCanonicalName());
@@ -309,10 +319,15 @@ public class ReMapTool {
 //      	</samplingProportion>
         Element sLog = tntXML.createElement("samplingProportion");
         sLog.setAttribute("spec", SkylineVectorParameter.class.getCanonicalName());
+        sLog.setAttribute("timesAreAges", Boolean.toString(samplingTimesAreAges));
+        sLog.setAttribute("origin", "@origin");
         sLog.setAttribute("typeSet", "@typeSet");
         Element sLogVal = tntXML.createElement("skylineValues");
         sLogVal.setAttribute("idref", s);
         sLog.appendChild(sLogVal);
+        if (samplingChangeTimes != null) {
+            sLog.appendChild(samplingChangeTimes);
+        }
         param.appendChild(sLog);
 
 //        <removalProb spec="SkylineVectorParameter" typeSet="@typeSet">
@@ -342,12 +357,13 @@ public class ReMapTool {
             Element rhoLogVal = tntXML.createElement("values");
             rhoLogVal.setAttribute("idref", rho);
             rhoLog.appendChild(rhoLogTimes);
-            rhoLog.appendChild(rLogVal);
+            rhoLog.appendChild(rhoLogVal);
             param.appendChild(rhoLog);
         }
 
         treeLog.appendChild(param);
-        treeLog.appendChild(offset);
+        if (offset != null)
+            treeLog.appendChild(offset);
 
         Element nHiddenTransmissions = tntXML.createElement("nHiddenEvents");
         nHiddenTransmissions.setAttribute("id", "nHiddenEvents");
@@ -382,9 +398,11 @@ public class ReMapTool {
 
         System.out.println("Done creating re-map XML File");
 
-        String[] args = new String[2];
+        String[] args = new String[4];
         args[0] = "-overwrite";
         args[1] = options.outFile.toString();
+        args[2] = "-seed";
+        args[3] = "random";
         BeastMCMC.main(args);
 
     }

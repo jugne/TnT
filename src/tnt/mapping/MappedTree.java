@@ -93,7 +93,7 @@ public class MappedTree extends TransmissionTree {
 	public void initAndValidate() {
 		treeInput.get().initAndValidate();
 		parameterization = parameterizationInput.get();
-		origin = parameterization.originInput.get().getArrayValue(0);
+		origin = parameterization.getTotalProcessLength();
 		finalSampleOffset = finalSampleOffsetInput.get();
 		unmappedTree = treeInput.get();
 
@@ -110,13 +110,13 @@ public class MappedTree extends TransmissionTree {
 
 	public void map() {
 		computeConstants(A, B);
-		origin = parameterization.originInput.get().getArrayValue(0);
+		origin = parameterization.getTotalProcessLength();
 		unmappedTree = treeInput.get();
 		if (unmappedTree.getRoot().getMetaData("host")!=null)
 			unmappedTree.orientateTree();
 		nHiddenEvents = 0;
 
-		boolean skip = false;
+		boolean skip = true;
 		Node typedRoot = paintHiddenEvents(unmappedTree.getRoot(), skip);
 
 		// Ensure internal nodes are numbered correctly. (Leaf node numbers and
@@ -159,7 +159,10 @@ public class MappedTree extends TransmissionTree {
 
 				i = i - 1;
 				t_start = t_end_int;
-				t_end_int = parameterization.getIntervalEndTimes()[i - 1];
+				if (i == 0)
+					t_end_int = origin - finalSampleOffset.getArrayValue();
+				else
+					t_end_int = origin - parameterization.getIntervalEndTimes()[i];
 				updateParameters(i);
 			}
 
@@ -225,10 +228,11 @@ public class MappedTree extends TransmissionTree {
 	private List<Double> sampleTimes(double startTime, double endTime) {
 		List<Double> eventTimes = new ArrayList<>();
 
-		double meanN = meanEvents(parameterization.getAge(startTime, finalSampleOffset.getArrayValue()),
-				parameterization.getAge(endTime, finalSampleOffset.getArrayValue()));
+		double meanN = meanEvents(parameterization.getNodeAge(startTime, finalSampleOffset.getArrayValue()),
+				parameterization.getNodeAge(endTime, finalSampleOffset.getArrayValue()));
 		if (meanN == 0)
 			return eventTimes;
+
 
 		long n = Randomizer.nextPoisson(meanN);
 
@@ -260,14 +264,14 @@ public class MappedTree extends TransmissionTree {
 	}
 
 	private double ft(double t_start, double t_x, double t_end) {
-		return meanEvents(parameterization.getAge(t_start, finalSampleOffset.getArrayValue()),
-				parameterization.getAge(t_x, finalSampleOffset.getArrayValue())) /
-				meanEvents(parameterization.getAge(t_start, finalSampleOffset.getArrayValue()),
-						parameterization.getAge(t_end, finalSampleOffset.getArrayValue()));
+		return meanEvents(parameterization.getNodeAge(t_start, finalSampleOffset.getArrayValue()),
+				parameterization.getNodeAge(t_x, finalSampleOffset.getArrayValue())) /
+				meanEvents(parameterization.getNodeAge(t_start, finalSampleOffset.getArrayValue()),
+						parameterization.getNodeAge(t_end, finalSampleOffset.getArrayValue()));
 	}
 
 	private double ftInverse(double t_start, double t_end, double u) {
-		double a = 0;
+		double a = t_start;
 		double b = t_end;
 		double b_inf = Double.NEGATIVE_INFINITY;
 		double b_sup = Double.POSITIVE_INFINITY;

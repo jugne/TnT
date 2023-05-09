@@ -498,9 +498,10 @@ public class Tools {
 	public static void replaceNodeKeepDirection(final Node node, final Node child, final Node replacement) {
 			boolean left = node.getLeft().getNr() == child.getNr();
 			Node otherChild = getOtherChild(node, child);
+			boolean fake = otherChild.isDirectAncestor();
 			node.removeChild(otherChild);
 			node.removeChild(child);
-			if (left) {
+			if (left || fake) {
 				node.addChild(replacement);
 				node.addChild(otherChild);
 			} else {
@@ -567,6 +568,35 @@ public class Tools {
 		subtreeRoot.setNr(nextNumber);
 
 		return nextNumber + 1;
+	}
+
+	public static void getGroupAndLogicalNotHiddenChildren(Node node, List<Node> group, List<Node> logicalChildren) {
+		for (Node child : node.getChildren()) {
+			if (! (child.getChildCount()==2 && child.isFake())){
+				if (child.getHeight() == node.getHeight()) {
+					if (group != null)
+						group.add(child);
+					getGroupAndLogicalNotHiddenChildren(child, group, logicalChildren);
+				} else {
+					if (logicalChildren != null)
+						logicalChildren.add(child);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Get logical children descending from logical node groupRoot.
+	 *
+	 * @param groupRoot logical node in Tree
+	 * @return newly created list of child nodes.
+	 */
+	public static List<Node> getLogicalNotHiddenChildren(Node groupRoot) {
+		List<Node> logicalChildren = new ArrayList<>();
+
+		getGroupAndLogicalNotHiddenChildren(groupRoot, null, logicalChildren);
+
+		return logicalChildren;
 	}
 
 }
