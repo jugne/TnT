@@ -210,6 +210,7 @@ public class GeneTreeIntervals extends CalculationNode {
 
 			// check that no multiple mergers were created in different transmission
 			// branches
+			// TODO this should not be needed
 			int trNr = geneTreeNodeAssignment[first.getNr()];
 			for (int nr : nodeTime.get(time)) {
 				if (geneTreeNodeAssignment[nr] != trNr && (!first.isLeaf() && !geneTree.getNode(nr).isLeaf())) {
