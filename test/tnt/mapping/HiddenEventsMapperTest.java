@@ -21,6 +21,7 @@ import org.junit.Assert;
 import tnt.simulator.SABDSimulator;
 
 import org.apache.commons.math3.stat.inference.TestUtils;
+import tnt.transmissionTree.TransmissionTree;
 
 public class HiddenEventsMapperTest {
 
@@ -105,12 +106,12 @@ public class HiddenEventsMapperTest {
 							new RealParameter(Double.toString(origin)),
 							new RealParameter(Double.toString(rho))));
 
-			Tree t = new Tree(simulator.sampledRoot.toNewick());
+			TransmissionTree t = (TransmissionTree) new Tree(simulator.sampledRoot);
 
 			Double offset = origin + smallestHeightSampled;
 
 			mappedTree.initByName(
-					"tree", t,
+					"tree", (TransmissionTree) t,
 					"parameterization", parameterization,
 					"finalSampleOffset", new RealParameter(offset.toString()));
 
