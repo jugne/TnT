@@ -54,6 +54,11 @@ public class SkyGeneTreeDistribution extends Distribution {
 					+ "Default false: only before and after origin sizes are estimated.",
 			false);
 
+	public Input<Boolean> popSizeAboveOriginInput = new Input<>("popSizeAboveOrigin",
+			"If pop sizes are estimated separately above the origin. "
+					+ "Default true.",
+			true);
+
 	private double ploidy;
 
 	private double bottleneckDuration;
@@ -124,8 +129,10 @@ public class SkyGeneTreeDistribution extends Distribution {
 			}
 		} else
 			throw new Error("Either bottleneckDuration, tau or pairwiseProbBottleneck must be specified!");
-
-		popSizeOrigin = popSizesInput.get().getValue(popSizeDim-1);
+		if (popSizeAboveOriginInput.get())
+			popSizeOrigin = popSizesInput.get().getValue(popSizeDim-1);
+		else popSizeOrigin = popSizePerBranchInput.get() ? popSizesInput.get().getValue(transmissionTree.getRoot().getNr())
+				: popSizesInput.get().getValue(0);
 	}
 
 	private void computeConstants(double[] A, double[] B) {
@@ -167,7 +174,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 			return Double.NEGATIVE_INFINITY;
 
 
-		origin = parameterization.originInput.get().getArrayValue(0);
+		origin = parameterization.processLengthInput.get().getArrayValue(0);
 
 		computeConstants(A, B);
 
@@ -351,8 +358,8 @@ public class SkyGeneTreeDistribution extends Distribution {
 		sum = gUp(prevEvent.lineages, prevEvent.lineages, bottleneckDuration, popSizePerBranch);//
 
 		ans -= (1 - sum) * lambda_i//
-				* integral_p_i(parameterization.getAge(startTime, finalSampleOffset.getArrayValue()),
-						parameterization.getAge(end_time, finalSampleOffset.getArrayValue()));//
+				* integral_p_i(parameterization.getNodeAge(startTime, finalSampleOffset.getArrayValue()),
+						parameterization.getNodeAge(end_time, finalSampleOffset.getArrayValue()));//
 
 		return ans;
 	}
@@ -406,7 +413,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 		ans = (1.0 / waysToCoal(prevEvent.lineages, event.lineages)) * mult
 				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch)
 				* lambda_i * get_p_i(lambda_i, mu_i, psi_i, A_i, B_i, t_i,
-						parameterization.getAge(event.time, finalSampleOffset.getArrayValue()));
+						parameterization.getNodeAge(event.time, finalSampleOffset.getArrayValue()));
 
 		return Math.log(ans);
 	}
@@ -424,7 +431,7 @@ public class SkyGeneTreeDistribution extends Distribution {
 		ans += (1.0 / waysToCoal(prevEvent.lineages, event.lineages))//
 				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch)//
 				* lambda_i * get_p_i(lambda_i, mu_i, psi_i, A_i, B_i, t_i,
-						parameterization.getAge(event.time, finalSampleOffset.getArrayValue()));//
+						parameterization.getNodeAge(event.time, finalSampleOffset.getArrayValue()));//
 
 		return Math.log(ans);
 	}

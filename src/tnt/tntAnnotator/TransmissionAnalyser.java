@@ -61,7 +61,7 @@ public class TransmissionAnalyser extends TreeAnnotator {
         System.out.println(options + "\n");
 
         // Initialise reader
-        TreeSet trTreeSet = new FastTreeSet(options.inTransmissionTreeFile.toString(), options.burnIn);
+        TreeSet trTreeSet = new MemoryFriendlyTreeSet(options.inTransmissionTreeFile.toString(), options.burnIn);
         PrintStream ps = new PrintStream(options.outFile);
 
         String outDir = options.inTransmissionTreeFile.getParent();
@@ -205,6 +205,7 @@ public class TransmissionAnalyser extends TreeAnnotator {
             parent = parent.getParent();
 
             if(parent == null){
+                infectionTime=Double.NaN;
                 break;
             }
             infectionTime = parent.getHeight();
@@ -436,6 +437,20 @@ public class TransmissionAnalyser extends TreeAnnotator {
                         options.inTransmissionTreeFile = new File(args[i + 1]);
                     } catch (NumberFormatException e) {
                         printUsageAndError("Error parsing network file.");
+                    }
+
+                    i += 1;
+                    break;
+
+                case "-burnIn":
+                    if (args.length<=i+1) {
+                        printUsageAndError("-out must be followed by an output file path.");
+                    }
+
+                    try {
+                        options.burnIn = Integer.parseInt(args[i + 1]);
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("Error parsing output file path.");
                     }
 
                     i += 1;

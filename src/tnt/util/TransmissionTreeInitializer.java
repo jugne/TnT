@@ -539,8 +539,6 @@ public class TransmissionTreeInitializer extends Tree implements StateNodeInitia
 		rnd.setInputValue("populationModel", pf);
 		rnd.initAndValidate();
 
-		System.out.println(rnd.getRoot().toNewick());
-
 		/////////////
 
 		int nSets = taxonsetsInput.get().size();

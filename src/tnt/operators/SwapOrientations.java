@@ -67,6 +67,7 @@ public class SwapOrientations extends TreeOperator {
 
 		iP.setLeft(right);
 		iP.setRight(left);
+		iP.makeAllDirty(Tree.IS_FILTHY);
 /*        Node CiP;
         if (iP.getLeft().getNr() == i.getNr()) {
             CiP = iP.getRight();

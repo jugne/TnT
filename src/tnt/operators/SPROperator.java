@@ -79,7 +79,7 @@ public class SPROperator extends TreeOperator {
 
 		boolean bottleneck = false;
 		geneNodeAssignment = intervals.getGeneTreeNodeAssignment();
-		final Tree treebf = tree.copy();
+		//final Tree treebf = tree.copy();
 
 		// Get list of nodes below finite-length edges
 		List<Node> trueNodes = getTrueNodes(tree);

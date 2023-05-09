@@ -215,7 +215,7 @@ public class SAWilsonBalding extends TreeOperator {
                 tree.setRootOnly(iP);
             }
 			iP.removeChild(otherIPChild);
-			if (right && !j.isLeaf()) {
+			if (right) {
 				iP.addChild(j);
 				iP.addChild(otherIPChild);
 			} else {

@@ -2,19 +2,16 @@ package tnt.transmissionTree;
 
 import beast.evolution.tree.Node;
 import beast.util.TreeParser;
-import com.google.common.collect.HashMultimap;
 import starbeast2.SpeciesTree;
 import starbeast2.SpeciesTreeInterface;
 import tnt.util.Tools;
-
-import java.util.LinkedHashMap;
-import java.util.Objects;
 
 
 public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterface {
 
 	private boolean hasOrientationMetadata = false;
 	private boolean hasHostMetadata = false;
+
 
 	/**
 	 * reconstruct tree from XML fragment in the form of a DOM node *
@@ -98,7 +95,9 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		// add orientation metadata before storing tree
 		// it is done since BEAST sort the tree in various places and changes the
 		// orientation of child nodes
-		addOrientationMetadata();
+//		if (!hasHostMetadata) {
+			addOrientationMetadata();
+//		}
 		super.store();
 	}
 
@@ -117,14 +116,15 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 
 				subTreeRoot.removeAllChildren(false);
 
-				subTreeRoot.addChild(left);
-				subTreeRoot.addChild(right);
+				subTreeRoot.setLeft(left);
+				subTreeRoot.setRight(right);
+//				subTreeRoot.addChild(left);
+//				subTreeRoot.addChild(right);
 			}
 
 			orientateNodeChildren(subTreeRoot.getChild(0).getNr());
 			orientateNodeChildren(subTreeRoot.getChild(1).getNr());
 		}
-
 	}
 
 	/**

@@ -127,7 +127,7 @@ public class SampledTree extends Tree {
 		int i = parameterization.getNodeIntervalIndex(subroot, finalSampleOffsetFullTree.getArrayValue());
 		double t_end_int = 0;
 		if (parameterization.getTotalIntervalCount() != 1)
-			t_end_int = parameterization.getAge(parameterization.getIntervalEndTimes()[i - 1],
+			t_end_int = parameterization.getNodeAge(parameterization.getIntervalEndTimes()[i - 1],
 					finalSampleOffsetFullTree.getArrayValue());
 
 		updateParameters(i);

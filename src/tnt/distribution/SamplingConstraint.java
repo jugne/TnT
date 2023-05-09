@@ -73,17 +73,16 @@ public class SamplingConstraint extends Distribution {
 		if (trTree == null)
 			trTree = treeInput.get();
 		for (int j = 0; j < nSets; j++) {
-			List<Node> tmp = new ArrayList<Node>(taxonsets.get(j));
+			List<Node> tmp = new ArrayList<>(taxonsets.get(j));
 			Node startLeaf = tmp.get(0);
-//			tmp.remove(startLeaf);
 			Node child = trTree.getNode(startLeaf.getNr());
 			Node parent = child.getParent();
-			if (parent.getLeft().getNr() == child.getNr()) {
+			if (parent.getLeft().getNr() == child.getNr() && !parent.getLeft().isDirectAncestor()) {
 				tmp.remove(startLeaf);
 			}
 			while (parent != null) {
 				if (parent.isFake()) {
-					if (tmp.get(0).getNr() == parent.getChild(1).getNr()) {
+					if (tmp.get(0).getNr() == parent.getDirectAncestorChild().getNr()) {
 						if (!tmp.remove(tmp.get(0)))
 							System.out.println("SamplingThroughTime distribution error");
 						if (tmp.isEmpty())
