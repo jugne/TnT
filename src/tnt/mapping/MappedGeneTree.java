@@ -15,11 +15,11 @@ import tnt.util.MemoryFriendlyAlignment;
 import tnt.util.MemoryFriendlyAncestralStateTreeLikelihood;
 import tnt.util.Tools;
 
+import javax.swing.tree.TreeNode;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -77,6 +77,13 @@ public class MappedGeneTree extends Tree {
 	IntegerParameter constantsitesWeights;
 	String filter;
 	Boolean externalSeqFile = false;
+	HashMap<Integer, List<String>> nodeToHostIds = new HashMap<>();
+
+	enum transmissionType {HIDDEN, HIDDEN_GENE, OBSERVED, OBSERVED_TRANSMITTED, OBSERVED_UNTRANSMITTED}
+	String trType = "transmissionType";
+	String donorDesc = "donorDescendants";
+	String recipDesc = "recipientDescendants";
+
 
 	@Override
 	public void initAndValidate() {
@@ -96,8 +103,6 @@ public class MappedGeneTree extends Tree {
 		} else
 			data = dataInput.get();
 
-
-
 		assignFromWithoutID(new Tree(unmappedGeneTree.getRoot().copy()));
 		if (outFileNameInput.get()!=null){
 			externalSeqFile = true;
@@ -107,7 +112,9 @@ public class MappedGeneTree extends Tree {
 				throw new RuntimeException("Error writing to output file '"
 						+ outFileNameInput.get() + "'.");
 			}
-			ps.println("Sample"+"\t"+"Transmission Type"+"\t"+"Time"+"\t"+"Sequence");
+			// add host ids on transmitted and untransmitted side
+			ps.println("Sample"+"\t"+"Transmission Type"+"\t"+"Transmission Time"+"\t"+
+					"Donor descendants"+"\t"+"Recipient descendants"+"\t"+"Sequence");
 		}
 
 	}
@@ -120,6 +127,8 @@ public class MappedGeneTree extends Tree {
 			mappedTrTree = mappedTrTreeInput.get();
 		mappedGeneTree = geneTreeInput.get().copy();
 		intervals = geneTreeIntervalsInput.get();
+
+		nodeToHostIds.clear();
 
 		if (mappedTrTreeInput.get()!=null){
 			trNodesToMappedNodes = new Integer[unmappedTrTree.getNodeCount()];
@@ -158,12 +167,10 @@ public class MappedGeneTree extends Tree {
 		} else
 			alignment.initByName("sequence", seqs, "statecount", 4);
 
-//if (first) {
-//		logger = new AncestralStateTreeLikelihood();
-		logger.initByName("data", alignment, "siteModel", siteModelInput.get(),"branchRateModel", branchRateModelInput.get(), "tree", this, "tag", "seq", "sampleTips", false);
-//first = false;
-//}
 
+		logger.initByName("data", alignment, "siteModel", siteModelInput.get(),
+				"branchRateModel", branchRateModelInput.get(), "tree", this, "tag",
+				"seq", "sampleTips", false);
 		logger.calculateLogP();
 		logger.redrawAncestralStates();
 
@@ -184,7 +191,7 @@ public class MappedGeneTree extends Tree {
 			if (TrTreeNode.isLeaf())
 				TrTreeNode = TrTreeNode.getParent();
 			while (Tools.greaterHeightNode(logicalParent, TrTreeNode)){
-				if (!TrTreeNode.isFake() && (TrTreeNode.getChildCount()==1 || recipient) &&
+				if (!TrTreeNode.isFake() && //(TrTreeNode.getChildCount()==1 || recipient) &&
 						Tools.greaterHeightNode(TrTreeNode, geneNode)){
 					Node tmp = new Node();
 					Node parent = geneNode.getParent();
@@ -199,9 +206,18 @@ public class MappedGeneTree extends Tree {
 					tmp.setHeight(TrTreeNode.getHeight());
 					tmpChild.setHeight(TrTreeNode.getHeight());
 					if (TrTreeNode.getChildCount()==1)
-						tmp.metaDataString="nodeType=hidden";
+						tmp.setMetaData(trType, transmissionType.HIDDEN.name());
 					else if (recipient)
-						tmp.metaDataString="nodeType=observed_l";
+						tmp.setMetaData(trType, transmissionType.OBSERVED_TRANSMITTED.name());
+					else
+						tmp.setMetaData(trType, transmissionType.OBSERVED_UNTRANSMITTED.name());
+
+					if (TrTreeNode.getChildCount()==1)
+						tmp.setMetaData(donorDesc, new ArrayList<Node>());
+					else
+						tmp.setMetaData(donorDesc, TrTreeNode.getLeft().getAllLeafNodes());
+					tmp.setMetaData(recipDesc, TrTreeNode.getRight().getAllLeafNodes());
+
 					geneNode = tmp;
 				}
 				recipient = TrTreeNode.metaDataString.contains("recipient");
@@ -209,13 +225,19 @@ public class MappedGeneTree extends Tree {
 					break;
 				TrTreeNode = TrTreeNode.getParent();
 			}
-			if (logicalParent.metaDataString==null && !TrTreeNode.isLeaf()
+			if (logicalParent.getMetaData(trType)==null && !TrTreeNode.isLeaf()
 					&& !TrTreeNode.isFake())
 				if(Tools.equalHeightWithPrecision(TrTreeNode, logicalParent)) {
-					logicalParent.metaDataString = "nodeType=observed";
+					logicalParent.setMetaData(trType, transmissionType.OBSERVED_TRANSMITTED.name());
+					logicalParent.setMetaData(donorDesc, TrTreeNode.getLeft().getAllLeafNodes());
+					logicalParent.setMetaData(recipDesc, TrTreeNode.getRight().getAllLeafNodes());
 				} else if(Tools.isMultiMerger(Tools.getLogicalNotHiddenChildren(mappedGeneTree.getRoot()),
 						logicalParent) || Pitchforks.isPolytomy(logicalParent)){
-					logicalParent.metaDataString = "nodeType=hidden_gene";
+					logicalParent.setMetaData(trType, transmissionType.HIDDEN_GENE.name());
+					logicalParent.setMetaData(donorDesc, new ArrayList<Node>());
+					int trTreeNrTmp = geneTreeNodeAssignment[logicalParent.getNr()];
+					Node TrTreeNodeTmp = unmappedTrTree.getNode(trTreeNrTmp);
+					logicalParent.setMetaData(recipDesc, TrTreeNodeTmp.getAllLeafNodes());
 				}
 			}
 
@@ -316,10 +338,10 @@ public class MappedGeneTree extends Tree {
 	}
 
 	void logSeqsToFile(long sample, Node node){
-		if (node.metaDataString != null){
-			if (logAllHiddenInput.get() ||
-					(node.metaDataString.contains("gene") ||
-							node.metaDataString.contains("observed"))) {
+		boolean first = false;
+		if (node.getMetaData(trType) != null){
+			if (!(logAllHiddenInput.get() &&
+					Objects.equals(node.getMetaData(trType), transmissionType.HIDDEN.name()))) {
 				int[] patternStates = logger.getStatesForNode(this, node);
 				int[] siteStates = new int[seqLength];
 				for (int i = 0; i < seqLength; i++) {
@@ -329,11 +351,18 @@ public class MappedGeneTree extends Tree {
 				String seq = logger.getDataType().encodingToString(siteStates);
 				buf.append(sample);
 				buf.append("\t");
-				buf.append(node.metaDataString.split("=")[1]);
+				buf.append(node.getMetaData(trType));
 				buf.append("\t");
 				buf.append(node.getHeight());
 				buf.append("\t");
-				buf.append(node.getNr());
+				printDescendants(node, buf, donorDesc);
+				buf.append("\t");
+				printDescendants(node, buf, recipDesc);
+//				if (node.getMetaData(recipDesc) != null)
+//					for (Node n : (ArrayList<Node>) node.getMetaData(recipDesc))
+//						buf.append(n.getID() + ",");
+//				buf.append("\t");
+//				buf.append(node.getNr());
 				buf.append("\t");
 				buf.append(seq);
 
@@ -343,6 +372,15 @@ public class MappedGeneTree extends Tree {
 		}
 		for (Node child : node.getChildren()){
 			logSeqsToFile(sample, child);
+		}
+	}
+
+	private void printDescendants(Node node, StringBuffer buf, String descendants) {
+		if (node.getMetaData(descendants) != null) {
+			String commaSeparatedDonorsDescendants = ((ArrayList<Node>) node.getMetaData(descendants)).stream()
+					.map(n -> String.valueOf(n.getID()))
+					.collect(Collectors.joining(","));
+			buf.append(commaSeparatedDonorsDescendants);
 		}
 	}
 
@@ -366,9 +404,9 @@ public class MappedGeneTree extends Tree {
 		}
 		String seq = logger.getDataType().encodingToString(siteStates);
 
-		if (node.metaDataString != null){
+		if (node.getMetaData(trType) != null){
 				buf.append("[&");
-				buf.append(node.metaDataString);
+				buf.append(trType).append("=").append(node.getMetaData(trType));
 				buf.append(",");
 				buf.append("nr" + "=").append(node.getNr());
 				buf.append(",");
