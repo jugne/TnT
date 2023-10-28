@@ -172,9 +172,9 @@ public class ReMapTool {
 
         Element originLogFileEntries = tntXML.createElement("logFileEntry");
         originLogFileEntries.setAttribute("spec", LogFileRealParameter.class.getCanonicalName());
-        originLogFileEntries.setAttribute("fieldName", origin);
+        originLogFileEntries.setAttribute("fieldName", "processLength");
         Element originFieldParameters = tntXML.createElement("fieldParameter");
-        originFieldParameters.setAttribute("id", origin);
+        originFieldParameters.setAttribute("id", "processLength");
         originFieldParameters.setAttribute("spec", RealParameter.class.getCanonicalName());
         originFieldParameters.setAttribute("value", "0.0");
 
@@ -288,8 +288,8 @@ public class ReMapTool {
         param.appendChild(typeSet);
 
 //        <origin id="origin" spec="RealParameter" value="30." lower="0."/>
-        Element originLog = tntXML.createElement("origin");
-        originLog.setAttribute("idref",origin);
+        Element originLog = tntXML.createElement("processLength");
+        originLog.setAttribute("idref","processLength");
         param.appendChild(originLog);
 
 //        <R0 spec="SkylineVectorParameter" typeSet="@typeSet">
@@ -320,7 +320,7 @@ public class ReMapTool {
         Element sLog = tntXML.createElement("samplingProportion");
         sLog.setAttribute("spec", SkylineVectorParameter.class.getCanonicalName());
         sLog.setAttribute("timesAreAges", Boolean.toString(samplingTimesAreAges));
-        sLog.setAttribute("origin", "@origin");
+        sLog.setAttribute("processLength", "@processLength");
         sLog.setAttribute("typeSet", "@typeSet");
         Element sLogVal = tntXML.createElement("skylineValues");
         sLogVal.setAttribute("idref", s);
@@ -350,7 +350,7 @@ public class ReMapTool {
             rhoLog.setAttribute("spec", TimedParameter.class.getCanonicalName());
             rhoLog.setAttribute("typeSet", "@typeSet");
             rhoLog.setAttribute("timesAreAges", "true");
-            rhoLog.setAttribute("origin", "@origin");
+            rhoLog.setAttribute("processLength", "@processLength");
             Element rhoLogTimes = tntXML.createElement("times");
             rhoLogTimes.setAttribute("spec", RealParameter.class.getCanonicalName());
             rhoLogTimes.setAttribute("value", "0.0");
@@ -399,10 +399,11 @@ public class ReMapTool {
         System.out.println("Done creating re-map XML File");
 
         String[] args = new String[4];
-        args[0] = "-overwrite";
-        args[1] = options.outFile.toString();
-        args[2] = "-seed";
-        args[3] = "random";
+        args[0] = "-seed";
+        args[1] = "random";
+        args[2] = "-overwrite";
+        args[3] = options.outFile.toString();
+
         BeastMCMC.main(args);
 
     }
