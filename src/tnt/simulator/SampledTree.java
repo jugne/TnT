@@ -312,7 +312,7 @@ public class SampledTree extends Tree {
 			if (node.getChildCount() == 1 && node.getParent() != null) {
 				Node parent = node.getParent();
 				Node newChild = node.getLeft();
-				Boolean nodeIsLeft = node.getNr() == parent.getLeft().getNr() ? true : false;
+				Boolean nodeIsLeft = node.getNr() == parent.getLeft().getNr();
 				Node otherSibling = nodeIsLeft ? parent.getRight() : parent.getLeft();
 				parent.removeChild(node);
 				parent.removeChild(otherSibling);
