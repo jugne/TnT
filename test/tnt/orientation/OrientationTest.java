@@ -575,10 +575,10 @@ public class OrientationTest{
 			for (Node l : leaves) {
 				if (l.getID().equals("1")) {
 					first = l; 
-					firstAncestor = l.isDirectAncestor() ? true : false;
+					firstAncestor = l.isDirectAncestor();
 				}
 				if (l.getID().equals("2")) {
-					secondAncestor = l.isDirectAncestor() ? true : false;
+					secondAncestor = l.isDirectAncestor();
 				}
 			}
 			
