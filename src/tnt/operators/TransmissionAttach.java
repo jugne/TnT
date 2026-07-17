@@ -185,8 +185,10 @@ public class TransmissionAttach extends TreeOperator {
 				return Double.NEGATIVE_INFINITY;
 
 			// attach at new height
-
-			srcNodeParent.setHeight(chosenRecipient.getParent().getHeight());
+			if (Tools.equalHeightWithPrecision(newAttachNode, chosenRecipient.getParent())){
+				srcNodeParent.setHeight(newAttachNode.getHeight());
+			} else
+				srcNodeParent.setHeight(chosenRecipient.getParent().getHeight());
 
 			if (newAttachNode.isRoot()) {
 				srcNodeParent.addChild(newAttachNode);

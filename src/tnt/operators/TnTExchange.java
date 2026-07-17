@@ -155,7 +155,7 @@ public class TnTExchange extends TreeOperator {
 		List<Integer> trTreeNodesNoTrOnGenes = Arrays.asList(Tools.getTrNodeNrsNotTransmissionOnGenes(tree,
 				geneTreeIntervalsInput.get(), false));
 
-		if (trTreeNodesNoTrOnGenes.contains(i) || trTreeNodesNoTrOnGenes.contains(j)) {
+		if (trTreeNodesNoTrOnGenes.contains(i.getNr()) || trTreeNodesNoTrOnGenes.contains(j.getNr())) {
 			return Double.NEGATIVE_INFINITY;
 		}
 

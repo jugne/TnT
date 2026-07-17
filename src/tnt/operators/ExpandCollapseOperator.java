@@ -93,8 +93,8 @@ public class ExpandCollapseOperator extends TreeOperator {
 		trHeights = Tools.getTransmissionHeights(intervals.transmissionTreeInput.get());
 		boolean which = Randomizer.nextBoolean();
 
-		int p_bf = getPolytomyCount(tree);
-		int m_bf = updateMultiMergeCount(tree);
+//		int p_bf = getPolytomyCount(tree);
+//		int m_bf = updateMultiMergeCount(tree);
 		final Tree treeaf = tree.copy();
 
 		if (which) {

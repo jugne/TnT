@@ -27,6 +27,7 @@ import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import tnt.transmissionTree.TransmissionTree;
+import tnt.util.Tools;
 
 /**
  * @author Ugne Stolz. Created on 22 Oct 2019 Adapted from Tim Vaughan's
@@ -115,6 +116,8 @@ public class SimulatedGeneTreeInit extends Tree {
 
 		transmissionTree = transmissionTreeInput.get();
 		taxonSet = taxonSetInput.get().asStringList();
+
+
 		orientateTreeAtFakeNodes(transmissionTree.getRoot());
 		transmissionNodeCount = transmissionTree.getNodeCount();
 		popSizesInput.get().setDimension(transmissionNodeCount);

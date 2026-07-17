@@ -78,6 +78,7 @@ public class ReMapTool {
         Pattern rhoPattern = Pattern.compile("rhoSampling");
 
         Boolean rhoUsed = true;
+        Boolean rUsed = true;
 
 
         // get header strings for all logger types
@@ -123,7 +124,7 @@ public class ReMapTool {
         if (s == null)
             throw new Exception("Sampling proportion not found in log file.");
         if (r == null)
-            throw new Exception("Removal probability not found in log file.");
+            rUsed = false;
         if (rho == null)
             rhoUsed = false;
 
@@ -172,7 +173,7 @@ public class ReMapTool {
 
         Element originLogFileEntries = tntXML.createElement("logFileEntry");
         originLogFileEntries.setAttribute("spec", LogFileRealParameter.class.getCanonicalName());
-        originLogFileEntries.setAttribute("fieldName", "processLength");
+        originLogFileEntries.setAttribute("fieldName", "origin");
         Element originFieldParameters = tntXML.createElement("fieldParameter");
         originFieldParameters.setAttribute("id", "processLength");
         originFieldParameters.setAttribute("spec", RealParameter.class.getCanonicalName());
@@ -214,16 +215,18 @@ public class ReMapTool {
         sLogFileEntries.appendChild(sFieldParameters);
         traceLogState.appendChild(sLogFileEntries);
 
-        Element rLogFileEntries = tntXML.createElement("logFileEntry");
-        rLogFileEntries.setAttribute("spec", LogFileRealParameter.class.getCanonicalName());
-        rLogFileEntries.setAttribute("fieldName", r);
-        Element rFieldParameters = tntXML.createElement("fieldParameter");
-        rFieldParameters.setAttribute("id", r);
-        rFieldParameters.setAttribute("spec", RealParameter.class.getCanonicalName());
-        rFieldParameters.setAttribute("value", "0.0");
+        if (rUsed){
+            Element rLogFileEntries = tntXML.createElement("logFileEntry");
+            rLogFileEntries.setAttribute("spec", LogFileRealParameter.class.getCanonicalName());
+            rLogFileEntries.setAttribute("fieldName", r);
+            Element rFieldParameters = tntXML.createElement("fieldParameter");
+            rFieldParameters.setAttribute("id", r);
+            rFieldParameters.setAttribute("spec", RealParameter.class.getCanonicalName());
+            rFieldParameters.setAttribute("value", "0.0");
 
-        rLogFileEntries.appendChild(rFieldParameters);
-        traceLogState.appendChild(rLogFileEntries);
+            rLogFileEntries.appendChild(rFieldParameters);
+            traceLogState.appendChild(rLogFileEntries);
+        }
 
         if (rhoUsed){
             Element rhoLogFileEntries = tntXML.createElement("logFileEntry");
@@ -330,16 +333,24 @@ public class ReMapTool {
         }
         param.appendChild(sLog);
 
-//        <removalProb spec="SkylineVectorParameter" typeSet="@typeSet">
+
+//             <removalProb spec="SkylineVectorParameter" typeSet="@typeSet">
 //      		<skylineValues id="removalProb" spec="RealParameter" value="0.226106221601367"/>
 //      	</removalProb>
-        Element rLog = tntXML.createElement("removalProb");
-        rLog.setAttribute("spec", SkylineVectorParameter.class.getCanonicalName());
-        rLog.setAttribute("typeSet", "@typeSet");
-        Element rLogVal = tntXML.createElement("skylineValues");
-        rLogVal.setAttribute("idref", r);
-        rLog.appendChild(rLogVal);
-        param.appendChild(rLog);
+            Element rLog = tntXML.createElement("removalProb");
+            rLog.setAttribute("spec", SkylineVectorParameter.class.getCanonicalName());
+            rLog.setAttribute("typeSet", "@typeSet");
+            Element rLogVal = tntXML.createElement("skylineValues");
+        if (rUsed) {
+            rLogVal.setAttribute("idref", r);
+        }else{
+            rLogVal.setAttribute("id", "removalProb");
+            rLogVal.setAttribute("spec", "RealParameter");
+            rLogVal.setAttribute("value", "0");
+        }
+            rLog.appendChild(rLogVal);
+            param.appendChild(rLog);
+
 
         if (rhoUsed) {
 //        <rhoSampling spec="TimedParameter" typeSet="@typeSet" timesAreAges="true" origin="@origin">

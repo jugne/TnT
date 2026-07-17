@@ -46,13 +46,15 @@ public class TransmissionAnalyser extends TreeAnnotator {
         File inTransmissionTreeFile;
         File outFile;
         int burnIn;
+        String separator = "_";
 
         @Override
         public String toString() {
             return "Active options:\n" +
                     "Input transmission tree file: " + inTransmissionTreeFile + "\n" +
                     "Output file name: " + outFile + "\n" +
-                    "Burn in: " + burnIn + "\n";
+                    "Burn in: " + burnIn + "\n"+
+                    "Separator string: " + burnIn + "\n";
         }
     }
 
@@ -76,13 +78,15 @@ public class TransmissionAnalyser extends TreeAnnotator {
         List<String> hostsList = null;
         List<Integer> skipIDs = new ArrayList<>();
         trTreeSet.reset();
+        int counter = 0;
         while (trTreeSet.hasNext()) {
             Tree tree = trTreeSet.next();
+            counter++;
             Set<String> hosts = new HashSet<String>();
             if (first) {
                 hosts.add("unsampled");
                 for (int i=0; i<tree.getLeafNodeCount(); i++) {
-                    String hostName =tree.getNode(i).getID().split("_")[0];
+                    String hostName =tree.getNode(i).getID().split(options.separator)[0];
                     hosts.add(hostName);
                 }
                 hostsList = new ArrayList<>(hosts);
@@ -129,10 +133,10 @@ public class TransmissionAnalyser extends TreeAnnotator {
 
 
             for (Node leaf : tree.getExternalNodes()){
-                fillTransmissions(leaf, transmissions, hostsList);
+                fillTransmissions(leaf, transmissions, hostsList, options);
                 if(hostsListNoUnsampled.size()==0)
                     System.out.print("");
-                fillInfectionTimes(leaf, infectionTimes, hostsListNoUnsampled);
+                fillInfectionTimes(leaf, infectionTimes, hostsListNoUnsampled, options);
             }
             for (int i = 0; i < hostsList.size() * hostsList.size(); i++) {
                 if (skipIDs.contains(i))
@@ -161,11 +165,12 @@ public class TransmissionAnalyser extends TreeAnnotator {
     }
 
     private void fillTransmissions(Node leaf, Integer[] transmissions,
-                                   List<String> hostsList){
-        String recipient= leaf.getMetaData("host").toString().split("\\.")[0];
+                                   List<String> hostsList, TransmissionAnalyser.TransmissionAnalyserOptions options){
+        String recipient= leaf.getMetaData("host").toString().split(options.separator)[0];
         Node child = leaf;
         Node parent = leaf.getParent();
         int nTransmissions = 0;
+        int nUnobservedTransmissions = 0;
 
         if ( !parent.isFake() && child.metaDataString.contains("recipient")){
             nTransmissions +=1;
@@ -176,12 +181,12 @@ public class TransmissionAnalyser extends TreeAnnotator {
                         Objects.equals(parent.getMetaData("host").toString().split("\\.")[0],
                                 leaf.getMetaData("host").toString().split("\\.")[0]))){
             if(parent.getChildCount() == 1 || (!parent.isFake() && child.metaDataString.contains("recipient"))){
-                nTransmissions +=1; // add 1 for every unobserved transmission (obtained by stochastic mapping)
+                nUnobservedTransmissions +=1; // add 1 for every unobserved transmission (obtained by stochastic mapping)
             }
             child = parent;
             parent = parent.getParent();
         }
-        String donor = parent.getMetaData("host").toString().split("\\.")[0];
+        String donor = parent.getMetaData("host").toString().split(options.separator)[0];
 
         int idx = hostsList.indexOf(donor);
 //        if (idx<0){
@@ -191,12 +196,13 @@ public class TransmissionAnalyser extends TreeAnnotator {
 //            return;
 //        }
         nTransmissions = nTransmissions == 0 ? 1 : nTransmissions;
+        nTransmissions += nUnobservedTransmissions;
         idx = idx * hostsList.size() + hostsList.indexOf(recipient);
         transmissions[idx] = nTransmissions;
     }
     private void fillInfectionTimes(Node leaf, Double[] infectionTimes,
-                                   List<String> hostsListNoUnsampled) {
-        String recipient= leaf.getMetaData("host").toString().split("\\.")[0];
+                                   List<String> hostsListNoUnsampled, TransmissionAnalyser.TransmissionAnalyserOptions options) {
+        String recipient= leaf.getMetaData("host").toString().split(options.separator)[0];
         Node child = leaf;
         Node parent = leaf.getParent();
         double infectionTime = Double.NaN;
@@ -444,7 +450,7 @@ public class TransmissionAnalyser extends TreeAnnotator {
 
                 case "-burnIn":
                     if (args.length<=i+1) {
-                        printUsageAndError("-out must be followed by an output file path.");
+                        printUsageAndError("-burnIn must be followed by burnin percentage.");
                     }
 
                     try {
@@ -469,6 +475,21 @@ public class TransmissionAnalyser extends TreeAnnotator {
 
                     i += 1;
                     break;
+
+                case "-separator":
+                    if (args.length<=i+1) {
+                        printUsageAndError("-out must be followed by regex separator string.");
+                    }
+
+                    try {
+                        options.separator = args[i + 1];
+                    } catch (NumberFormatException e) {
+                        printUsageAndError("Error parsing output file path.");
+                    }
+
+                    i += 1;
+                    break;
+
 
 
                 default:

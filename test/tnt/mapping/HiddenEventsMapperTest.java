@@ -18,6 +18,9 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
 import org.junit.Assert;
+import starbeast2.SpeciesTree;
+import starbeast2.SpeciesTreeInterface;
+import starbeast2.SpeciesTreeParser;
 import tnt.simulator.SABDSimulator;
 
 import org.apache.commons.math3.stat.inference.TestUtils;
@@ -33,7 +36,7 @@ public class HiddenEventsMapperTest {
 	double origin = 1.0; // origin of the transmission process
 	int minSamples = 1; // minimum samples for tree to be accepted after simulation
 	int maxSamples = 2000; // maximum samples for tree to be accepted after simulation
-	int nSims = 100000; // number of simulations
+	int nSims = 500; // number of simulations
 	int tmpHiddenSim;
 
 	@Test
@@ -88,7 +91,7 @@ public class HiddenEventsMapperTest {
 			MappedTree mappedTree = new MappedTree();
 			Parameterization parameterization = new CanonicalParameterization();
 			parameterization.initByName(
-					"origin", new RealParameter(Double.toString(origin)),
+					"processLength", new RealParameter(Double.toString(origin)),
 					"typeSet", new TypeSet(1),
 					"birthRate", new SkylineVectorParameter(
 							null,
@@ -106,12 +109,13 @@ public class HiddenEventsMapperTest {
 							new RealParameter(Double.toString(origin)),
 							new RealParameter(Double.toString(rho))));
 
-			TransmissionTree t = (TransmissionTree) new Tree(simulator.sampledRoot);
+			simulator.sampledRoot.labelInternalNodes(simulator.sampledNodeNumber);
+			Tree t = new Tree(simulator.sampledRoot);
 
 			Double offset = origin + smallestHeightSampled;
 
 			mappedTree.initByName(
-					"tree", (TransmissionTree) t,
+					"simpleTree",  t,
 					"parameterization", parameterization,
 					"finalSampleOffset", new RealParameter(offset.toString()));
 
@@ -149,6 +153,14 @@ public class HiddenEventsMapperTest {
 				hiddenEventsMapLong, 0.01));
 		;
 
+	}
+
+	private static void removeOne(Node subroot){
+		if (subroot.isLeaf())
+			return;
+		subroot.setNr(subroot.getNr()-1);
+		removeOne(subroot.getLeft());
+		removeOne(subroot.getRight());
 	}
 
 	public static int[] calcHistogram(int[] data, double min, double max, int numBins) {

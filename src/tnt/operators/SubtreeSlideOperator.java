@@ -46,7 +46,7 @@ public class SubtreeSlideOperator extends TreeOperator {
             0.1);
 
 	public Input<Double> probMultiMergerInput = new Input<>("probMultiMerger",
-			"Probability of attaching to the same time as the closest(in time) coalescent node following slide.",
+			"Probability of attaching to the same time as the closest (in time) coalescent node following slide.",
 			0.1);
 
 	public Input<GeneTreeIntervals> geneTreeIntervalsInput = new Input<>("geneTreeIntervals",

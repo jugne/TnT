@@ -176,6 +176,7 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 		if (subTreeRoot.isLeaf()) {
 			subTreeRoot.metaDataString = String.format("%s,%s=%s",
 					metaData, "host", subTreeRoot.getID().split("_")[0]);
+//			subTreeRoot.setMetaData("host", subTreeRoot.getID().split("_")[0]);
 			return;
 		}
 		if (subTreeRoot.getChildCount()==1 && !subTreeRoot.isRoot()){
@@ -183,27 +184,34 @@ public class TransmissionTree extends SpeciesTree implements SpeciesTreeInterfac
 			if (parent.getChildCount()>1 && !parent.isFake()){ // coalescent (transmission event)
 				if (subTreeRoot.metaDataString.contains("orientation=donor")){
 					subTreeRoot.metaDataString = parent.metaDataString;
+//					subTreeRoot.setMetaData("host", parent.getMetaData("host"));
 				} else {
 					subTreeRoot.metaDataString = String.format("%s,%s=%s",
 							metaData, "host", "unsampled");
+//					subTreeRoot.setMetaData("host", "unsampled");
 				}
 			} else if(parent.isFake()){ // fake (sampling event)
 				subTreeRoot.metaDataString = String.format("%s,%s=%s",
 						metaData, "host", "unsampled");//parent.metaDataString;
+//				subTreeRoot.setMetaData("host", "unsampled");
 			}
 			else if (parent.getChildCount()==1){ // jump (unobserved transmission event)
 				subTreeRoot.metaDataString = String.format("%s,%s=%s",
 						metaData, "host", "unsampled");
+//				subTreeRoot.setMetaData("host", "unsampled");
 			}
 		} else if (subTreeRoot.getChildCount()==1 && subTreeRoot.isRoot()){
 			subTreeRoot.metaDataString = String.format("%s,%s=%s",
 					metaData, "host", "unsampled");
+//			subTreeRoot.setMetaData("host", "unsampled");
 		} else if (subTreeRoot.isFake()){
 			subTreeRoot.metaDataString = String.format("%s,%s=%s",
 					metaData, "host", firstLeafId(subTreeRoot.getDirectAncestorChild()));
+//			subTreeRoot.setMetaData("host", firstLeafId(subTreeRoot.getDirectAncestorChild()));
 		}else {
 			subTreeRoot.metaDataString = String.format("%s,%s=%s",
-					metaData, "host", firstLeafId(subTreeRoot.getLeft())); // bug here
+					metaData, "host", firstLeafId(subTreeRoot.getLeft()));
+//			subTreeRoot.setMetaData("host", firstLeafId(subTreeRoot.getLeft()));
 		}
 			addHostMetadata(subTreeRoot.getLeft().getNr());
 			if(subTreeRoot.getChildCount()!=1){

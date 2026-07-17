@@ -129,7 +129,7 @@ public class HiddenEventsMapperTestFigures {
 				MappedTree mappedTree = new MappedTree();
 				Parameterization parameterization = new CanonicalParameterization();
 				parameterization.initByName(
-						"origin", new RealParameter(Double.toString(parameters[5])),
+						"processLength", new RealParameter(Double.toString(parameters[5])),
 						"typeSet", new TypeSet(1),
 						"birthRate", new SkylineVectorParameter(
 								null,
@@ -152,7 +152,7 @@ public class HiddenEventsMapperTestFigures {
 				double offset = parameters[5] + smallestHeightSampled;
 
 				mappedTree.initByName(
-						"tree", t,
+						"simpleTree", t,
 						"parameterization", parameterization,
 						"finalSampleOffset", new RealParameter(Double.toString(offset)));
 

@@ -252,14 +252,16 @@ public class SkyGeneTreeDistribution extends Distribution {
 					} else {
 						// otherwise, multifurcation contribution
 						logP += multifurcation(event, prevEvent);
+						if (mu_i==0 &&(logP != Double.NEGATIVE_INFINITY && logP != Double.NaN))
+							System.out.println("mu_i=0, logP != -inf");
 					}
 					break;
 
 
 				}
 
-				if (logP == Double.NEGATIVE_INFINITY)
-					break;
+				if (logP == Double.NEGATIVE_INFINITY || logP == Double.NaN)
+					return Double.NEGATIVE_INFINITY;
 
 				// set previous event to the current
 				prevEvent = event;
@@ -391,7 +393,8 @@ public class SkyGeneTreeDistribution extends Distribution {
 				* gUp(prevEvent.lineages, event.lineages, bottleneckDuration, popSizePerBranch)
 				* lambda_i * get_p_i(lambda_i, mu_i, psi_i, A_i, B_i, t_i,
 						parameterization.getNodeAge(event.time, finalSampleOffset.getArrayValue()));
-
+		if (mu_i==0 &&(Math.log(ans) != Double.NEGATIVE_INFINITY && Math.log(ans) != Double.NaN))
+			System.out.println("mu_i=0, logP != -inf");
 		return Math.log(ans);
 	}
 
@@ -458,8 +461,9 @@ public class SkyGeneTreeDistribution extends Distribution {
 
 		if (lambda > 0.0) {
 			double v = Math.exp(A * (t_i - t)) * (1 + B);
-			return (lambda + mu + psi - A * (v - (1 - B)) / (v + (1 - B)))
+			double pi= (lambda + mu + psi - A * (v - (1 - B)) / (v + (1 - B)))
 					/ (2 * lambda);
+            return Math.max(Math.min(pi, 1.0), 0.0); // Guard against rounding errors
         } else {
             // The limit of p_i as lambda -> 0
             return 0.5;

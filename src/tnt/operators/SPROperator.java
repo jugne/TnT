@@ -340,7 +340,11 @@ public class SPROperator extends TreeOperator {
 
 		// Reconnect subtree
 
-		srcNodeParent.setHeight(newHeight);
+		if (Tools.equalWithPrecision(newAttachNode.getHeight(), newHeight)){
+			srcNodeParent.setHeight(newAttachNode.getHeight());
+		} else
+			srcNodeParent.setHeight(newHeight);
+
 
 		if (newAttachNode.isRoot()) {
 			srcNodeParent.addChild(newAttachNode);

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+
 import bdmmprime.parameterization.Parameterization;
 import beast.core.BEASTObject;
 import beast.core.Function;
@@ -19,6 +20,7 @@ import beast.evolution.alignment.TaxonSet;
 import beast.evolution.branchratemodel.BranchRateModel;
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
+import beast.util.FrequencySet;
 import beast.util.Randomizer;
 import starbeast2.PopulationModel;
 import tnt.logger.TransmissionTreeLogger;
@@ -38,8 +40,10 @@ public class MappedTree extends TransmissionTree {
 					"first initialize.",
 			true);
 
-	public Input<TransmissionTree> treeInput = new Input<>("tree", "Tree with no hidden host switch events.",
-			Input.Validate.REQUIRED);
+	public Input<TransmissionTree> treeInput = new Input<>("tree", "Tree with no hidden host switch events.");
+
+	public Input<Tree> simpleTreeInput = new Input<>("simpleTree", "Tree with no hidden host switch events.",
+			Input.Validate.XOR, treeInput);
 
 	public Input<Parameterization> parameterizationInput = new Input<>("parameterization",
 			"BDMM parameterization",
@@ -62,11 +66,17 @@ public class MappedTree extends TransmissionTree {
 	public Input<List<TaxonSet>> taxonsetsInput = new Input<>("taxonsets",
 			"a separate list of taxa for samples collected from the same patient", new ArrayList<>());
 
+	public Input<Boolean> mapOriginInput = new Input<>("mapOrigin",
+			"Should origin branch be mapped, default false", false);
 
 
+	public Input<Integer> maxMappedNodesInput = new Input<>("maxMappedNodes",
+			"maximum unobserved transmission events, " +
+					"should be only used with mapped tree", Integer.MAX_VALUE);
 
 
 	private TransmissionTree unmappedTree;
+	private Tree unmappedSimpleTree;
 
 	private Parameterization parameterization;
 
@@ -83,19 +93,33 @@ public class MappedTree extends TransmissionTree {
 	private Function finalSampleOffset;
 
 	private int nHiddenEvents;
+//	private long seed;
+//	private long newSeed;
+//	private boolean useLastSeed=false;
 
 	private List<String> constrainedTaxons = new ArrayList<>();
 	private DecimalFormat df;
+
+	TransmissionTree oldTree;
+
+//	private int counter;
+//	private boolean firstStore=true;
 
 
 
 	@Override
 	public void initAndValidate() {
-		treeInput.get().initAndValidate();
+//		seed = Randomizer.getSeed();
+//		newSeed = seed;
+		if (simpleTreeInput.get()==null)
+			treeInput.get().initAndValidate();
 		parameterization = parameterizationInput.get();
 		origin = parameterization.getTotalProcessLength();
 		finalSampleOffset = finalSampleOffsetInput.get();
-		unmappedTree = treeInput.get();
+		if (simpleTreeInput.get()==null)
+			unmappedTree = treeInput.get();
+		else
+			unmappedSimpleTree = simpleTreeInput.get();
 
 		for (TaxonSet t : taxonsetsInput.get()) {
 			constrainedTaxons.addAll(t.asStringList());
@@ -108,25 +132,48 @@ public class MappedTree extends TransmissionTree {
 			map();
 	}
 
-	public void map() {
+	public boolean map() {
+//		System.out.println("map");
+//		seed = newSeed;
+//		Randomizer.setSeed(seed);
+//		System.out.println(seed);
 		computeConstants(A, B);
 		origin = parameterization.getTotalProcessLength();
-		unmappedTree = treeInput.get();
-		if (unmappedTree.getRoot().getMetaData("host")!=null)
-			unmappedTree.orientateTree();
+		if (simpleTreeInput.get()==null){
+			unmappedTree = treeInput.get();
+			if (unmappedTree.getRoot().getMetaData("host")!=null ||
+					unmappedTree.getRoot().getMetaData("orientation")!=null)
+				unmappedTree.orientateTree();
+		} else {
+			unmappedSimpleTree = simpleTreeInput.get();
+		}
+
 		nHiddenEvents = 0;
 
-		boolean skip = true;
-		Node typedRoot = paintHiddenEvents(unmappedTree.getRoot(), skip);
+		boolean skip = false;
+		Node typedRoot;
+		if (simpleTreeInput.get()==null)
+			typedRoot = paintHiddenEvents(unmappedTree.getRoot(), skip);
+		else
+			typedRoot = paintHiddenEvents(unmappedSimpleTree.getRoot(), skip);
+		if (nHiddenEvents > maxMappedNodesInput.get())
+			return false;
 
 		// Ensure internal nodes are numbered correctly. (Leaf node numbers and
 		// labels are matched to those in the untyped tree during the simulation.)
-		numberInternalNodesOnSubtree(typedRoot, unmappedTree.getLeafNodeCount());
+		if (simpleTreeInput.get()==null)
+			numberInternalNodesOnSubtree(typedRoot, unmappedTree.getLeafNodeCount());
+		else
+			numberInternalNodesOnSubtree(typedRoot, unmappedSimpleTree.getLeafNodeCount());
 
 		assignFromWithoutID(new Tree(typedRoot));
 
 		IntegerParameter hiddenEventsCounter = (IntegerParameter) hiddenEventsCounterInput.get();
 		hiddenEventsCounter.setValue(nHiddenEvents);
+//		if (burnInInput.get()>0 && counter<burnInInput.get())
+//			counter+=1;
+
+		return true;
 
 	}
 
@@ -137,6 +184,10 @@ public class MappedTree extends TransmissionTree {
 		if(!skip && subroot.isFake() && constrainedTaxons.contains(subroot.getDirectAncestorChild().getID())){
 			skip=true;
 		}
+
+//		else if (subroot.isRoot() && burnInInput.get()>0 && counter<burnInInput.get())
+//			skip=true;
+
 		double t_end_branch = origin - finalSampleOffset.getArrayValue();
 
 		if (!subroot.isRoot())
@@ -152,7 +203,8 @@ public class MappedTree extends TransmissionTree {
 		
 		double t_start = t_start_branch;
 		List<Double> sampledTimes = new ArrayList<>();
-		if (!skip) {
+
+		if (!skip && !(subroot.isRoot() && !mapOriginInput.get())) {
 			while (t_end_branch > t_end_int) {
 				// record event times
 				sampledTimes.addAll(sampleTimes(t_start, t_end_int));
@@ -237,7 +289,12 @@ public class MappedTree extends TransmissionTree {
 		long n = Randomizer.nextPoisson(meanN);
 
 		for (int s = 0; s < n; s++) {
-			eventTimes.add(ftInverse(startTime, endTime, Randomizer.nextDouble()));
+			Double tmp = ftInverse(startTime, endTime, Randomizer.nextDouble());
+			if (eventTimes.contains(tmp)){
+				s-=1;
+				continue;
+			}
+			eventTimes.add(tmp);
 		}
 
 		return eventTimes;
@@ -377,11 +434,49 @@ public class MappedTree extends TransmissionTree {
         lastRemapSample = sample;
     }
 
-    @Override
+	@Override
+	public boolean somethingIsDirty() {
+		return true;
+	}
+
+	@Override
     public void init(PrintStream out) {
 //		trLog.init(out);
-		unmappedTree.init(out);
-    }
+		if (simpleTreeInput.get()==null)
+			unmappedTree.init(out);
+		else
+			unmappedSimpleTree.init(out);
+	}
+
+	@Override
+	public void store() {
+		// add orientation metadata before storing tree
+		// it is done since BEAST sort the tree in various places and changes the
+		// orientation of child nodes
+//		if (!hasHostMetadata) {
+//		addHostMetadata();
+//		addOrientationMetadata();
+//		}
+//		super.store();
+
+//		newSeed=seed;
+//		if (!firstStore)
+//			seed = Randomizer.nextLong();
+//		firstStore=false;
+		oldTree = (TransmissionTree) getCurrent().copy();
+//		System.err.println("store");
+	}
+
+	@Override
+	public void restore() {
+//		super.restore();
+		// restore the tree to the state before mapping
+		assignFromWithoutID(new Tree(oldTree.getRoot()));
+//		System.err.println("restore");
+//		seed = newSeed;
+		hasStartedEditing = false;
+	}
+
 
     @Override
     public void log(long sample, PrintStream out) {
@@ -411,7 +506,10 @@ public class MappedTree extends TransmissionTree {
 
     @Override
     public void close(PrintStream out) {
-		unmappedTree.close(out);
+		if (simpleTreeInput.get()==null)
+			unmappedTree.close(out);
+		else
+			unmappedSimpleTree.close(out);
     }
 
 	String toNewick(Node node) {
@@ -446,4 +544,7 @@ public class MappedTree extends TransmissionTree {
 		return buf.toString();
 	}
 
+	public int getTotalNodesNumber() {
+		return nHiddenEvents;
+	}
 }

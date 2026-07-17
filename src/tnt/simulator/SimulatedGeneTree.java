@@ -23,6 +23,7 @@ import beast.evolution.tree.Node;
 import beast.evolution.tree.TraitSet;
 import beast.evolution.tree.Tree;
 import beast.util.Randomizer;
+import tnt.util.Tools;
 
 /**
  * @author Ugne Stolz. Created on 22 Oct 2019 Adapted from Tim Vaughan's
@@ -229,7 +230,8 @@ public class SimulatedGeneTree extends Tree {
 		geneTreeSampleAssignment = new HashMap<>();
 
 		List<Node> sortedTransmissionTreeNodes = new ArrayList<>(Arrays.asList(transmissionTree.getNodesAsArray()));
-		sortedTransmissionTreeNodes.sort(Comparator.comparingDouble(Node::getHeight));
+		sortedTransmissionTreeNodes.sort(Comparator.comparingDouble(n -> Tools.round(n.getHeight(),
+				10)));
 
 		// Perform simulation
 

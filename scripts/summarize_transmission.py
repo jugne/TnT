@@ -300,7 +300,7 @@ if not args.noPlotDirect or not args.noPlotIndirect:
                                 create_using=nx.DiGraph())
 
     # Node colors by root probability
-    cmap = mpl.cm.get_cmap("Greens")
+    cmap = mpl.colormaps["Greens"]
     node_col = dict(zip(nodes_indirectAndDirect.id, nodes_indirectAndDirect.root_probability))
     for key, value in node_col.items():
         rgba = cmap(value)

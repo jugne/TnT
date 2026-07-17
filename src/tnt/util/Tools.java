@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import beast.evolution.tree.Node;
 import beast.evolution.tree.Tree;
@@ -246,7 +248,6 @@ public class Tools {
 
 		if (!subRoot.isLeaf()) {
 			if (!subRoot.isRoot() && greaterWithPrecision(subRoot.getHeight(), subRoot.getParent().getHeight())) {
-
 				throw new RuntimeException("Negative branch length!");
 			}
 
@@ -597,6 +598,20 @@ public class Tools {
 		getGroupAndLogicalNotHiddenChildren(groupRoot, null, logicalChildren);
 
 		return logicalChildren;
+	}
+
+	public static String extractHostValue(String input) {
+		// Define the pattern to match 'host' key-value pair
+		String regex = "host=([^,]+)";
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(input);
+
+		if (matcher.find()) {
+			// Extract and return the value of 'host'
+			return matcher.group(1);
+		} else {
+			return null; // Return null if 'host' key is not found
+		}
 	}
 
 }
